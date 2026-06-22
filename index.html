@@ -565,16 +565,116 @@
         #fb-sync-indicator {
             font-size: 0.7rem; color: var(--pe-cyan); margin-top: 2px;
         }
-        /* toast de sincronização */
+        /* toast de sincronização — banner central em primeiro plano */
         #fb-toast {
-            position: fixed; bottom: 24px; right: 24px; z-index: 9998;
-            background: var(--pe-navy); color: #fff; padding: 10px 16px;
-            border-radius: 8px; font-size: 0.82rem; font-weight: 600;
-            box-shadow: 0 4px 16px rgba(0,0,0,0.25); pointer-events: none;
-            opacity: 0; transform: translateY(10px);
-            transition: opacity 0.3s, transform 0.3s;
+            position: fixed; top: 80px; left: 50%; transform: translateX(-50%) translateY(-12px);
+            z-index: 10000; min-width: 280px; max-width: 90vw;
+            background: var(--pe-navy); color: #fff;
+            padding: 13px 22px; border-radius: 10px;
+            font-size: 0.88rem; font-weight: 600; text-align: center;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+            pointer-events: none;
+            opacity: 0; transition: opacity 0.3s, transform 0.3s;
         }
-        #fb-toast.show { opacity: 1; transform: translateY(0); }
+        #fb-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        #fb-toast.toast-sucesso { background: #1a6e35; border-left: 4px solid #2ecc71; }
+        #fb-toast.toast-aviso   { background: #7a4e00; border-left: 4px solid var(--pe-yellow); }
+        #fb-toast.toast-erro    { background: #8b1a1a; border-left: 4px solid var(--pe-red); }
+
+        /* ── MODAL DE PERFIL ──────────────────────────────────── */
+        #perfil-overlay {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+            align-items: flex-start; justify-content: center;
+            overflow-y: auto; padding: 30px 16px;
+        }
+        #perfil-overlay.active { display: flex; }
+        #perfil-modal {
+            background: #fff; border-radius: 16px; width: 100%; max-width: 520px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.3); overflow: hidden;
+            margin: auto;
+        }
+        #perfil-header {
+            background: linear-gradient(135deg, var(--pe-navy) 60%, var(--pe-blue));
+            padding: 28px 24px 20px; text-align: center; position: relative; color: #fff;
+        }
+        #perfil-header button.fechar {
+            position: absolute; top: 12px; right: 14px; background: rgba(255,255,255,0.15);
+            border: none; color: #fff; font-size: 1.1rem; width: 30px; height: 30px;
+            border-radius: 50%; cursor: pointer; font-weight: 700; line-height: 1;
+        }
+        #perfil-foto-wrap {
+            position: relative; width: 88px; height: 88px; margin: 0 auto 12px;
+        }
+        #perfil-foto-img {
+            width: 88px; height: 88px; border-radius: 50%;
+            object-fit: cover; border: 3px solid rgba(255,255,255,0.5);
+            background: var(--pe-blue); display: none;
+        }
+        #perfil-foto-letra {
+            width: 88px; height: 88px; border-radius: 50%;
+            background: var(--pe-cyan); color: var(--pe-navy);
+            font-size: 2.2rem; font-weight: 900;
+            display: flex; align-items: center; justify-content: center;
+            border: 3px solid rgba(255,255,255,0.4);
+        }
+        #perfil-foto-btn {
+            position: absolute; bottom: 0; right: 0;
+            background: var(--pe-yellow); border: 2px solid #fff;
+            border-radius: 50%; width: 26px; height: 26px;
+            font-size: 0.75rem; cursor: pointer; display: flex;
+            align-items: center; justify-content: center;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        }
+        #perfil-nome-display { font-size: 1.15rem; font-weight: 700; }
+        #perfil-email-display { font-size: 0.78rem; color: var(--pe-cyan); margin-top: 2px; }
+        #perfil-body { padding: 22px 24px; }
+        .perfil-section { margin-bottom: 20px; }
+        .perfil-section h3 {
+            font-size: 0.75rem; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 0.06em; color: var(--pe-text-muted);
+            margin-bottom: 10px; padding-bottom: 6px;
+            border-bottom: 1px solid var(--pe-border);
+        }
+        .perfil-field { margin-bottom: 11px; }
+        .perfil-field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--pe-navy); margin-bottom: 4px; }
+        .perfil-field input, .perfil-field textarea, .perfil-field select {
+            width: 100%; padding: 8px 11px; border: 1px solid var(--pe-border);
+            border-radius: 7px; font-size: 0.88rem; outline: none; transition: border 0.2s;
+            font-family: inherit;
+        }
+        .perfil-field input:focus, .perfil-field textarea:focus { border-color: var(--pe-blue); }
+        .perfil-field textarea { resize: vertical; min-height: 60px; }
+        .escola-item {
+            display: flex; align-items: center; gap: 8px; padding: 8px 10px;
+            background: #f8f9fa; border: 1px solid var(--pe-border);
+            border-radius: 7px; margin-bottom: 6px;
+        }
+        .escola-item span { flex: 1; font-size: 0.85rem; }
+        .escola-item button { background: none; border: none; color: var(--pe-red); cursor: pointer; font-size: 1rem; padding: 2px 5px; }
+        .turma-tag {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: #e8f0fe; color: var(--pe-blue); border-radius: 20px;
+            padding: 4px 10px; font-size: 0.78rem; font-weight: 600; margin: 3px;
+        }
+        .turma-tag button { background: none; border: none; color: var(--pe-blue); cursor: pointer; font-size: 0.8rem; opacity: 0.6; padding: 0 0 0 4px; }
+        .turma-tag button:hover { opacity: 1; }
+        .perfil-add-row { display: flex; gap: 7px; margin-top: 7px; }
+        .perfil-add-row input { flex: 1; }
+        .btn-add-perfil {
+            padding: 8px 13px; background: var(--pe-blue); color: #fff;
+            border: none; border-radius: 7px; font-size: 0.82rem; font-weight: 700;
+            cursor: pointer; white-space: nowrap; flex-shrink: 0;
+        }
+        .btn-add-perfil:hover { background: var(--pe-navy); }
+        #perfil-btn-salvar {
+            width: 100%; padding: 12px; background: var(--pe-blue); color: #fff;
+            border: none; border-radius: 9px; font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; margin-top: 6px; transition: background 0.2s;
+        }
+        #perfil-btn-salvar:hover { background: var(--pe-navy); }
+        #perfil-btn-salvar:disabled { background: #aaa; }
+        #perfil-save-msg { text-align: center; font-size: 0.8rem; margin-top: 8px; min-height: 18px; }
     </style>
 </head>
 <body>
@@ -4031,6 +4131,10 @@ function listarTurmas() {
                         <div id="fb-conta-email" style="font-size:0.9rem;font-weight:600;color:var(--pe-navy);"></div>
                         <div id="fb-conta-sync-info" style="font-size:0.75rem;color:var(--pe-text-muted);margin-top:4px;"></div>
                     </div>
+                    <button onclick="fbAbrirPerfil()" style="width:100%;padding:9px;background:#f0f4ff;color:var(--pe-navy);
+                            border:1px solid #c5d3f0;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-bottom:8px;">
+                        👤 Meu Perfil
+                    </button>
                     <button onclick="fbSincronizarAgora()" style="width:100%;padding:9px;background:#e8f4fd;color:var(--pe-blue);
                             border:1px solid #b8d9f5;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-bottom:10px;">
                         🔄 Sincronizar agora
@@ -4045,6 +4149,75 @@ function listarTurmas() {
     </div>
     <!-- Toast de feedback de sincronização -->
     <div id="fb-toast"></div>
+
+    <!-- ── Modal de Perfil ─────────────────────────────────────────────── -->
+    <div id="perfil-overlay">
+        <div id="perfil-modal">
+            <div id="perfil-header">
+                <button class="fechar" onclick="fecharPerfil()" title="Fechar">✕</button>
+                <div id="perfil-foto-wrap">
+                    <img id="perfil-foto-img" src="" alt="Foto de perfil">
+                    <div id="perfil-foto-letra">?</div>
+                    <label id="perfil-foto-btn" title="Alterar foto" style="cursor:pointer;">
+                        📷
+                        <input type="file" id="perfil-foto-input" accept="image/*" style="display:none" onchange="perfilFotoSelecionada(this)">
+                    </label>
+                </div>
+                <div id="perfil-nome-display">Meu Perfil</div>
+                <div id="perfil-email-display"></div>
+            </div>
+
+            <div id="perfil-body">
+                <!-- Dados pessoais -->
+                <div class="perfil-section">
+                    <h3>📋 Dados Pessoais</h3>
+                    <div class="perfil-field">
+                        <label>Nome completo</label>
+                        <input type="text" id="perfil-nome" placeholder="Seu nome">
+                    </div>
+                    <div class="perfil-field">
+                        <label>Cargo / Função</label>
+                        <input type="text" id="perfil-cargo" placeholder="Ex: Professor(a) de Matemática">
+                    </div>
+                    <div class="perfil-field">
+                        <label>Cidade / Estado</label>
+                        <input type="text" id="perfil-cidade" placeholder="Ex: Caruaru, PE">
+                    </div>
+                </div>
+
+                <!-- Escolas -->
+                <div class="perfil-section">
+                    <h3>🏫 Escolas que trabalha</h3>
+                    <div id="perfil-lista-escolas"></div>
+                    <div class="perfil-add-row">
+                        <input type="text" id="perfil-nova-escola" placeholder="Nome da escola...">
+                        <button class="btn-add-perfil" onclick="perfilAdicionarEscola()">+ Adicionar</button>
+                    </div>
+                </div>
+
+                <!-- Turmas -->
+                <div class="perfil-section">
+                    <h3>📚 Minhas Turmas</h3>
+                    <div id="perfil-lista-turmas" style="min-height:32px;"></div>
+                    <div class="perfil-add-row" style="margin-top:8px;">
+                        <input type="text" id="perfil-nova-turma" placeholder="Ex: 9º A — Matemática">
+                        <button class="btn-add-perfil" onclick="perfilAdicionarTurma()">+ Adicionar</button>
+                    </div>
+                </div>
+
+                <!-- Bio -->
+                <div class="perfil-section">
+                    <h3>✏️ Observações / Bio</h3>
+                    <div class="perfil-field">
+                        <textarea id="perfil-bio" placeholder="Alguma nota pessoal, objetivo do ano, recado..." rows="3"></textarea>
+                    </div>
+                </div>
+
+                <button id="perfil-btn-salvar" onclick="perfilSalvar()">💾 Salvar Perfil</button>
+                <div id="perfil-save-msg"></div>
+            </div>
+        </div>
+    </div>
 
     <!-- ── Firebase SDK (módulos CDN) ──────────────────────────────────── -->
     <script type="module">
@@ -4075,11 +4248,18 @@ function listarTurmas() {
         let _fbEmail = null;
 
         /* ── Helpers internos ──────────────────────────────────────────── */
-        function mostrarToast(msg, tempo = 3000) {
+        function mostrarToast(msg, tipo = 'info', tempo = 3500) {
             const t = document.getElementById('fb-toast');
             t.textContent = msg;
+            t.className = '';              // limpa classes anteriores
+            if (tipo === 'sucesso') t.classList.add('toast-sucesso');
+            else if (tipo === 'aviso')   t.classList.add('toast-aviso');
+            else if (tipo === 'erro')    t.classList.add('toast-erro');
+            // força reflow para reiniciar animação se já estava visível
+            void t.offsetWidth;
             t.classList.add('show');
-            setTimeout(() => t.classList.remove('show'), tempo);
+            clearTimeout(t._timer);
+            t._timer = setTimeout(() => t.classList.remove('show'), tempo);
         }
 
         function atualizarNavbar() {
@@ -4172,7 +4352,7 @@ function listarTurmas() {
         /* ── Baixar TODAS as turmas da nuvem e fundir com localStorage ─── */
         async function fbSincronizarTudo() {
             if (!_fbUid) return;
-            mostrarToast('☁️ Sincronizando turmas da nuvem...');
+            mostrarToast('⏳ Sincronizando turmas da nuvem…', 'info', 4000);
             try {
                 const colRef = collection(db, 'users', _fbUid, 'turmas');
                 const snap   = await getDocs(colRef);
@@ -4181,36 +4361,39 @@ function listarTurmas() {
                     const d = docSnap.data();
                     if (!d.chave || !d.dados) return;
                     const lsChave = 'turma_int_' + d.chave;
-                    // Só importa se não existir localmente (não sobrescreve edições locais)
                     if (!localStorage.getItem(lsChave)) {
                         localStorage.setItem(lsChave, d.dados);
                         novas++;
                     }
                 });
                 if (typeof renderPainelTurmasSalvas === 'function') renderPainelTurmasSalvas();
-                mostrarToast(novas > 0 ? `☁️ ${novas} turma(s) baixada(s) da nuvem!` : '☁️ Tudo sincronizado.');
-                // Atualiza info na aba conta
+                mostrarToast(
+                    novas > 0 ? `☁️ ${novas} turma(s) baixada(s) da nuvem!` : '✅ Tudo sincronizado.',
+                    novas > 0 ? 'sucesso' : 'sucesso'
+                );
                 const infoEl = document.getElementById('fb-conta-sync-info');
                 if (infoEl) infoEl.textContent = `${snap.size} turma(s) na nuvem · Última sync: agora`;
             } catch(e) {
-                mostrarToast('⚠️ Erro ao sincronizar: ' + e.message, 5000);
+                mostrarToast('⚠️ Erro ao sincronizar: ' + e.message, 'erro', 6000);
             }
         }
         window.fbSincronizarAgora = fbSincronizarTudo;
 
         /* ── Observador de autenticação ─────────────────────────────────── */
-        onAuthStateChanged(auth, user => {
+        onAuthStateChanged(auth, async user => {
             if (user) {
                 _fbUid   = user.uid;
                 _fbEmail = user.email;
                 atualizarNavbar();
-                // Fecha modal se estiver aberto
                 document.getElementById('fb-overlay').classList.remove('active');
-                // Sincroniza ao logar
+                // Carrega perfil e depois atualiza navbar com nome/foto
+                await fbCarregarPerfil();
+                atualizarNavbarComPerfil();
                 fbSincronizarTudo();
             } else {
                 _fbUid   = null;
                 _fbEmail = null;
+                _perfilDados = { nome:'', cargo:'', cidade:'', bio:'', foto:'', escolas:[], turmas:[] };
                 atualizarNavbar();
             }
         });
@@ -4249,7 +4432,7 @@ function listarTurmas() {
         window.fbSair = async function() {
             await signOut(auth);
             document.getElementById('fb-overlay').classList.remove('active');
-            mostrarToast('👋 Você saiu da conta.');
+            mostrarToast('👋 Você saiu da conta.', 'aviso');
         };
 
         window.fbMostrarAba = function(aba) {
@@ -4264,17 +4447,21 @@ function listarTurmas() {
             const overlay = document.getElementById('fb-overlay');
             overlay.classList.add('active');
             if (_fbUid) {
-                // Já logado: mostra aba de conta
-                document.getElementById('fb-tab-conta').style.display = '';
+                // Logado: mostra só a aba "Minha conta", esconde as de login/cadastro
+                document.getElementById('fb-tab-login').style.display  = 'none';
+                document.getElementById('fb-tab-signup').style.display = 'none';
+                document.getElementById('fb-tab-conta').style.display  = '';
                 window.fbMostrarAba('conta');
                 document.getElementById('fb-conta-email').textContent = _fbEmail || '';
-                const letra = (_fbEmail || 'U')[0].toUpperCase();
+                const letra = (_perfilDados.nome || _fbEmail || 'U')[0].toUpperCase();
                 document.getElementById('fb-conta-avatar-letra').textContent = letra;
             } else {
-                document.getElementById('fb-tab-conta').style.display = 'none';
+                // Deslogado: mostra só login e cadastro
+                document.getElementById('fb-tab-login').style.display  = '';
+                document.getElementById('fb-tab-signup').style.display = '';
+                document.getElementById('fb-tab-conta').style.display  = 'none';
                 window.fbMostrarAba('login');
             }
-            // Fechar ao clicar fora
             overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('active'); };
         };
 
@@ -4286,7 +4473,216 @@ function listarTurmas() {
             };
             bindEnter('fb-in-senha',  window.fbEntrar);
             bindEnter('fb-in-senha3', window.fbCadastrar);
+            // Fechar perfil ao clicar fora
+            document.getElementById('perfil-overlay').addEventListener('click', e => {
+                if (e.target === document.getElementById('perfil-overlay')) fecharPerfil();
+            });
+            // Enter nos campos de adicionar escola/turma
+            document.getElementById('perfil-nova-escola')?.addEventListener('keydown', e => { if(e.key==='Enter') perfilAdicionarEscola(); });
+            document.getElementById('perfil-nova-turma')?.addEventListener('keydown',  e => { if(e.key==='Enter') perfilAdicionarTurma(); });
         });
+
+        /* ══════════════════════════════════════════════════════════════════
+           PERFIL DO PROFESSOR
+           Dados salvos em Firestore: users/{uid}/perfil/dados
+        ══════════════════════════════════════════════════════════════════ */
+        let _perfilDados = { nome:'', cargo:'', cidade:'', bio:'', foto:'', escolas:[], turmas:[] };
+
+        async function fbCarregarPerfil() {
+            if (!_fbUid) return;
+            try {
+                const snap = await getDoc(doc(db, 'users', _fbUid, 'perfil', 'dados'));
+                if (snap.exists()) _perfilDados = { ..._perfilDados, ...snap.data() };
+            } catch(e) { console.warn('fbCarregarPerfil:', e); }
+        }
+
+        async function fbSalvarPerfil() {
+            if (!_fbUid) return;
+            try {
+                await setDoc(doc(db, 'users', _fbUid, 'perfil', 'dados'), {
+                    ..._perfilDados, updatedAt: serverTimestamp()
+                });
+            } catch(e) { throw e; }
+        }
+
+        function perfilRenderEscolas() {
+            const lista = document.getElementById('perfil-lista-escolas');
+            if (!lista) return;
+            if (_perfilDados.escolas.length === 0) {
+                lista.innerHTML = '<div style="font-size:0.78rem;color:var(--pe-text-muted);margin-bottom:6px;">Nenhuma escola adicionada.</div>';
+                return;
+            }
+            lista.innerHTML = _perfilDados.escolas.map((e, i) => `
+                <div class="escola-item">
+                    <span>🏫 ${e}</span>
+                    <button onclick="perfilRemoverEscola(${i})" title="Remover">✕</button>
+                </div>`).join('');
+        }
+
+        function perfilRenderTurmas() {
+            const lista = document.getElementById('perfil-lista-turmas');
+            if (!lista) return;
+            if (_perfilDados.turmas.length === 0) {
+                lista.innerHTML = '<div style="font-size:0.78rem;color:var(--pe-text-muted);">Nenhuma turma adicionada.</div>';
+                return;
+            }
+            lista.innerHTML = _perfilDados.turmas.map((t, i) => `
+                <span class="turma-tag">📚 ${t}
+                    <button onclick="perfilRemoverTurma(${i})" title="Remover">✕</button>
+                </span>`).join('');
+        }
+
+        function perfilPreencherFormulario() {
+            const set = (id, val) => { const el = document.getElementById(id); if(el) el.value = val || ''; };
+            set('perfil-nome',   _perfilDados.nome);
+            set('perfil-cargo',  _perfilDados.cargo);
+            set('perfil-cidade', _perfilDados.cidade);
+            set('perfil-bio',    _perfilDados.bio);
+
+            // Header do modal
+            const nomeDisplay = document.getElementById('perfil-nome-display');
+            if (nomeDisplay) nomeDisplay.textContent = _perfilDados.nome || (_fbEmail?.split('@')[0] || 'Meu Perfil');
+            const emailDisplay = document.getElementById('perfil-email-display');
+            if (emailDisplay) emailDisplay.textContent = _fbEmail || '';
+
+            // Foto / letra
+            const letra = (_perfilDados.nome || _fbEmail || 'P')[0].toUpperCase();
+            const letraEl = document.getElementById('perfil-foto-letra');
+            const imgEl   = document.getElementById('perfil-foto-img');
+            if (letraEl) letraEl.textContent = letra;
+            if (imgEl && _perfilDados.foto) {
+                imgEl.src = _perfilDados.foto;
+                imgEl.style.display = '';
+                if (letraEl) letraEl.style.display = 'none';
+            } else {
+                if (imgEl)   imgEl.style.display = 'none';
+                if (letraEl) letraEl.style.display = '';
+            }
+
+            perfilRenderEscolas();
+            perfilRenderTurmas();
+        }
+
+        window.fbAbrirPerfil = async function() {
+            if (!_fbUid) { mostrarToast('Faça login primeiro.', 'aviso'); return; }
+            // Fecha o modal de conta
+            document.getElementById('fb-overlay').classList.remove('active');
+            // Carrega perfil se ainda não carregou
+            await fbCarregarPerfil();
+            perfilPreencherFormulario();
+            document.getElementById('perfil-overlay').classList.add('active');
+            document.getElementById('perfil-save-msg').textContent = '';
+        };
+
+        window.fecharPerfil = function() {
+            document.getElementById('perfil-overlay').classList.remove('active');
+        };
+
+        window.perfilAdicionarEscola = function() {
+            const inp = document.getElementById('perfil-nova-escola');
+            const val = inp.value.trim();
+            if (!val) return;
+            if (_perfilDados.escolas.includes(val)) { inp.value = ''; return; }
+            _perfilDados.escolas.push(val);
+            inp.value = '';
+            perfilRenderEscolas();
+        };
+
+        window.perfilRemoverEscola = function(i) {
+            _perfilDados.escolas.splice(i, 1);
+            perfilRenderEscolas();
+        };
+
+        window.perfilAdicionarTurma = function() {
+            const inp = document.getElementById('perfil-nova-turma');
+            const val = inp.value.trim();
+            if (!val) return;
+            if (_perfilDados.turmas.includes(val)) { inp.value = ''; return; }
+            _perfilDados.turmas.push(val);
+            inp.value = '';
+            perfilRenderTurmas();
+        };
+
+        window.perfilRemoverTurma = function(i) {
+            _perfilDados.turmas.splice(i, 1);
+            perfilRenderTurmas();
+        };
+
+        /* Foto — converte para base64 e guarda no objeto (salvo junto com o perfil) */
+        window.perfilFotoSelecionada = function(input) {
+            const file = input.files[0];
+            if (!file) return;
+            if (file.size > 300 * 1024) {
+                mostrarToast('⚠️ Foto muito grande. Use uma imagem menor que 300 KB.', 'aviso');
+                return;
+            }
+            const reader = new FileReader();
+            reader.onload = e => {
+                _perfilDados.foto = e.target.result;
+                const imgEl   = document.getElementById('perfil-foto-img');
+                const letraEl = document.getElementById('perfil-foto-letra');
+                if (imgEl)   { imgEl.src = e.target.result; imgEl.style.display = ''; }
+                if (letraEl) letraEl.style.display = 'none';
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.perfilSalvar = async function() {
+            if (!_fbUid) return;
+            const btn = document.getElementById('perfil-btn-salvar');
+            const msg = document.getElementById('perfil-save-msg');
+            // Lê campos do formulário para o objeto
+            _perfilDados.nome   = document.getElementById('perfil-nome').value.trim();
+            _perfilDados.cargo  = document.getElementById('perfil-cargo').value.trim();
+            _perfilDados.cidade = document.getElementById('perfil-cidade').value.trim();
+            _perfilDados.bio    = document.getElementById('perfil-bio').value.trim();
+
+            btn.disabled = true; btn.textContent = 'Salvando…';
+            try {
+                await fbSalvarPerfil();
+                // Atualiza header do modal
+                perfilPreencherFormulario();
+                // Atualiza avatar na navbar
+                atualizarNavbar();
+                msg.textContent = '✅ Perfil salvo com sucesso!';
+                msg.style.color = 'var(--pe-success)';
+                mostrarToast('✅ Perfil salvo!', 'sucesso');
+            } catch(e) {
+                msg.textContent = '❌ Erro ao salvar: ' + e.message;
+                msg.style.color = 'var(--pe-red)';
+            } finally {
+                btn.disabled = false; btn.textContent = '💾 Salvar Perfil';
+            }
+        };
+
+        /* Ao fazer login, carrega perfil e atualiza avatar */
+        const _origOnAuth = onAuthStateChanged;  // já está registrado acima, então ajustamos atualizarNavbar
+        function atualizarNavbarComPerfil() {
+            const badge  = document.getElementById('fb-user-badge');
+            const label  = document.getElementById('fb-user-label');
+            const avatar = document.getElementById('fb-avatar');
+            const sync   = document.getElementById('fb-sync-indicator');
+            if (_fbUid) {
+                // usa nome do perfil se disponível, senão e-mail
+                const displayNome = _perfilDados.nome || (_fbEmail?.split('@')[0] || '');
+                const letra = displayNome[0]?.toUpperCase() || '?';
+                // foto no avatar da navbar
+                if (_perfilDados.foto) {
+                    avatar.innerHTML = `<img src="${_perfilDados.foto}" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">`;
+                } else {
+                    avatar.textContent = letra;
+                }
+                label.textContent = displayNome;
+                sync.textContent  = '☁️ Nuvem ativa';
+            } else {
+                avatar.textContent = '?';
+                label.textContent  = 'Entrar';
+                sync.textContent   = '';
+            }
+        }
+        // Sobrescreve atualizarNavbar para usar versão com perfil
+        // (a função original foi definida antes deste bloco, então apenas atribuímos aqui)
+        window._atualizarNavbarComPerfil = atualizarNavbarComPerfil;
 
     </script>
     </body>
