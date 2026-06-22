@@ -504,6 +504,77 @@
                 z-index: 11 !important;
             }
         }
+
+        /* ── FIREBASE AUTH MODAL ──────────────────────────────── */
+        #fb-overlay {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: rgba(0,0,0,0.55); backdrop-filter: blur(3px);
+            align-items: center; justify-content: center;
+        }
+        #fb-overlay.active { display: flex; }
+        #fb-modal {
+            background: #fff; border-radius: 14px; width: 100%; max-width: 380px;
+            margin: 20px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        #fb-modal-header {
+            background: var(--pe-navy); color: #fff;
+            padding: 20px 24px 16px; position: relative;
+        }
+        #fb-modal-header h2 { font-size: 1.1rem; margin-bottom: 3px; }
+        #fb-modal-header p  { font-size: 0.78rem; color: var(--pe-cyan); }
+        #fb-modal-body { padding: 22px 24px; }
+        .fb-tabs { display: flex; gap: 0; margin-bottom: 18px; border-radius: 8px; overflow: hidden; border: 1px solid var(--pe-border); }
+        .fb-tab {
+            flex: 1; padding: 9px; text-align: center; cursor: pointer;
+            font-size: 0.83rem; font-weight: 600; background: #f8f9fa;
+            color: var(--pe-text-muted); border: none; transition: all 0.2s;
+        }
+        .fb-tab.active { background: var(--pe-blue); color: #fff; }
+        .fb-field { margin-bottom: 13px; }
+        .fb-field label { display: block; font-size: 0.78rem; font-weight: 600; color: var(--pe-navy); margin-bottom: 4px; }
+        .fb-field input {
+            width: 100%; padding: 9px 12px; border: 1px solid var(--pe-border);
+            border-radius: 7px; font-size: 0.9rem; outline: none; transition: border 0.2s;
+        }
+        .fb-field input:focus { border-color: var(--pe-blue); }
+        #fb-btn-action {
+            width: 100%; padding: 11px; background: var(--pe-blue); color: #fff;
+            border: none; border-radius: 8px; font-size: 0.95rem; font-weight: 700;
+            cursor: pointer; transition: background 0.2s; margin-top: 4px;
+        }
+        #fb-btn-action:hover { background: var(--pe-navy); }
+        #fb-btn-action:disabled { background: #aaa; cursor: default; }
+        #fb-msg { font-size: 0.8rem; margin-top: 10px; min-height: 18px; text-align: center; }
+        #fb-msg.error { color: var(--pe-red); }
+        #fb-msg.success { color: var(--pe-success); }
+        /* Badge de usuário na navbar */
+        #fb-user-badge {
+            display: flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.15); border-radius: 20px;
+            padding: 5px 12px; cursor: pointer; font-size: 0.82rem;
+            font-weight: 600; color: #fff; border: none; transition: background 0.2s;
+        }
+        #fb-user-badge:hover { background: rgba(255,255,255,0.25); }
+        #fb-avatar {
+            width: 28px; height: 28px; border-radius: 50%;
+            background: var(--pe-cyan); color: var(--pe-navy);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.75rem; font-weight: 800;
+        }
+        #fb-sync-indicator {
+            font-size: 0.7rem; color: var(--pe-cyan); margin-top: 2px;
+        }
+        /* toast de sincronização */
+        #fb-toast {
+            position: fixed; bottom: 24px; right: 24px; z-index: 9998;
+            background: var(--pe-navy); color: #fff; padding: 10px 16px;
+            border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.25); pointer-events: none;
+            opacity: 0; transform: translateY(10px);
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        #fb-toast.show { opacity: 1; transform: translateY(0); }
     </style>
 </head>
 <body>
@@ -524,8 +595,12 @@
                     <p>Gerenciador Individual de Notas • Inclusão PCD & Fórmula Híbrida</p>
                 </div>
             </div>
-            <div style="font-weight: bold; font-size: 0.85rem; background: rgba(255,255,255,0.15); padding: 4px 12px; border-radius: 20px;">
-                Auto-salvamento Ativo
+            <div style="display:flex; flex-direction:column; align-items:flex-end; gap:2px;">
+                <button id="fb-user-badge" onclick="fbAbrirModal()" title="Entrar / gerenciar conta">
+                    <div id="fb-avatar">?</div>
+                    <span id="fb-user-label">Entrar</span>
+                </button>
+                <div id="fb-sync-indicator"></div>
             </div>
         </div>
         <div class="pe-brand-line">
@@ -3480,11 +3555,17 @@ function exportarInterno() {
     const chave = gerarChaveTurmaInterna();
     const dados = { setup: appConfig, grades: notasSalvasMemory };
 
+    const dadosJson = JSON.stringify(dados);
     try {
-        localStorage.setItem('turma_int_' + chave, JSON.stringify(dados));
+        localStorage.setItem('turma_int_' + chave, dadosJson);
     } catch(e) {
         alert('❌ Erro ao salvar internamente: ' + e.message);
         return;
+    }
+
+    // ── Sincroniza na nuvem em segundo plano (não bloqueia) ──
+    if (typeof window.fbSalvarTurmaCloud === 'function') {
+        window.fbSalvarTurmaCloud(chave, dadosJson);
     }
 
     // Feedback visual no botão
@@ -3652,10 +3733,22 @@ function renderPainelTurmasSalvas() {
         }).join('');
 }
 
-function carregarTurmaInterna(nome) {
-    const raw = localStorage.getItem('turma_int_' + nome);
+async function carregarTurmaInterna(nome) {
+    let raw = localStorage.getItem('turma_int_' + nome);
+
+    // ── Fallback: busca na nuvem se não estiver em cache local ──
+    if (!raw && typeof window.fbBuscarTurmaCloud === 'function') {
+        const indicador = document.getElementById('fb-sync-indicator');
+        if (indicador) indicador.textContent = '⏳ Buscando da nuvem…';
+        raw = await window.fbBuscarTurmaCloud(nome);
+        if (raw) {
+            localStorage.setItem('turma_int_' + nome, raw); // guarda cache local
+        }
+        if (indicador) indicador.textContent = '☁️ Nuvem ativa';
+    }
+
     if (!raw) {
-        alert('❌ Turma não encontrada. Pode ter sido excluída deste dispositivo.');
+        alert('❌ Turma não encontrada localmente nem na nuvem.');
         renderPainelTurmasSalvas();
         return;
     }
@@ -3669,8 +3762,12 @@ function carregarTurmaInterna(nome) {
 }
 
 function excluirTurmaInterna(nome) {
-    if (!confirm(`Excluir permanentemente a turma salva:\n"${nome}"?`)) return;
+    if (!confirm(`Excluir permanentemente a turma salva:\n"${nome}"?\n\nIsso também removerá da nuvem (se você estiver logado).`)) return;
     localStorage.removeItem('turma_int_' + nome);
+    // ── Remove da nuvem em segundo plano ──
+    if (typeof window.fbExcluirTurmaCloud === 'function') {
+        window.fbExcluirTurmaCloud(nome);
+    }
     renderPainelTurmasSalvas();
 }
 
@@ -3871,6 +3968,326 @@ function listarTurmas() {
             container.innerHTML = resumo + htmlBars;
         }
 
+
+/* =====================================================================
+   FIM DO SCRIPT ORIGINAL — Firebase integration abaixo
+   ===================================================================== */
 	</script>
+
+    <!-- ── Modal de Login Firebase ─────────────────────────────────────── -->
+    <div id="fb-overlay">
+        <div id="fb-modal">
+            <div id="fb-modal-header">
+                <h2>☁️ Nota Mestra — Nuvem</h2>
+                <p>Sincronize suas turmas entre dispositivos</p>
+            </div>
+            <div id="fb-modal-body">
+                <div class="fb-tabs">
+                    <button class="fb-tab active" id="fb-tab-login"  onclick="fbMostrarAba('login')">Entrar</button>
+                    <button class="fb-tab"        id="fb-tab-signup" onclick="fbMostrarAba('signup')">Criar conta</button>
+                    <button class="fb-tab"        id="fb-tab-conta"  onclick="fbMostrarAba('conta')" style="display:none">Minha conta</button>
+                </div>
+
+                <!-- ABA LOGIN -->
+                <div id="fb-form-login">
+                    <div class="fb-field">
+                        <label>E-mail</label>
+                        <input type="email" id="fb-in-email" placeholder="seu@email.com" autocomplete="email">
+                    </div>
+                    <div class="fb-field">
+                        <label>Senha</label>
+                        <input type="password" id="fb-in-senha" placeholder="Sua senha" autocomplete="current-password">
+                    </div>
+                    <button id="fb-btn-action" onclick="fbEntrar()">Entrar</button>
+                    <div id="fb-msg"></div>
+                </div>
+
+                <!-- ABA CADASTRO -->
+                <div id="fb-form-signup" style="display:none">
+                    <div class="fb-field">
+                        <label>E-mail</label>
+                        <input type="email" id="fb-in-email2" placeholder="seu@email.com" autocomplete="email">
+                    </div>
+                    <div class="fb-field">
+                        <label>Senha (mínimo 6 caracteres)</label>
+                        <input type="password" id="fb-in-senha2" placeholder="Crie uma senha" autocomplete="new-password">
+                    </div>
+                    <div class="fb-field">
+                        <label>Confirmar senha</label>
+                        <input type="password" id="fb-in-senha3" placeholder="Repita a senha" autocomplete="new-password">
+                    </div>
+                    <button id="fb-btn-action" onclick="fbCadastrar()">Criar conta</button>
+                    <div id="fb-msg"></div>
+                </div>
+
+                <!-- ABA CONTA (logado) -->
+                <div id="fb-form-conta" style="display:none">
+                    <div style="text-align:center; padding: 10px 0 18px;">
+                        <div style="width:56px;height:56px;border-radius:50%;background:var(--pe-blue);color:#fff;
+                                    font-size:1.4rem;font-weight:800;display:flex;align-items:center;
+                                    justify-content:center;margin:0 auto 10px;">
+                            <span id="fb-conta-avatar-letra">?</span>
+                        </div>
+                        <div id="fb-conta-email" style="font-size:0.9rem;font-weight:600;color:var(--pe-navy);"></div>
+                        <div id="fb-conta-sync-info" style="font-size:0.75rem;color:var(--pe-text-muted);margin-top:4px;"></div>
+                    </div>
+                    <button onclick="fbSincronizarAgora()" style="width:100%;padding:9px;background:#e8f4fd;color:var(--pe-blue);
+                            border:1px solid #b8d9f5;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;margin-bottom:10px;">
+                        🔄 Sincronizar agora
+                    </button>
+                    <button onclick="fbSair()" style="width:100%;padding:9px;background:#fff0f0;color:var(--pe-red);
+                            border:1px solid #fcc;border-radius:8px;font-weight:700;font-size:0.85rem;cursor:pointer;">
+                        Sair da conta
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Toast de feedback de sincronização -->
+    <div id="fb-toast"></div>
+
+    <!-- ── Firebase SDK (módulos CDN) ──────────────────────────────────── -->
+    <script type="module">
+        import { initializeApp }                        from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js';
+        import { getAuth, createUserWithEmailAndPassword,
+                 signInWithEmailAndPassword, signOut,
+                 onAuthStateChanged }                   from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js';
+        import { getFirestore, doc, setDoc, getDoc,
+                 collection, getDocs, deleteDoc,
+                 serverTimestamp }                      from 'https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js';
+
+        /* ── Configuração do seu projeto Firebase ─────────────────────── */
+        const firebaseConfig = {
+            apiKey:            "AIzaSyCjnf-MuwqmyXjxdRvw4bjvco3V8aKCAAo",
+            authDomain:        "nota-mestra.firebaseapp.com",
+            projectId:         "nota-mestra",
+            storageBucket:     "nota-mestra.firebasestorage.app",
+            messagingSenderId: "858983963077",
+            appId:             "1:858983963077:web:c0d57b82023b5f1ff693ac"
+        };
+
+        const app  = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db   = getFirestore(app);
+
+        /* ── Estado global exposto ao script principal ─────────────────── */
+        let _fbUid   = null;  // UID do usuário logado (null = deslogado)
+        let _fbEmail = null;
+
+        /* ── Helpers internos ──────────────────────────────────────────── */
+        function mostrarToast(msg, tempo = 3000) {
+            const t = document.getElementById('fb-toast');
+            t.textContent = msg;
+            t.classList.add('show');
+            setTimeout(() => t.classList.remove('show'), tempo);
+        }
+
+        function atualizarNavbar() {
+            const badge  = document.getElementById('fb-user-badge');
+            const label  = document.getElementById('fb-user-label');
+            const avatar = document.getElementById('fb-avatar');
+            const sync   = document.getElementById('fb-sync-indicator');
+            if (_fbUid) {
+                const letra = (_fbEmail || 'U')[0].toUpperCase();
+                avatar.textContent = letra;
+                label.textContent  = _fbEmail.split('@')[0];
+                sync.textContent   = '☁️ Nuvem ativa';
+            } else {
+                avatar.textContent = '?';
+                label.textContent  = 'Entrar';
+                sync.textContent   = '';
+            }
+        }
+
+        function fbSetMsg(msg, tipo = 'error') {
+            const abaAtiva = document.querySelector('.fb-tab.active')?.id?.replace('fb-tab-','') || 'login';
+            const el = document.querySelector(`#fb-form-${abaAtiva} #fb-msg`);
+            if (el) { el.textContent = msg; el.className = tipo; }
+        }
+
+        function fbSetBtnTexto(txt, desabilitado = false) {
+            const abaAtiva = document.querySelector('.fb-tab.active')?.id?.replace('fb-tab-','') || 'login';
+            const btn = document.querySelector(`#fb-form-${abaAtiva} #fb-btn-action`);
+            if (btn) { btn.textContent = txt; btn.disabled = desabilitado; }
+        }
+
+        /* ── Traduz erros do Firebase para PT-BR ───────────────────────── */
+        function traduzirErro(code) {
+            const map = {
+                'auth/user-not-found':      'E-mail não cadastrado.',
+                'auth/wrong-password':      'Senha incorreta.',
+                'auth/invalid-credential':  'E-mail ou senha incorretos.',
+                'auth/email-already-in-use':'E-mail já cadastrado. Faça login.',
+                'auth/weak-password':       'Senha fraca: use no mínimo 6 caracteres.',
+                'auth/invalid-email':       'E-mail inválido.',
+                'auth/network-request-failed':'Sem conexão com a internet.',
+                'auth/too-many-requests':   'Muitas tentativas. Tente novamente mais tarde.',
+            };
+            return map[code] || 'Erro: ' + code;
+        }
+
+        /* ── Sincronização: salvar uma turma na nuvem ──────────────────── */
+        async function fbSalvarTurmaCloud(chave, dadosJson) {
+            if (!_fbUid) return;
+            try {
+                const chaveSegura = chave.replace(/[^a-zA-Z0-9_\-|. ]/g, '_');
+                const ref = doc(db, 'users', _fbUid, 'turmas', chaveSegura);
+                await setDoc(ref, {
+                    dados:     dadosJson,
+                    chave:     chave,
+                    updatedAt: serverTimestamp()
+                });
+            } catch(e) {
+                console.warn('fbSalvarTurmaCloud erro:', e);
+            }
+        }
+        window.fbSalvarTurmaCloud = fbSalvarTurmaCloud;
+
+        /* ── Sincronização: excluir turma na nuvem ─────────────────────── */
+        async function fbExcluirTurmaCloud(chave) {
+            if (!_fbUid) return;
+            try {
+                const chaveSegura = chave.replace(/[^a-zA-Z0-9_\-|. ]/g, '_');
+                await deleteDoc(doc(db, 'users', _fbUid, 'turmas', chaveSegura));
+            } catch(e) {
+                console.warn('fbExcluirTurmaCloud erro:', e);
+            }
+        }
+        window.fbExcluirTurmaCloud = fbExcluirTurmaCloud;
+
+        /* ── Buscar turma da nuvem (fallback ao carregar) ──────────────── */
+        async function fbBuscarTurmaCloud(chave) {
+            if (!_fbUid) return null;
+            try {
+                const chaveSegura = chave.replace(/[^a-zA-Z0-9_\-|. ]/g, '_');
+                const snap = await getDoc(doc(db, 'users', _fbUid, 'turmas', chaveSegura));
+                return snap.exists() ? snap.data().dados : null;
+            } catch(e) {
+                console.warn('fbBuscarTurmaCloud erro:', e);
+                return null;
+            }
+        }
+        window.fbBuscarTurmaCloud = fbBuscarTurmaCloud;
+
+        /* ── Baixar TODAS as turmas da nuvem e fundir com localStorage ─── */
+        async function fbSincronizarTudo() {
+            if (!_fbUid) return;
+            mostrarToast('☁️ Sincronizando turmas da nuvem...');
+            try {
+                const colRef = collection(db, 'users', _fbUid, 'turmas');
+                const snap   = await getDocs(colRef);
+                let novas = 0;
+                snap.forEach(docSnap => {
+                    const d = docSnap.data();
+                    if (!d.chave || !d.dados) return;
+                    const lsChave = 'turma_int_' + d.chave;
+                    // Só importa se não existir localmente (não sobrescreve edições locais)
+                    if (!localStorage.getItem(lsChave)) {
+                        localStorage.setItem(lsChave, d.dados);
+                        novas++;
+                    }
+                });
+                if (typeof renderPainelTurmasSalvas === 'function') renderPainelTurmasSalvas();
+                mostrarToast(novas > 0 ? `☁️ ${novas} turma(s) baixada(s) da nuvem!` : '☁️ Tudo sincronizado.');
+                // Atualiza info na aba conta
+                const infoEl = document.getElementById('fb-conta-sync-info');
+                if (infoEl) infoEl.textContent = `${snap.size} turma(s) na nuvem · Última sync: agora`;
+            } catch(e) {
+                mostrarToast('⚠️ Erro ao sincronizar: ' + e.message, 5000);
+            }
+        }
+        window.fbSincronizarAgora = fbSincronizarTudo;
+
+        /* ── Observador de autenticação ─────────────────────────────────── */
+        onAuthStateChanged(auth, user => {
+            if (user) {
+                _fbUid   = user.uid;
+                _fbEmail = user.email;
+                atualizarNavbar();
+                // Fecha modal se estiver aberto
+                document.getElementById('fb-overlay').classList.remove('active');
+                // Sincroniza ao logar
+                fbSincronizarTudo();
+            } else {
+                _fbUid   = null;
+                _fbEmail = null;
+                atualizarNavbar();
+            }
+        });
+
+        /* ── Expõe funções de auth para o HTML (onclick) ───────────────── */
+        window.fbEntrar = async function() {
+            const email = document.getElementById('fb-in-email').value.trim();
+            const senha = document.getElementById('fb-in-senha').value;
+            if (!email || !senha) { fbSetMsg('Preencha e-mail e senha.'); return; }
+            fbSetBtnTexto('Entrando…', true);
+            try {
+                await signInWithEmailAndPassword(auth, email, senha);
+                // onAuthStateChanged cuida do resto
+            } catch(e) {
+                fbSetMsg(traduzirErro(e.code));
+                fbSetBtnTexto('Entrar', false);
+            }
+        };
+
+        window.fbCadastrar = async function() {
+            const email  = document.getElementById('fb-in-email2').value.trim();
+            const senha  = document.getElementById('fb-in-senha2').value;
+            const senha2 = document.getElementById('fb-in-senha3').value;
+            if (!email || !senha) { fbSetMsg('Preencha todos os campos.'); return; }
+            if (senha !== senha2)  { fbSetMsg('As senhas não coincidem.'); return; }
+            fbSetBtnTexto('Criando conta…', true);
+            try {
+                await createUserWithEmailAndPassword(auth, email, senha);
+                // onAuthStateChanged cuida do resto
+            } catch(e) {
+                fbSetMsg(traduzirErro(e.code));
+                fbSetBtnTexto('Criar conta', false);
+            }
+        };
+
+        window.fbSair = async function() {
+            await signOut(auth);
+            document.getElementById('fb-overlay').classList.remove('active');
+            mostrarToast('👋 Você saiu da conta.');
+        };
+
+        window.fbMostrarAba = function(aba) {
+            ['login','signup','conta'].forEach(a => {
+                document.getElementById('fb-form-' + a).style.display  = a === aba ? '' : 'none';
+                document.getElementById('fb-tab-'  + a).classList.toggle('active', a === aba);
+            });
+            document.getElementById('fb-msg') && (document.getElementById('fb-msg').textContent = '');
+        };
+
+        window.fbAbrirModal = function() {
+            const overlay = document.getElementById('fb-overlay');
+            overlay.classList.add('active');
+            if (_fbUid) {
+                // Já logado: mostra aba de conta
+                document.getElementById('fb-tab-conta').style.display = '';
+                window.fbMostrarAba('conta');
+                document.getElementById('fb-conta-email').textContent = _fbEmail || '';
+                const letra = (_fbEmail || 'U')[0].toUpperCase();
+                document.getElementById('fb-conta-avatar-letra').textContent = letra;
+            } else {
+                document.getElementById('fb-tab-conta').style.display = 'none';
+                window.fbMostrarAba('login');
+            }
+            // Fechar ao clicar fora
+            overlay.onclick = (e) => { if (e.target === overlay) overlay.classList.remove('active'); };
+        };
+
+        /* ── Enter nos inputs de senha dispara login/cadastro ──────────── */
+        document.addEventListener('DOMContentLoaded', () => {
+            const bindEnter = (id, fn) => {
+                const el = document.getElementById(id);
+                if (el) el.addEventListener('keydown', e => { if (e.key === 'Enter') fn(); });
+            };
+            bindEnter('fb-in-senha',  window.fbEntrar);
+            bindEnter('fb-in-senha3', window.fbCadastrar);
+        });
+
+    </script>
     </body>
 </html>
