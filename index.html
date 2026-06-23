@@ -979,7 +979,8 @@ window.print = function() {
         var appConfig = {
             nivel: 'Fundamental II', serie: '', turma: 'A', turno: 'Manhã / Turno I', unidadeLetiva: '1º Bimestre',
             disciplina: 'Língua Portuguesa', disciplinaCustom: '',
-            qtdAtividades: 2, qtdAlunos: 0, alunos: []
+            qtdAtividades: 2, qtdAlunos: 0, alunos: [],
+            anoLetivo: new Date().getFullYear()   // Etapa 1 — ano letivo padrão = ano atual
         };
 
         var modoExclusaoAtivo = false;
@@ -3640,7 +3641,8 @@ function gerarChaveTurmaInterna() {
     const turma      = appConfig.turma           || 'A';
     const unidade    = appConfig.unidadeLetiva   || '1º Bimestre';
     const disciplina = appConfig.disciplina      || 'Disciplina';
-    return `${gerarSiglaNivelTurmaInterna(nivel)} | ${gerarSiglaSerieTurmaInterna(serie, turma)} | ${gerarSiglaDisciplinaTurmaInterna(disciplina)} | ${gerarSiglaUnidadeTurmaInterna(unidade)}`;
+    const ano        = appConfig.anoLetivo       || new Date().getFullYear();
+    return `${ano} | ${gerarSiglaNivelTurmaInterna(nivel)} | ${gerarSiglaSerieTurmaInterna(serie, turma)} | ${gerarSiglaDisciplinaTurmaInterna(disciplina)} | ${gerarSiglaUnidadeTurmaInterna(unidade)}`;
 }
 
 function exportarInterno() {
@@ -3653,7 +3655,13 @@ function exportarInterno() {
     forcarSincronizacaoTotal();
 
     const chave = gerarChaveTurmaInterna();
-    const dados = { setup: appConfig, grades: notasSalvasMemory };
+    const dados = {
+        setup:      appConfig,
+        grades:     notasSalvasMemory,
+        anoLetivo:  appConfig.anoLetivo || new Date().getFullYear(),
+        status:     'ativo',
+        savedAt:    new Date().toISOString()
+    };
 
     const dadosJson = JSON.stringify(dados);
     try {
@@ -4310,11 +4318,14 @@ function listarTurmas() {
         async function fbSalvarTurmaCloud(chave, dadosJson) {
             if (!_fbUid) return;
             try {
+                const ano = chave.split(' | ')[0] || String(new Date().getFullYear());
                 const chaveSegura = chave.replace(/[^a-zA-Z0-9_\-|. ]/g, '_');
-                const ref = doc(db, 'users', _fbUid, 'turmas', chaveSegura);
+                const ref = doc(db, 'users', _fbUid, 'anos', ano, 'turmas', chaveSegura);
                 await setDoc(ref, {
                     dados:     dadosJson,
                     chave:     chave,
+                    ano:       ano,
+                    status:    'ativo',
                     updatedAt: serverTimestamp()
                 });
             } catch(e) {
@@ -4327,8 +4338,9 @@ function listarTurmas() {
         async function fbExcluirTurmaCloud(chave) {
             if (!_fbUid) return;
             try {
+                const ano = chave.split(' | ')[0] || String(new Date().getFullYear());
                 const chaveSegura = chave.replace(/[^a-zA-Z0-9_\-|. ]/g, '_');
-                await deleteDoc(doc(db, 'users', _fbUid, 'turmas', chaveSegura));
+                await deleteDoc(doc(db, 'users', _fbUid, 'anos', ano, 'turmas', chaveSegura));
             } catch(e) {
                 console.warn('fbExcluirTurmaCloud erro:', e);
             }
@@ -4339,8 +4351,9 @@ function listarTurmas() {
         async function fbBuscarTurmaCloud(chave) {
             if (!_fbUid) return null;
             try {
+                const ano = chave.split(' | ')[0] || String(new Date().getFullYear());
                 const chaveSegura = chave.replace(/[^a-zA-Z0-9_\-|. ]/g, '_');
-                const snap = await getDoc(doc(db, 'users', _fbUid, 'turmas', chaveSegura));
+                const snap = await getDoc(doc(db, 'users', _fbUid, 'anos', ano, 'turmas', chaveSegura));
                 return snap.exists() ? snap.data().dados : null;
             } catch(e) {
                 console.warn('fbBuscarTurmaCloud erro:', e);
@@ -4354,25 +4367,32 @@ function listarTurmas() {
             if (!_fbUid) return;
             mostrarToast('⏳ Sincronizando turmas da nuvem…', 'info', 4000);
             try {
-                const colRef = collection(db, 'users', _fbUid, 'turmas');
-                const snap   = await getDocs(colRef);
-                let novas = 0;
-                snap.forEach(docSnap => {
-                    const d = docSnap.data();
-                    if (!d.chave || !d.dados) return;
-                    const lsChave = 'turma_int_' + d.chave;
-                    if (!localStorage.getItem(lsChave)) {
-                        localStorage.setItem(lsChave, d.dados);
-                        novas++;
-                    }
-                });
+                // Busca todos os anos disponíveis na nuvem
+                const anosSnap = await getDocs(collection(db, 'users', _fbUid, 'anos'));
+                let novas = 0, total = 0;
+                for (const anoDoc of anosSnap.docs) {
+                    const ano = anoDoc.id;
+                    const turmasSnap = await getDocs(
+                        collection(db, 'users', _fbUid, 'anos', ano, 'turmas')
+                    );
+                    turmasSnap.forEach(docSnap => {
+                        const d = docSnap.data();
+                        if (!d.chave || !d.dados) return;
+                        total++;
+                        const lsChave = 'turma_int_' + d.chave;
+                        if (!localStorage.getItem(lsChave)) {
+                            localStorage.setItem(lsChave, d.dados);
+                            novas++;
+                        }
+                    });
+                }
                 if (typeof renderPainelTurmasSalvas === 'function') renderPainelTurmasSalvas();
                 mostrarToast(
                     novas > 0 ? `☁️ ${novas} turma(s) baixada(s) da nuvem!` : '✅ Tudo sincronizado.',
-                    novas > 0 ? 'sucesso' : 'sucesso'
+                    'sucesso'
                 );
                 const infoEl = document.getElementById('fb-conta-sync-info');
-                if (infoEl) infoEl.textContent = `${snap.size} turma(s) na nuvem · Última sync: agora`;
+                if (infoEl) infoEl.textContent = `${total} turma(s) na nuvem · Última sync: agora`;
             } catch(e) {
                 mostrarToast('⚠️ Erro ao sincronizar: ' + e.message, 'erro', 6000);
             }
