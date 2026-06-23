@@ -675,6 +675,74 @@
         #perfil-btn-salvar:hover { background: var(--pe-navy); }
         #perfil-btn-salvar:disabled { background: #aaa; }
         #perfil-save-msg { text-align: center; font-size: 0.8rem; margin-top: 8px; min-height: 18px; }
+
+        /* ── MODAL GERENCIADOR DE TURMAS ─────────────────────── */
+        #ger-overlay {
+            display: none; position: fixed; inset: 0; z-index: 9999;
+            background: rgba(0,0,0,0.6); backdrop-filter: blur(3px);
+            align-items: flex-start; justify-content: center;
+            overflow-y: auto; padding: 24px 16px;
+        }
+        #ger-overlay.active { display: flex; }
+        #ger-modal {
+            background: #fff; border-radius: 16px; width: 100%; max-width: 600px;
+            box-shadow: 0 24px 64px rgba(0,0,0,0.3); overflow: hidden; margin: auto;
+        }
+        #ger-header {
+            background: var(--pe-navy); padding: 18px 22px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        #ger-header h2 { color: #fff; font-size: 1rem; font-weight: 700; margin: 0; }
+        #ger-header button { background: rgba(255,255,255,0.15); border: none; color: #fff;
+            width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 1rem; font-weight: 700; }
+        #ger-body { padding: 0; }
+        /* Barra de ano */
+        #ger-ano-bar {
+            display: flex; align-items: center; gap: 6px; padding: 12px 20px;
+            background: #f8f9fa; border-bottom: 1px solid var(--pe-border);
+            flex-wrap: wrap;
+        }
+        #ger-ano-bar span { font-size: 0.78rem; font-weight: 600; color: var(--pe-text-muted); margin-right: 4px; }
+        .ger-ano-btn {
+            padding: 5px 14px; border-radius: 20px; border: 1px solid var(--pe-border);
+            background: #fff; font-size: 0.8rem; font-weight: 600; cursor: pointer;
+            color: var(--pe-navy); transition: all 0.15s;
+        }
+        .ger-ano-btn.active { background: var(--pe-blue); color: #fff; border-color: var(--pe-blue); }
+        .ger-ano-btn:hover:not(.active) { background: #e8f0fe; }
+        /* Lista de turmas no gerenciador */
+        #ger-lista { padding: 14px 20px; max-height: 55vh; overflow-y: auto; }
+        .ger-turma-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 10px 12px; border-radius: 8px; margin-bottom: 7px;
+            border: 1px solid var(--pe-border); background: #fff; transition: opacity 0.2s;
+        }
+        .ger-turma-item.inativo {
+            background: #f8f8f8; opacity: 0.65; border-color: #ddd;
+        }
+        .ger-turma-item.inativo .ger-turma-nome { color: var(--pe-text-muted); text-decoration: line-through; }
+        .ger-turma-info { flex: 1; min-width: 0; }
+        .ger-turma-nome { font-size: 0.82rem; font-weight: 600; color: var(--pe-navy);
+            overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .ger-turma-meta { font-size: 0.72rem; color: var(--pe-text-muted); margin-top: 2px; }
+        .ger-badge-inativo {
+            font-size: 0.68rem; background: #e0e0e0; color: #666;
+            border-radius: 10px; padding: 2px 7px; white-space: nowrap; flex-shrink: 0;
+        }
+        .ger-btn { padding: 5px 10px; border-radius: 6px; border: none; font-size: 0.75rem;
+            font-weight: 700; cursor: pointer; white-space: nowrap; flex-shrink: 0; }
+        .ger-btn-reativar { background: #e8f5e9; color: #2e7d32; }
+        .ger-btn-reativar:hover { background: #c8e6c9; }
+        .ger-btn-inativar { background: #fff3e0; color: #e65100; }
+        .ger-btn-inativar:hover { background: #ffe0b2; }
+        .ger-btn-excluir { background: #fdecea; color: var(--pe-red); }
+        .ger-btn-excluir:hover { background: #f8d7da; }
+        .ger-btn-carregar { background: #e8f0fe; color: var(--pe-blue); }
+        .ger-btn-carregar:hover { background: #c5d8f8; }
+        #ger-vazio { text-align: center; padding: 28px 0; font-size: 0.85rem;
+            color: var(--pe-text-muted); display: none; }
+        #ger-footer { padding: 12px 20px; border-top: 1px solid var(--pe-border);
+            display: flex; justify-content: flex-end; gap: 8px; }
     </style>
 </head>
 <body>
@@ -766,6 +834,9 @@
                                     </button>
                                     <button class="btn btn-warning" style="width: 100%; padding: 10px;" onclick="importarInterno()">
                                         📂 Ver Turmas Salvas
+                                    </button>
+                                    <button class="btn btn-secondary" style="width: 100%; padding: 10px; margin-top: 4px;" onclick="abrirGerenciadorTurmas()">
+                                        ⚙️ Gerenciar Turmas por Ano
                                     </button>
                                 </div>
                                 <div id="painel-turmas-salvas" class="hidden" style="background: #fff; border: 1px solid var(--pe-border); border-radius: 8px; padding: 12px; margin-top: 6px;">
@@ -3716,30 +3787,34 @@ function renderPainelTurmasSalvas() {
     const filtrosEl      = document.getElementById('filtros-turmas-container');
     if (!container) return;
 
-    // ── Lê todas as turmas com metadados ──────────────────────────────────
+    // ── Lê todas as turmas com metadados e status ─────────────────────────
     const turmas = [];
     for (let i = 0; i < localStorage.length; i++) {
         const chave = localStorage.key(i);
         if (!chave.startsWith('turma_int_')) continue;
         const nome = chave.replace('turma_int_', '');
-        let setup = null;
+        let setup = null, status = 'ativo';
         try {
             const parsed = JSON.parse(localStorage.getItem(chave) || '{}');
-            setup = parsed.setup || null;
+            setup  = parsed.setup   || null;
+            status = parsed.status  || 'ativo';
         } catch(e) {}
-        turmas.push({ nome, setup });
+        turmas.push({ nome, setup, status });
     }
+
+    // Só ativos nos filtros / contagem principal
+    const turmasAtivas = turmas.filter(t => t.status !== 'inativo');
 
     // ── Extrai valores únicos para os selects de filtro ───────────────────
     const uniq = arr => [...new Set(arr.filter(Boolean))].sort();
-    const niveis   = uniq(turmas.map(t => t.setup?.nivel));
-    const series   = uniq(turmas.map(t => t.setup?.serie));
-    const turmasLt = uniq(turmas.map(t => t.setup?.turma));
-    const unidades = uniq(turmas.map(t => t.setup?.unidadeLetiva));
+    const niveis   = uniq(turmasAtivas.map(t => t.setup?.nivel));
+    const series   = uniq(turmasAtivas.map(t => t.setup?.serie));
+    const turmasLt = uniq(turmasAtivas.map(t => t.setup?.turma));
+    const unidades = uniq(turmasAtivas.map(t => t.setup?.unidadeLetiva));
 
-    // ── Renderiza painel de filtros (só aparece com 2+ turmas) ────────────
+    // ── Renderiza painel de filtros (só aparece com 2+ turmas ativas) ─────
     if (filtrosEl) {
-        if (turmas.length < 2) {
+        if (turmasAtivas.length < 2) {
             filtrosEl.innerHTML = '';
         } else {
             const temFiltro = _filtroTurmas.nivel || _filtroTurmas.serie || _filtroTurmas.turma || _filtroTurmas.unidade;
@@ -3782,8 +3857,8 @@ function renderPainelTurmasSalvas() {
         }
     }
 
-    // ── Aplica filtros ────────────────────────────────────────────────────
-    const turmasFiltradas = turmas.filter(({ setup }) => {
+    // ── Aplica filtros apenas nas ativas ──────────────────────────────────
+    const turmasFiltradas = turmasAtivas.filter(({ setup }) => {
         if (_filtroTurmas.nivel   && setup?.nivel          !== _filtroTurmas.nivel)   return false;
         if (_filtroTurmas.serie   && setup?.serie          !== _filtroTurmas.serie)   return false;
         if (_filtroTurmas.turma   && setup?.turma          !== _filtroTurmas.turma)   return false;
@@ -3791,7 +3866,12 @@ function renderPainelTurmasSalvas() {
         return true;
     });
 
-    if (turmasFiltradas.length === 0) {
+    // Inativos sempre aparecem no fim, sem filtro
+    const turmasInativas = turmas.filter(t => t.status === 'inativo');
+
+    const todasRender = [...turmasFiltradas, ...turmasInativas];
+
+    if (todasRender.length === 0) {
         container.innerHTML = '';
         if (msgVazia) {
             msgVazia.textContent = turmas.length === 0
@@ -3803,16 +3883,25 @@ function renderPainelTurmasSalvas() {
     }
     if (msgVazia) msgVazia.style.display = 'none';
 
-    // ── Renderiza lista filtrada ──────────────────────────────────────────
+    // ── Renderiza lista ───────────────────────────────────────────────────
     const chaveAtual = (appConfig && appConfig.serie) ? gerarChaveTurmaInterna() : '';
 
-    container.innerHTML = turmasFiltradas
-        .sort((a, b) => a.nome.localeCompare(b.nome))
-        .map(({ nome, setup }) => {
+    container.innerHTML = todasRender
+        .sort((a, b) => {
+            // inativos sempre por último
+            if (a.status === 'inativo' && b.status !== 'inativo') return 1;
+            if (b.status === 'inativo' && a.status !== 'inativo') return -1;
+            return a.nome.localeCompare(b.nome);
+        })
+        .map(({ nome, setup, status }) => {
             const nomeSeguro = nome.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
             const isAtual    = nome === chaveAtual;
+            const isInativo  = status === 'inativo';
             const tagAtual   = isAtual
                 ? '<span style="font-size:0.7rem; background:var(--pe-success); color:white; border-radius:3px; padding:1px 5px; margin-left:4px;">atual</span>'
+                : '';
+            const tagInativo = isInativo
+                ? '<span style="font-size:0.68rem; background:#e0e0e0; color:#666; border-radius:3px; padding:1px 5px; margin-left:4px;">inativa</span>'
                 : '';
             const meta = setup
                 ? [setup.nivel, setup.serie, setup.turma ? 'Turma ' + setup.turma : '', setup.unidadeLetiva].filter(Boolean).join(' · ')
@@ -3821,24 +3910,48 @@ function renderPainelTurmasSalvas() {
                 ? `<div style="font-size:0.72rem; color:var(--pe-text-muted); margin-top:2px;">${meta}</div>`
                 : '';
 
+            const btnCarregar = !isInativo
+                ? `<button class="btn btn-primary"
+                    style="padding:5px 11px; font-size:0.78rem; white-space:nowrap; flex-shrink:0;"
+                    onclick="carregarTurmaInterna('${nomeSeguro}')">Carregar</button>`
+                : '';
+            const btnAcao = isInativo
+                ? `<button class="btn btn-secondary"
+                    style="padding:5px 9px; font-size:0.75rem; flex-shrink:0; color:#2e7d32;"
+                    onclick="_turmaSetStatus('${nomeSeguro}','ativo'); renderPainelTurmasSalvas();"
+                    title="Reativar">↩</button>`
+                : `<button class="btn btn-danger"
+                    style="padding:5px 9px; font-size:0.78rem; flex-shrink:0;"
+                    onclick="excluirTurmaInterna('${nomeSeguro}')"
+                    title="Inativar turma">⏸</button>`;
+
             return `
-            <div style="display:flex; align-items:center; gap:7px; padding:9px 10px; background:#fff;
-                        border:1px solid ${isAtual ? 'var(--pe-success)' : 'var(--pe-border)'}; border-radius:6px; margin-bottom:6px;">
+            <div style="display:flex; align-items:center; gap:7px; padding:9px 10px;
+                        background:${isInativo ? '#f8f8f8' : '#fff'};
+                        border:1px solid ${isAtual ? 'var(--pe-success)' : (isInativo ? '#ddd' : 'var(--pe-border)')};
+                        border-radius:6px; margin-bottom:6px; opacity:${isInativo ? '0.7' : '1'};">
                 <div style="flex:1; min-width:0;">
-                    <div style="font-size:0.82rem; font-weight:600; color:var(--pe-navy); overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${nome}">
-                        📁 ${nome}${tagAtual}
+                    <div style="font-size:0.82rem; font-weight:600; color:${isInativo ? 'var(--pe-text-muted)' : 'var(--pe-navy)'}; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; ${isInativo ? 'text-decoration:line-through;' : ''}" title="${nome}">
+                        📁 ${nome}${tagAtual}${tagInativo}
                     </div>
                     ${metaHtml}
                 </div>
-                <button class="btn btn-primary"
-                    style="padding:5px 11px; font-size:0.78rem; white-space:nowrap; flex-shrink:0;"
-                    onclick="carregarTurmaInterna('${nomeSeguro}')">Carregar</button>
-                <button class="btn btn-danger"
-                    style="padding:5px 9px; font-size:0.78rem; flex-shrink:0;"
-                    onclick="excluirTurmaInterna('${nomeSeguro}')"
-                    title="Excluir turma salva">🗑️</button>
+                ${btnCarregar}
+                ${btnAcao}
             </div>`;
         }).join('');
+
+    // Separador visual se houver inativos
+    if (turmasInativas.length > 0 && turmasFiltradas.length > 0) {
+        const items = container.querySelectorAll('div[style*="margin-bottom:6px"]');
+        const primeiroInativo = Array.from(items).find((el, i) => i >= turmasFiltradas.length);
+        if (primeiroInativo) {
+            const sep = document.createElement('div');
+            sep.style.cssText = 'font-size:0.72rem;color:var(--pe-text-muted);padding:4px 2px 2px;border-top:1px dashed #ddd;margin-bottom:4px;margin-top:2px;';
+            sep.textContent = '— Turmas inativas —';
+            primeiroInativo.before(sep);
+        }
+    }
 }
 
 async function carregarTurmaInterna(nome) {
@@ -3870,13 +3983,169 @@ async function carregarTurmaInterna(nome) {
 }
 
 function excluirTurmaInterna(nome) {
-    if (!confirm(`Excluir permanentemente a turma salva:\n"${nome}"?\n\nIsso também removerá da nuvem (se você estiver logado).`)) return;
+    // Etapa 2: "excluir" no painel agora INATIVA (não apaga)
+    if (!confirm(`Remover a turma da lista ativa?\n"${nome}"\n\nEla ficará inativa (em cinza) e poderá ser restaurada no Gerenciador de Turmas.`)) return;
+    _turmaSetStatus(nome, 'inativo');
+    renderPainelTurmasSalvas();
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   GERENCIADOR DE TURMAS — Etapa 2
+   Acesso: botão "⚙️ Gerenciar Turmas por Ano"
+   Permite: ver por ano, inativar, reativar, excluir permanentemente
+══════════════════════════════════════════════════════════════════ */
+let _gerAnoAtivo = String(new Date().getFullYear());
+
+// Altera o campo status de uma turma no localStorage
+function _turmaSetStatus(nome, novoStatus) {
+    const lsChave = 'turma_int_' + nome;
+    const raw = localStorage.getItem(lsChave);
+    if (!raw) return;
+    try {
+        const obj = JSON.parse(raw);
+        obj.status = novoStatus;
+        obj.statusAt = new Date().toISOString();
+        localStorage.setItem(lsChave, JSON.stringify(obj));
+        // Atualiza na nuvem em segundo plano
+        if (typeof window.fbSalvarTurmaCloud === 'function') {
+            window.fbSalvarTurmaCloud(nome, JSON.stringify(obj));
+        }
+    } catch(e) { console.warn('_turmaSetStatus erro:', e); }
+}
+
+// Retorna lista de todas as turmas com seus metadados e status
+function _lerTodasTurmas() {
+    const turmas = [];
+    for (let i = 0; i < localStorage.length; i++) {
+        const chave = localStorage.key(i);
+        if (!chave.startsWith('turma_int_')) continue;
+        const nome = chave.replace('turma_int_', '');
+        let obj = {};
+        try { obj = JSON.parse(localStorage.getItem(chave) || '{}'); } catch(e) {}
+        const setup = obj.setup || {};
+        const ano   = obj.anoLetivo || setup.anoLetivo || nome.split(' | ')[0] || String(new Date().getFullYear());
+        turmas.push({
+            nome,
+            setup,
+            status:    obj.status    || 'ativo',
+            anoLetivo: String(ano),
+            savedAt:   obj.savedAt   || '',
+            statusAt:  obj.statusAt  || ''
+        });
+    }
+    return turmas;
+}
+
+function abrirGerenciadorTurmas() {
+    _gerAnoAtivo = String(appConfig.anoLetivo || new Date().getFullYear());
+    document.getElementById('ger-overlay').classList.add('active');
+    document.getElementById('ger-overlay').onclick = e => {
+        if (e.target === document.getElementById('ger-overlay')) fecharGerenciador();
+    };
+    renderGerenciador();
+}
+
+function fecharGerenciador() {
+    document.getElementById('ger-overlay').classList.remove('active');
+    renderPainelTurmasSalvas(); // atualiza o painel principal ao fechar
+}
+
+function renderGerenciador() {
+    const todas  = _lerTodasTurmas();
+    const anos   = [...new Set(todas.map(t => t.anoLetivo))].sort((a,b) => b - a);
+
+    // ── Barra de anos ──────────────────────────────────────────────────────
+    const anosBtns = document.getElementById('ger-anos-btns');
+    if (anosBtns) {
+        // Se o ano ativo não existir ainda (nenhuma turma), adiciona o atual
+        const anosComAtual = anos.includes(_gerAnoAtivo) ? anos : [_gerAnoAtivo, ...anos];
+        anosBtns.innerHTML = anosComAtual.map(ano => `
+            <button class="ger-ano-btn ${ano === _gerAnoAtivo ? 'active' : ''}"
+                onclick="_gerAnoAtivo='${ano}'; renderGerenciador();">${ano}</button>
+        `).join('');
+    }
+
+    // ── Lista do ano ativo ─────────────────────────────────────────────────
+    const doAno = todas.filter(t => t.anoLetivo === _gerAnoAtivo);
+    // Ativos primeiro (ordem alfabética), depois inativos
+    const ativos   = doAno.filter(t => t.status !== 'inativo').sort((a,b) => a.nome.localeCompare(b.nome));
+    const inativos = doAno.filter(t => t.status === 'inativo').sort((a,b) => a.nome.localeCompare(b.nome));
+    const ordenados = [...ativos, ...inativos];
+
+    const lista  = document.getElementById('ger-lista');
+    const vazio  = document.getElementById('ger-vazio');
+    if (!lista) return;
+
+    if (ordenados.length === 0) {
+        lista.innerHTML = '';
+        if (vazio) vazio.style.display = 'block';
+        return;
+    }
+    if (vazio) vazio.style.display = 'none';
+
+    const chaveAtual = (appConfig && appConfig.serie) ? gerarChaveTurmaInterna() : '';
+
+    lista.innerHTML = ordenados.map(({ nome, setup, status, savedAt }) => {
+        const nomeSeguro = nome.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        const isInativo  = status === 'inativo';
+        const isAtual    = nome === chaveAtual;
+        const meta = [
+            setup.nivel,
+            setup.serie,
+            setup.turma ? 'Turma ' + setup.turma : '',
+            setup.unidadeLetiva,
+            setup.disciplina
+        ].filter(Boolean).join(' · ');
+        const dataInfo = savedAt
+            ? '<br>Salvo: ' + new Date(savedAt).toLocaleDateString('pt-BR')
+            : '';
+
+        const btnCarregar = !isInativo
+            ? `<button class="ger-btn ger-btn-carregar"
+                onclick="fecharGerenciador(); setTimeout(()=>carregarTurmaInterna('${nomeSeguro}'),200);">
+                Carregar</button>`
+            : '';
+        const btnStatus = isInativo
+            ? `<button class="ger-btn ger-btn-reativar"
+                onclick="_turmaSetStatus('${nomeSeguro}','ativo'); renderGerenciador();">
+                ↩ Reativar</button>`
+            : `<button class="ger-btn ger-btn-inativar"
+                onclick="_turmaSetStatus('${nomeSeguro}','inativo'); renderGerenciador();">
+                ⏸ Inativar</button>`;
+        const btnExcluir = isInativo
+            ? `<button class="ger-btn ger-btn-excluir"
+                onclick="gerExcluirPermanente('${nomeSeguro}')">
+                🗑 Excluir</button>`
+            : '';
+        const tagAtual = isAtual
+            ? '<span style="font-size:0.68rem;background:var(--pe-success);color:#fff;border-radius:10px;padding:2px 6px;margin-left:4px;">atual</span>'
+            : '';
+        const badgeInativo = isInativo
+            ? '<span class="ger-badge-inativo">inativa</span>'
+            : '';
+
+        return `
+        <div class="ger-turma-item ${isInativo ? 'inativo' : ''}">
+            <div class="ger-turma-info">
+                <div class="ger-turma-nome">📁 ${nome}${tagAtual}</div>
+                <div class="ger-turma-meta">${meta}${dataInfo}</div>
+            </div>
+            ${badgeInativo}
+            ${btnCarregar}
+            ${btnStatus}
+            ${btnExcluir}
+        </div>`;
+    }).join('');
+}
+
+function gerExcluirPermanente(nome) {
+    if (!confirm(`⚠️ EXCLUSÃO PERMANENTE\n\n"${nome}"\n\nEssa ação não pode ser desfeita. Os dados desta turma serão apagados deste dispositivo e da nuvem.\n\nConfirmar?`)) return;
     localStorage.removeItem('turma_int_' + nome);
-    // ── Remove da nuvem em segundo plano ──
     if (typeof window.fbExcluirTurmaCloud === 'function') {
         window.fbExcluirTurmaCloud(nome);
     }
-    renderPainelTurmasSalvas();
+    mostrarToast('🗑 Turma excluída permanentemente.', 'aviso');
+    renderGerenciador();
 }
 
 function listarTurmas() {
@@ -4155,7 +4424,27 @@ function listarTurmas() {
             </div>
         </div>
     </div>
-    <!-- Toast de feedback de sincronização -->
+    <!-- ── Modal Gerenciador de Turmas por Ano ────────────────────────────── -->
+    <div id="ger-overlay">
+        <div id="ger-modal">
+            <div id="ger-header">
+                <h2>⚙️ Gerenciar Turmas por Ano</h2>
+                <button onclick="fecharGerenciador()" title="Fechar">✕</button>
+            </div>
+            <div id="ger-body">
+                <div id="ger-ano-bar">
+                    <span>Ano:</span>
+                    <div id="ger-anos-btns"></div>
+                </div>
+                <div id="ger-lista">
+                    <div id="ger-vazio">Nenhuma turma salva neste ano.</div>
+                </div>
+                <div id="ger-footer">
+                    <button class="btn btn-secondary" onclick="fecharGerenciador()" style="font-size:0.82rem; padding:7px 16px;">Fechar</button>
+                </div>
+            </div>
+        </div>
+    </div>
     <div id="fb-toast"></div>
 
     <!-- ── Modal de Perfil ─────────────────────────────────────────────── -->
