@@ -1064,7 +1064,9 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
-  getAdditionalUserInfo
+  getAdditionalUserInfo,
+  setPersistence,
+  browserSessionPersistence
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore,
@@ -1076,6 +1078,8 @@ import {
 // ── INICIALIZAÇÃO ─────────────────────────────────────────────────────
 const app  = initializeApp(FIREBASE_CONFIG);
 const auth = getAuth(app);
+// Sessão dura apenas enquanto a aba estiver aberta — sempre pede login ao reabrir
+setPersistence(auth, browserSessionPersistence).catch(e=>console.warn('setPersistence:', e));
 const db   = getFirestore(app);
 const gProvider = new GoogleAuthProvider();
 
