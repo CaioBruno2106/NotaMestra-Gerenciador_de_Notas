@@ -907,7 +907,8 @@ import {
   signInWithEmailAndPassword,
   signOut,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  getAdditionalUserInfo
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore,
@@ -1117,17 +1118,24 @@ async function saveFullSetup(perfil, escolas, turmas){
 // AUTH: LOGIN / CADASTRO
 // ══════════════════════════════════════════════
 window.doGoogleLogin = async function(){
-  // Detecta qual tela está ativa para mostrar o erro no lugar certo
   const isRegister = document.getElementById('register-screen').style.display !== 'none';
   const errId = isRegister ? 'register-msg' : 'login-msg';
   try {
     showLoading('Conectando ao Google...');
-    await signInWithPopup(auth, gProvider);
-    showLoading('Verificando sua conta...');
-    // onAuthStateChanged cuida do resto
+    const result = await signInWithPopup(auth, gProvider);
+    const info   = getAdditionalUserInfo(result);
+
+    if(info?.isNewUser){
+      // Conta nova — onAuthStateChanged vai redirecionar pro onboarding
+      showLoading('Conta criada! Preparando seu espaço...');
+    } else {
+      // Conta existente — onAuthStateChanged vai verificar o perfil
+      showLoading('Verificando sua conta...');
+    }
+    // onAuthStateChanged cuida do redirecionamento (onboarding ou dashboard)
   } catch(e){
     hideLoading();
-    if(e.code==='auth/popup-closed-by-user') return;
+    if(e.code==='auth/popup-closed-by-user' || e.code==='auth/cancelled-popup-request') return;
     showAuthMsg(errId, friendlyAuthError(e.code), 'error');
   }
 };
@@ -1197,14 +1205,17 @@ function showAuthMsg(id, txt, type){
 
 function friendlyAuthError(code){
   const map = {
-    'auth/user-not-found':      'E-mail não cadastrado.',
-    'auth/wrong-password':      'Senha incorreta.',
-    'auth/invalid-email':       'E-mail inválido.',
-    'auth/email-already-in-use':'Este e-mail já está cadastrado.',
-    'auth/weak-password':       'Senha muito fraca. Use pelo menos 6 caracteres.',
-    'auth/too-many-requests':   'Muitas tentativas. Aguarde um momento.',
+    'auth/user-not-found':        'E-mail não cadastrado.',
+    'auth/wrong-password':        'Senha incorreta.',
+    'auth/invalid-email':         'E-mail inválido.',
+    'auth/email-already-in-use':  'Este e-mail já está cadastrado.',
+    'auth/weak-password':         'Senha muito fraca. Use pelo menos 6 caracteres.',
+    'auth/too-many-requests':     'Muitas tentativas. Aguarde um momento.',
     'auth/network-request-failed':'Sem conexão. Verifique a internet.',
-    'auth/invalid-credential':  'E-mail ou senha incorretos.',
+    'auth/invalid-credential':    'E-mail ou senha incorretos.',
+    'auth/popup-blocked':         'Popup bloqueado pelo navegador. Tente desbloquear popups.',
+    'auth/unauthorized-domain':   'Domínio não autorizado. Verifique as configurações do Firebase.',
+    'auth/operation-not-allowed': 'Login com Google não está habilitado. Ative no Firebase Console.',
   };
   return map[code] || `Erro: ${code}`;
 }
