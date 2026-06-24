@@ -1545,6 +1545,7 @@ import {
   getFirestore,
   doc, getDoc, setDoc, collection,
   getDocs, addDoc, deleteDoc,
+  writeBatch,
   serverTimestamp, query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -1562,6 +1563,7 @@ let _email  = null;
 let _perfil = null;   // dados do Firestore: users/{uid}/perfil/dados
 let _escolas = [];    // array de {id, nome, tipo}
 let _turmas  = [];    // array de {id, nome, escolaId, nivel, turno, serie, turma, atividades, alunos:[]}
+let _unidades = {};  // cache: { [turmaId]: [{id, label, ordem, sistema, qtdAtividades}] }
 
 // Estado temporário do wizard
 let _obEscolas = []; // [{nome, tipo}]
@@ -1697,6 +1699,7 @@ onAuthStateChanged(auth, async (user) => {
 
   } else {
     _uid = null; _email = null; _perfil = null;
+    _escolas = []; _turmas = []; _unidades = {};
     hideLoading();
     showLogin();
   }
@@ -1741,6 +1744,128 @@ async function loadUserData(){
 }
 
 // ── SALVAR PERFIL COMPLETO ────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════
+// ETAPA 1 — ESTRUTURA DE UNIDADES NO FIRESTORE
+// ══════════════════════════════════════════════════════════════════════
+
+/**
+ * Retorna os labels e ordem das unidades conforme o sistema (bimestral/trimestral)
+ */
+function getUnidadesConfig(sistema){
+  if(sistema==='trimestral'){
+    return [
+      {label:'1º Trimestre', ordem:1},
+      {label:'2º Trimestre', ordem:2},
+      {label:'3º Trimestre', ordem:3},
+    ];
+  }
+  // padrão: bimestral
+  return [
+    {label:'1º Bimestre', ordem:1},
+    {label:'2º Bimestre', ordem:2},
+    {label:'3º Bimestre', ordem:3},
+    {label:'4º Bimestre', ordem:4},
+  ];
+}
+
+/**
+ * Cria os documentos de unidade dentro de turmas/{turmaId}/unidades/
+ * usando writeBatch para atomicidade.
+ * Estrutura de cada unidade:
+ * {
+ *   label,          // ex.: "1º Bimestre"
+ *   ordem,          // 1..4 (bimestral) ou 1..3 (trimestral)
+ *   sistema,        // "bimestral" | "trimestral"
+ *   qtdAtividades,  // herda da turma, pode ser sobrescrito por unidade
+ *   fechada,        // false — trancada quando todas as notas são lançadas
+ *   criadoEm
+ * }
+ * Obs.: as notas ficam em subcoleções de cada unidade:
+ *   atividades/{atvId} → { tipo, teto, notas:{[alunoId]:valor} }
+ *   prova              → campo no doc da unidade: { notas:{[alunoId]:valor} }
+ *   extras             → campo no doc da unidade: { notas:{[alunoId]:valor} }
+ */
+async function inicializarUnidades(turmaId, sistema, qtdAtividades){
+  const uConfig = getUnidadesConfig(sistema);
+  const batch   = writeBatch(db);
+  const basePath = collection(db,'users',_uid,'turmas',turmaId,'unidades');
+
+  for(const u of uConfig){
+    const uRef = doc(basePath); // auto-ID
+    batch.set(uRef, {
+      label:          u.label,
+      ordem:          u.ordem,
+      sistema,
+      qtdAtividades,  // padrão da turma; editável por unidade depois
+      fechada:        false,
+      prova:   { notas:{} },
+      extras:  { notas:{} },
+      criadoEm: serverTimestamp()
+    });
+  }
+  await batch.commit();
+}
+
+/**
+ * Garante que uma turma já existente (cadastrada antes da Etapa 1)
+ * tenha suas unidades criadas — chamado on-demand ao abrir a turma.
+ * Não recria se já existirem.
+ */
+async function garantirUnidades(turma){
+  const snap = await getDocs(
+    collection(db,'users',_uid,'turmas',turma.id,'unidades')
+  );
+  if(snap.size > 0){
+    // Já existem — só atualiza cache
+    _unidades[turma.id] = snap.docs
+      .map(d=>({id:d.id,...d.data()}))
+      .sort((a,b)=>a.ordem-b.ordem);
+    return _unidades[turma.id];
+  }
+  // Cria agora (turma legada sem unidades)
+  const sistema = turma.sistema||'bimestral';
+  await inicializarUnidades(turma.id, sistema, turma.atividades||0);
+  // Relê para popular cache
+  const snap2 = await getDocs(
+    collection(db,'users',_uid,'turmas',turma.id,'unidades')
+  );
+  _unidades[turma.id] = snap2.docs
+    .map(d=>({id:d.id,...d.data()}))
+    .sort((a,b)=>a.ordem-b.ordem);
+  return _unidades[turma.id];
+}
+
+/**
+ * Carrega unidades de uma turma para o cache.
+ * Retorna array ordenado por `ordem`.
+ */
+async function loadUnidades(turmaId){
+  if(_unidades[turmaId]) return _unidades[turmaId]; // cache hit
+  const snap = await getDocs(
+    collection(db,'users',_uid,'turmas',turmaId,'unidades')
+  );
+  _unidades[turmaId] = snap.docs
+    .map(d=>({id:d.id,...d.data()}))
+    .sort((a,b)=>a.ordem-b.ordem);
+  return _unidades[turmaId];
+}
+
+/**
+ * Atualiza qtdAtividades de uma unidade específica (override por unidade).
+ */
+async function setQtdAtividadesUnidade(turmaId, unidadeId, qtd){
+  await setDoc(
+    doc(db,'users',_uid,'turmas',turmaId,'unidades',unidadeId),
+    { qtdAtividades: qtd },
+    { merge: true }
+  );
+  // Atualiza cache
+  if(_unidades[turmaId]){
+    const u = _unidades[turmaId].find(u=>u.id===unidadeId);
+    if(u) u.qtdAtividades = qtd;
+  }
+}
+
 async function saveFullSetup(perfil, escolas, turmas){
   showLoading('Salvando dados no Firebase...');
   try {
@@ -1767,7 +1892,7 @@ async function saveFullSetup(perfil, escolas, turmas){
     for(const idxEscola in turmas){
       const tList = turmas[idxEscola];
       for(const t of tList){
-        await addDoc(collection(db,'users',_uid,'turmas'),{
+        const turmaRef = await addDoc(collection(db,'users',_uid,'turmas'),{
           escolaId:   escolaIdMap[idxEscola],
           escolaNome: escolas[idxEscola].nome,
           escolaTipo: escolas[idxEscola].tipo,
@@ -1779,10 +1904,17 @@ async function saveFullSetup(perfil, escolas, turmas){
           turma:      t.turma,
           disciplina: t.disciplina||'',
           atividades: parseInt(t.atividades)||0,
+          sistema:    t.sistema||'bimestral',
           alunos:     t.alunos,
           ativo:      true,
           criadoEm:   serverTimestamp()
         });
+        // Criar subcoleção de unidades atomicamente
+        await inicializarUnidades(
+          turmaRef.id,
+          t.sistema||'bimestral',
+          parseInt(t.atividades)||0
+        );
       }
     }
 
@@ -2254,7 +2386,11 @@ function renderTurmasStep(){
       <div class="add-turma-box">
         <div class="add-turma-title">+ Adicionar turma em ${e.nome}</div>
         <div class="add-turma-grid">
-          <input type="number" id="at-ano-${ei}" placeholder="Ano letivo * (ex.: 2025)" min="2020" max="2040" style="grid-column:span 2">
+          <input type="number" id="at-ano-${ei}" placeholder="Ano letivo * (ex.: 2025)" min="2020" max="2040" style="grid-column:span 1">
+          <select id="at-sistema-${ei}" style="grid-column:span 1">
+            <option value="bimestral">Bimestral (4 bimestres)</option>
+            <option value="trimestral">Trimestral (3 trimestres)</option>
+          </select>
           <select id="at-nivel-${ei}" style="grid-column:span 2">
             <option value="">Nível de ensino *</option>
             <option value="fund2">Fundamental II</option>
@@ -2284,7 +2420,7 @@ function renderTurmaCard(ei, ti, t){
     <div class="turma-card-header">
       <div>
         <div class="turma-card-title">${t.serie} ${t.turma} &mdash; ${nivelLabel(t.nivel)}</div>
-        <div class="turma-card-meta">${turnoLabel(t.turno)} &nbsp;·&nbsp; ${t.atividades||0} atividades${t.disciplina?' &nbsp;·&nbsp; '+t.disciplina:''}</div>
+        <div class="turma-card-meta">${turnoLabel(t.turno)} &nbsp;·&nbsp; ${t.sistema==='trimestral'?'Trimestral':'Bimestral'} &nbsp;·&nbsp; ${t.atividades||0} ativ.${t.disciplina?' &nbsp;·&nbsp; '+t.disciplina:''}</div>
       </div>
       <button class="btn-del-turma" onclick="removeTurma(${ei},${ti})">✕ Remover</button>
     </div>
@@ -2312,7 +2448,8 @@ function renderTurmaCard(ei, ti, t){
 }
 
 window.addTurma = function(ei){
-  const ano   = document.getElementById(`at-ano-${ei}`).value.trim();
+  const ano    = document.getElementById(`at-ano-${ei}`).value.trim();
+  const sistema = document.getElementById(`at-sistema-${ei}`)?.value||'bimestral';
   const nivel = document.getElementById(`at-nivel-${ei}`).value;
   const turno = document.getElementById(`at-turno-${ei}`).value;
   const serie = document.getElementById(`at-serie-${ei}`).value.trim();
@@ -2341,6 +2478,7 @@ window.addTurma = function(ei){
     anoLetivo: parseInt(ano)||new Date().getFullYear(),
     nivel, turno, serie, turma,
     disciplina: disc,
+    sistema,
     atividades: parseInt(ativ)||0,
     alunosRaw: '',
     alunos: [],
@@ -2674,7 +2812,7 @@ function renderDashboard(){
         <span style="background:rgba(0,0,0,.1);padding:1px 6px;border-radius:8px;margin-left:4px;">${tagL}</span>
       </div>
       <div class="turma-mini-name">${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}</div>
-      <div class="turma-mini-escola">${turnoLabel(t.turno)} · ${t.anoLetivo||'—'}${t.disciplina?' · '+t.disciplina:''}</div>
+      <div class="turma-mini-escola">${turnoLabel(t.turno)} · ${t.anoLetivo||'—'} · ${t.sistema==='trimestral'?'Trimestral':'Bimestral'}${t.disciplina?' · '+t.disciplina:''}</div>
       ${isInativa?'<div class="turma-mini-inativa-tag">⏸ Turma inativa</div>':''}
       <div class="turma-mini-meta">
         <span>👤 <strong>${alunosAtivos}</strong>/${alunosTotal} alunos</span>
