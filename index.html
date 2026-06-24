@@ -33,12 +33,14 @@
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--pe-bg);color:var(--pe-text);overflow-x:hidden;}
 
-/* ─── TELA CHEIA DE AUTH ─── */
-#auth-screen{
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
+/* ─── TELAS DE AUTH ─── */
+#login-screen, #register-screen {
+  flex-direction:column;align-items:center;justify-content:center;
   min-height:100vh;padding:24px 16px;
   background:linear-gradient(145deg,var(--pe-navy) 0%,#003e82 60%,#00518f 100%);
 }
+#login-screen   { display:flex; }   /* visível por padrão */
+#register-screen{ display:none; }   /* oculta por padrão */
 
 .auth-logo{
   display:flex;align-items:center;gap:12px;margin-bottom:32px;
@@ -505,7 +507,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 <!-- ═══════════════════════════════════════════
      TELA 1A: LOGIN
      ═══════════════════════════════════════════ -->
-<div id="login-screen" style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px;background:linear-gradient(145deg,var(--pe-navy) 0%,#003e82 60%,#00518f 100%);">
+<div id="login-screen">
 
   <div class="auth-logo" style="animation:fadeDown .5s ease both;">
     <div style="width:52px;height:52px;border-radius:14px;overflow:hidden;flex-shrink:0;">
@@ -566,7 +568,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 <!-- ═══════════════════════════════════════════
      TELA 1B: CADASTRO
      ═══════════════════════════════════════════ -->
-<div id="register-screen" style="display:none;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;padding:24px 16px;background:linear-gradient(145deg,var(--pe-navy) 0%,#003e82 60%,#00518f 100%);">
+<div id="register-screen">
 
   <div class="auth-logo" style="animation:fadeDown .5s ease both;">
     <div style="width:52px;height:52px;border-radius:14px;overflow:hidden;flex-shrink:0;">
@@ -961,24 +963,40 @@ function clearMsg(id){
 }
 
 function showScreen(name){
-  ['auth-screen','onboarding-screen','dashboard-screen'].forEach(s=>{
+  ['login-screen','register-screen','onboarding-screen','dashboard-screen'].forEach(s=>{
     const el = document.getElementById(s);
     if(!el) return;
     if(s === name){
-      el.style.display = s === 'auth-screen' ? 'flex' : 'flex';
+      el.style.display = 'flex';
       el.classList.add('active');
     } else {
       el.style.display = 'none';
       el.classList.remove('active');
     }
   });
-  // auth-screen não usa classe active, usa display flex diretamente
-  if(name==='auth-screen'){
-    document.getElementById('auth-screen').style.display='flex';
-    document.getElementById('onboarding-screen').style.display='none';
-    document.getElementById('dashboard-screen').style.display='none';
-  }
 }
+
+window.showLogin = function(){
+  const e = document.getElementById('login-email');
+  const p = document.getElementById('login-pass');
+  const m = document.getElementById('login-msg');
+  if(e) e.value='';
+  if(p) p.value='';
+  if(m){ m.textContent=''; m.className='auth-msg'; }
+  showScreen('login-screen');
+};
+
+window.showRegister = function(){
+  const e = document.getElementById('reg-email');
+  const p = document.getElementById('reg-pass');
+  const p2= document.getElementById('reg-pass2');
+  const m = document.getElementById('register-msg');
+  if(e) e.value='';
+  if(p) p.value='';
+  if(p2) p2.value='';
+  if(m){ m.textContent=''; m.className='auth-msg'; }
+  showScreen('register-screen');
+};
 
 // ── AUTH STATE LISTENER ───────────────────────────────────────────────
 onAuthStateChanged(auth, async (user) => {
@@ -1003,7 +1021,7 @@ onAuthStateChanged(auth, async (user) => {
     }
   } else {
     _uid = null; _email = null; _perfil = null;
-    showScreen('auth-screen');
+    showLogin();
   }
 });
 
@@ -1096,11 +1114,17 @@ async function saveFullSetup(perfil, escolas, turmas){
 // ══════════════════════════════════════════════
 // AUTH: LOGIN / CADASTRO
 // ══════════════════════════════════════════════
-window.switchTab = function(tab){
-  document.getElementById('tab-login').classList.toggle('active', tab==='login');
-  document.getElementById('tab-register').classList.toggle('active', tab==='register');
-  document.getElementById('panel-login').classList.toggle('hidden', tab!=='login');
-  document.getElementById('panel-register').classList.toggle('hidden', tab!=='register');
+window.doGoogleLogin = async function(){
+  // Detecta qual tela está ativa para mostrar o erro no lugar certo
+  const isRegister = document.getElementById('register-screen').style.display !== 'none';
+  const errId = isRegister ? 'register-msg' : 'login-msg';
+  try {
+    await signInWithPopup(auth, gProvider);
+    // onAuthStateChanged cuida do resto
+  } catch(e){
+    if(e.code==='auth/popup-closed-by-user') return;
+    showAuthMsg(errId, friendlyAuthError(e.code), 'error');
+  }
 };
 
 window.doLogin = async function(){
@@ -1146,16 +1170,7 @@ window.doRegister = async function(){
   }
 };
 
-window.doGoogleLogin = async function(){
-  try {
-    await signInWithPopup(auth, gProvider);
-    // onAuthStateChanged cuida do resto
-  } catch(e){
-    if(e.code==='auth/popup-closed-by-user') return;
-    showAuthMsg('login-msg', friendlyAuthError(e.code), 'error');
-    showAuthMsg('register-msg', friendlyAuthError(e.code), 'error');
-  }
-};
+
 
 function showAuthMsg(id, txt, type){
   const el = document.getElementById(id);
