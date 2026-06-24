@@ -1522,7 +1522,8 @@ const FIREBASE_CONFIG = {
 
 // Cloud Functions para SMS (ajuste a região se necessário)
 const SMS_FUNCTIONS_BASE = `https://southamerica-east1-${FIREBASE_CONFIG.projectId}.cloudfunctions.net`;
-// Modo desenvolvimento: simula envio de SMS (NÃO usar em produção)
+// Modo desenvolvimento: true = simula o SMS sem Cloud Function (use só para testes)
+// false = tenta a Cloud Function real; se falhar por não estar deployada, avisa o usuário
 const SMS_DEV_MODE = false;
 
 // ── IMPORTS FIREBASE ─────────────────────────────────────────────────
@@ -1803,25 +1804,41 @@ async function saveFullSetup(perfil, escolas, turmas){
 // ══════════════════════════════════════════════
 // AUTH: LOGIN / CADASTRO
 // ══════════════════════════════════════════════
-window.doGoogleLogin = async function(){
-  const isRegister = document.getElementById('register-screen').style.display !== 'none';
-  const errId = isRegister ? 'register-msg' : 'login-msg';
+window.doGoogleLogin = async function(context){
+  // context pode ser 'login', 'register' ou undefined
+  // Determina onde mostrar a mensagem de erro: usa o contexto explícito
+  // ou detecta qual tela auth está visível
+  let errId = 'login-msg';
+  if(context === 'register'){
+    errId = 'register-msg';
+  } else if(!context){
+    // fallback: detecta pela classe .active
+    if(document.getElementById('register-screen')?.classList.contains('active')){
+      errId = 'register-msg';
+    }
+  }
   try {
     showLoading('Conectando ao Google...');
     const result = await signInWithPopup(auth, gProvider);
     const info   = getAdditionalUserInfo(result);
-
     if(info?.isNewUser){
-      // Conta nova — onAuthStateChanged vai redirecionar pro onboarding
       showLoading('Conta criada! Preparando seu espaço...');
     } else {
-      // Conta existente — onAuthStateChanged vai verificar o perfil
       showLoading('Verificando sua conta...');
     }
     // onAuthStateChanged cuida do redirecionamento (onboarding ou dashboard)
   } catch(e){
     hideLoading();
     if(e.code==='auth/popup-closed-by-user' || e.code==='auth/cancelled-popup-request') return;
+    // Se a tela mudou (ex: usuário foi para forgot-screen e voltou), garante que
+    // a mensagem aparece na tela de login que está visível agora
+    const loginActive    = document.getElementById('login-screen')?.classList.contains('active');
+    const registerActive = document.getElementById('register-screen')?.classList.contains('active');
+    if(!loginActive && !registerActive){
+      // Nenhuma tela de auth está ativa — vai para login e mostra lá
+      showLogin();
+      errId = 'login-msg';
+    }
     showAuthMsg(errId, friendlyAuthError(e.code), 'error');
   }
 };
@@ -1955,11 +1972,19 @@ window.setForgotMode = function(mode){
 };
 
 async function callSmsFunction(path, payload){
-  const res = await fetch(`${SMS_FUNCTIONS_BASE}/${path}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
+  let res;
+  try {
+    res = await fetch(`${SMS_FUNCTIONS_BASE}/${path}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch(networkErr){
+    // fetch lançou erro (sem rede, CORS, etc.)
+    const err = new Error('Failed to fetch');
+    err.status = 0;
+    throw err;
+  }
   let data = {};
   try { data = await res.json(); } catch(_e){}
   if(!res.ok){
@@ -2006,10 +2031,27 @@ window.requestForgotCode = async function(isResend=false){
       data = await callSmsFunction('requestPasswordResetSms', { telefone: digits });
     } catch(e){
       if(SMS_DEV_MODE){
+        // Modo desenvolvimento local: gera código falso para testar o fluxo
         _forgotDevCode = String(Math.floor(100000 + Math.random() * 900000));
         _forgotRequestId = 'dev-' + Date.now();
         data = { requestId: _forgotRequestId, devCode: _forgotDevCode };
       } else {
+        // Cloud Function não disponível ou erro de rede
+        // Verifica se é erro de conectividade/função não deployada
+        const semServidor = e.status === 404 || e.status === 0 ||
+          e.message.includes('Failed to fetch') || e.message.includes('NetworkError') ||
+          e.message.includes('404') || e.message.includes('not found');
+        if(semServidor){
+          hideLoading();
+          showForgotMsg(
+            '⚠️ O serviço de SMS ainda não está configurado neste ambiente. ' +
+            'Use a opção "Por e-mail" para recuperar sua senha agora.',
+            'error'
+          );
+          // Sugere troca automática para e-mail após 2s
+          setTimeout(()=>{ setForgotMode('email'); showForgotMsg('',''); }, 2200);
+          return;
+        }
         throw e;
       }
     }
@@ -2865,6 +2907,7 @@ function renderProfile(){
 
 function renderProfileEscolas(){
   const list = document.getElementById('profile-escolas-list');
+  if(!list) return; // tela de perfil não está no DOM ainda
   const ativas   = _escolas.filter(e=>e.ativo!==false);
   const inativas = _escolas.filter(e=>e.ativo===false);
 
@@ -3014,8 +3057,11 @@ window.saveEscolaTipoModal = async function(){
     turmasAfetadas.forEach(t => { t.escolaTipo = novoTipo; });
 
     closeEscolaTipoModal();
-    renderProfileEscolas();
-    if(document.getElementById('dashboard-screen').classList.contains('active')){
+    // Re-renderiza a tela que estiver ativa
+    if(document.getElementById('profile-screen')?.classList.contains('active')){
+      renderProfileEscolas();
+    }
+    if(document.getElementById('dashboard-screen')?.classList.contains('active')){
       renderDashboard();
     }
     showToast(
