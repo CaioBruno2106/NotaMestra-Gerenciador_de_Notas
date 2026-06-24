@@ -545,6 +545,83 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 }
 .ob-field-ano input:focus{border-color:var(--pe-blue);background:#fff;}
 
+/* ── TELA DE PERFIL ── */
+#profile-screen{
+  display:none;flex-direction:column;min-height:100vh;
+  background:var(--pe-bg);
+}
+#profile-screen.active{display:flex;}
+.profile-body{
+  flex:1;padding:24px 16px 40px;
+  max-width:700px;margin:0 auto;width:100%;
+}
+.profile-section{
+  background:#fff;border-radius:var(--radius-lg);
+  border:1px solid var(--pe-border);box-shadow:var(--shadow-sm);
+  margin-bottom:18px;overflow:hidden;
+}
+.profile-section-header{
+  padding:14px 18px;background:var(--pe-navy);
+  display:flex;align-items:center;gap:10px;
+}
+.profile-section-header h3{
+  color:#fff;font-size:.88rem;font-weight:800;margin:0;flex:1;
+}
+.profile-section-header .ps-edit-btn{
+  background:rgba(255,255,255,.15);border:none;color:#fff;
+  padding:5px 12px;border-radius:5px;font-size:.75rem;
+  font-weight:700;cursor:pointer;
+}
+.profile-section-header .ps-edit-btn:hover{background:rgba(255,255,255,.28);}
+.profile-section-body{padding:18px;}
+.profile-field{
+  display:flex;flex-direction:column;gap:3px;margin-bottom:14px;
+}
+.profile-field:last-child{margin-bottom:0;}
+.profile-field label{
+  font-size:.72rem;font-weight:700;color:var(--pe-muted);
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.profile-field .pf-value{
+  font-size:.92rem;font-weight:600;color:var(--pe-navy);
+  padding:8px 10px;background:#f8f9fa;border-radius:6px;
+  border:1px solid var(--pe-border);
+}
+.profile-field input, .profile-field select{
+  padding:8px 11px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.92rem;outline:none;
+  background:#fafafa;
+}
+.profile-field input:focus, .profile-field select:focus{
+  border-color:var(--pe-blue);background:#fff;
+}
+.profile-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.profile-escola-item{
+  padding:10px 14px;background:#f8f9fa;border-radius:8px;
+  border:1px solid var(--pe-border);margin-bottom:8px;
+  display:flex;align-items:center;gap:10px;
+}
+.profile-escola-item.inativa{opacity:.5;border-style:dashed;}
+.profile-escola-name{flex:1;font-size:.88rem;font-weight:700;color:var(--pe-navy);}
+.profile-escola-tag{
+  padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700;
+}
+.profile-escola-actions{display:flex;gap:5px;}
+.pe-act-btn{
+  padding:4px 9px;border:none;border-radius:5px;font-size:.7rem;
+  font-weight:700;cursor:pointer;
+}
+.pe-act-deact{background:#fff3e0;color:#e65100;}
+.pe-act-react{background:#e8f5e9;color:#2e7d32;}
+.pe-act-del{background:#fdecea;color:var(--pe-red);}
+.profile-inativa-tag{
+  font-size:.62rem;font-weight:700;background:#e0e0e0;
+  color:#777;padding:2px 6px;border-radius:8px;
+}
+@media(max-width:480px){
+  .profile-grid{grid-template-columns:1fr;}
+}
+
 /* ─── TOAST ─── */
 #toast{
   position:fixed;top:74px;left:50%;transform:translateX(-50%) translateY(-12px);
@@ -935,7 +1012,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
       </div>
     </div>
     <div class="navbar-actions">
-      <button class="user-badge" id="dash-user-btn" onclick="showConfirmLogout()">
+      <button class="user-badge" id="dash-user-btn" onclick="showProfile()">
         <div class="user-avatar" id="dash-avatar">?</div>
         <span id="dash-user-name">Usuário</span>
       </button>
@@ -983,6 +1060,157 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
     </div>
   </div>
 
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TELA: PERFIL DO USUÁRIO
+     ═══════════════════════════════════════════ -->
+<div id="profile-screen">
+
+  <nav class="navbar" style="position:relative;">
+    <div class="navbar-brand">
+      <button onclick="closeProfile()" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 13px;border-radius:6px;font-size:.82rem;font-weight:700;cursor:pointer;">
+        ← Voltar
+      </button>
+    </div>
+    <div style="position:absolute;left:50%;transform:translateX(-50%);">
+      <div class="navbar-title">Meu <span style="color:var(--pe-yellow)">Perfil</span></div>
+    </div>
+    <div class="brand-line">
+      <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
+    </div>
+  </nav>
+
+  <div class="profile-body">
+
+    <!-- Avatar / nome -->
+    <div style="text-align:center;padding:24px 0 20px;">
+      <div style="width:72px;height:72px;border-radius:50%;background:var(--pe-navy);color:#fff;
+                  font-size:2rem;font-weight:900;display:flex;align-items:center;justify-content:center;
+                  margin:0 auto 12px;" id="prof-avatar">?</div>
+      <div style="font-size:1.1rem;font-weight:800;color:var(--pe-navy);" id="prof-nome-display">—</div>
+      <div style="font-size:.8rem;color:var(--pe-muted);" id="prof-email-display">—</div>
+    </div>
+
+    <!-- Dados pessoais -->
+    <div class="profile-section">
+      <div class="profile-section-header">
+        <h3>👤 Dados pessoais</h3>
+        <button class="ps-edit-btn" id="btn-edit-pessoal" onclick="toggleEditPessoal()">✏️ Editar</button>
+      </div>
+      <div class="profile-section-body" id="pessoal-view-mode">
+        <div class="profile-grid">
+          <div class="profile-field">
+            <label>Nome completo</label>
+            <div class="pf-value" id="pv-nome">—</div>
+          </div>
+          <div class="profile-field">
+            <label>Cargo / Função</label>
+            <div class="pf-value" id="pv-cargo">—</div>
+          </div>
+          <div class="profile-field">
+            <label>Disciplina</label>
+            <div class="pf-value" id="pv-disciplina">—</div>
+          </div>
+          <div class="profile-field">
+            <label>Município</label>
+            <div class="pf-value" id="pv-cidade">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="profile-section-body" id="pessoal-edit-mode" style="display:none;">
+        <div class="profile-grid">
+          <div class="profile-field">
+            <label>Nome completo *</label>
+            <input type="text" id="pe-nome" placeholder="Seu nome completo">
+          </div>
+          <div class="profile-field">
+            <label>Cargo / Função</label>
+            <select id="pe-cargo">
+              <option value="">Selecione...</option>
+              <option value="Professor(a)">Professor(a)</option>
+              <option value="Coordenador(a)">Coordenador(a)</option>
+              <option value="Diretor(a)">Diretor(a)</option>
+              <option value="Outro">Outro</option>
+            </select>
+          </div>
+          <div class="profile-field">
+            <label>Disciplina</label>
+            <input type="text" id="pe-disciplina" placeholder="Ex.: Matemática">
+          </div>
+          <div class="profile-field">
+            <label>Município</label>
+            <input type="text" id="pe-cidade" placeholder="Ex.: Recife">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+          <button class="ob-btn ob-btn-ghost" onclick="cancelEditPessoal()">Cancelar</button>
+          <button class="ob-btn ob-btn-primary" onclick="saveEditPessoal()">💾 Salvar</button>
+        </div>
+        <div class="ob-msg" id="pessoal-msg" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Dados de acesso -->
+    <div class="profile-section">
+      <div class="profile-section-header">
+        <h3>🔐 Dados de acesso</h3>
+        <button class="ps-edit-btn" id="btn-edit-acesso" onclick="toggleEditAcesso()">✏️ Editar</button>
+      </div>
+      <div class="profile-section-body" id="acesso-view-mode">
+        <div class="profile-grid">
+          <div class="profile-field">
+            <label>E-mail</label>
+            <div class="pf-value" id="pv-email">—</div>
+          </div>
+          <div class="profile-field">
+            <label>Celular</label>
+            <div class="pf-value" id="pv-telefone">—</div>
+          </div>
+        </div>
+      </div>
+      <div class="profile-section-body" id="acesso-edit-mode" style="display:none;">
+        <div class="profile-grid">
+          <div class="profile-field">
+            <label>E-mail</label>
+            <div class="pf-value" style="opacity:.6;" id="pv-email2">—</div>
+            <div style="font-size:.7rem;color:var(--pe-muted);margin-top:4px;">O e-mail não pode ser alterado aqui.</div>
+          </div>
+          <div class="profile-field">
+            <label>Celular para recuperação</label>
+            <input type="tel" id="pe-telefone" placeholder="(81) 99999-9999">
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+          <button class="ob-btn ob-btn-ghost" onclick="cancelEditAcesso()">Cancelar</button>
+          <button class="ob-btn ob-btn-primary" onclick="saveEditAcesso()">💾 Salvar</button>
+        </div>
+        <div class="ob-msg" id="acesso-msg" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Escolas -->
+    <div class="profile-section">
+      <div class="profile-section-header">
+        <h3>🏫 Escolas cadastradas</h3>
+      </div>
+      <div class="profile-section-body">
+        <div id="profile-escolas-list">
+          <div style="font-size:.8rem;color:var(--pe-muted);">Carregando...</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sair -->
+    <div style="text-align:center;padding-top:8px;">
+      <button onclick="showConfirmLogout()"
+        style="background:#fdecea;color:var(--pe-red);border:none;padding:10px 24px;border-radius:8px;
+               font-size:.88rem;font-weight:700;cursor:pointer;">
+        🚪 Sair do sistema
+      </button>
+    </div>
+
+  </div>
 </div>
 
 <!-- ── Toast ── -->
@@ -1190,7 +1418,7 @@ function clearMsg(id){
 }
 
 function showScreen(name){
-  ['login-screen','register-screen','onboarding-screen','dashboard-screen'].forEach(s=>{
+  ['login-screen','register-screen','onboarding-screen','dashboard-screen','profile-screen'].forEach(s=>{
     const el = document.getElementById(s);
     if(!el) return;
     if(s === name){
@@ -2176,6 +2404,196 @@ window.saveTurmaModal = async function(){
 };
 
 // ── LOGOUT ────────────────────────────────────────────────────────────
+// ══════════════════════════════════════════════
+// PERFIL DO USUÁRIO
+// ══════════════════════════════════════════════
+window.showProfile = function(){
+  showScreen('profile-screen');
+  renderProfile();
+};
+
+window.closeProfile = function(){
+  showScreen('dashboard-screen');
+};
+
+function renderProfile(){
+  const p = _perfil || {};
+  const nome  = p.nome  || '—';
+  const letra = nome[0]?.toUpperCase() || '?';
+
+  document.getElementById('prof-avatar').textContent        = letra;
+  document.getElementById('prof-nome-display').textContent  = nome;
+  document.getElementById('prof-email-display').textContent = _email || '—';
+
+  // View mode
+  document.getElementById('pv-nome').textContent       = p.nome        || '—';
+  document.getElementById('pv-cargo').textContent      = p.cargo       || '—';
+  document.getElementById('pv-disciplina').textContent = p.disciplina  || '—';
+  document.getElementById('pv-cidade').textContent     = p.cidade      || '—';
+  document.getElementById('pv-email').textContent      = _email        || '—';
+  document.getElementById('pv-email2').textContent     = _email        || '—';
+  document.getElementById('pv-telefone').textContent   = p.telefone    || '—';
+
+  // Edit inputs
+  document.getElementById('pe-nome').value       = p.nome       || '';
+  document.getElementById('pe-cargo').value      = p.cargo      || '';
+  document.getElementById('pe-disciplina').value = p.disciplina || '';
+  document.getElementById('pe-cidade').value     = p.cidade     || '';
+  document.getElementById('pe-telefone').value   = p.telefone   || '';
+
+  // Escolas
+  renderProfileEscolas();
+}
+
+function renderProfileEscolas(){
+  const list = document.getElementById('profile-escolas-list');
+  const ativas   = _escolas.filter(e=>e.ativo!==false);
+  const inativas = _escolas.filter(e=>e.ativo===false);
+
+  if(_escolas.length===0){
+    list.innerHTML='<div style="font-size:.8rem;color:var(--pe-muted);">Nenhuma escola cadastrada.</div>';
+    return;
+  }
+
+  const renderEscola = (e, isInativa) => {
+    const tagC = e.tipo==='municipal'?'tag-municipal':'tag-estadual';
+    const tagL = e.tipo==='municipal'?'Municipal':'Estadual';
+    return `
+    <div class="profile-escola-item${isInativa?' inativa':''}">
+      <div>
+        <div class="profile-escola-name">${e.nome}${isInativa?' <span class="profile-inativa-tag">Inativa</span>':''}</div>
+        <span class="escola-chip-tag ${tagC}" style="padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700;">${tagL}</span>
+      </div>
+      <div class="profile-escola-actions">
+        ${isInativa
+          ? `<button class="pe-act-btn pe-act-react" onclick="reativarEscola('${e.id}')">▶️ Reativar</button>
+             <button class="pe-act-btn pe-act-del"   onclick="excluirEscolaDefinitivo('${e.id}')">🗑 Excluir</button>`
+          : `<button class="pe-act-btn pe-act-deact" onclick="desativarEscola('${e.id}')">⏸ Desativar</button>`
+        }
+      </div>
+    </div>`;
+  };
+
+  let html = ativas.map(e=>renderEscola(e,false)).join('');
+  if(inativas.length>0){
+    html += `<div style="font-size:.72rem;font-weight:700;color:var(--pe-muted);margin-top:12px;padding-top:10px;border-top:1px dashed #ccc;">
+      ⏸ Escolas inativas (${inativas.length})
+    </div>`;
+    html += inativas.map(e=>renderEscola(e,true)).join('');
+  }
+  list.innerHTML = html;
+}
+
+// ── Edição de dados pessoais ────────────────────────────
+window.toggleEditPessoal = function(){
+  document.getElementById('pessoal-view-mode').style.display='none';
+  document.getElementById('pessoal-edit-mode').style.display='block';
+  document.getElementById('btn-edit-pessoal').style.display='none';
+};
+window.cancelEditPessoal = function(){
+  document.getElementById('pessoal-view-mode').style.display='block';
+  document.getElementById('pessoal-edit-mode').style.display='none';
+  document.getElementById('btn-edit-pessoal').style.display='';
+  document.getElementById('pessoal-msg').textContent='';
+};
+window.saveEditPessoal = async function(){
+  const nome = document.getElementById('pe-nome').value.trim();
+  if(!nome){ showMsgEl('pessoal-msg','Nome é obrigatório.','error'); return; }
+  showLoading('Salvando dados...');
+  try {
+    const upd = {
+      nome,
+      cargo:      document.getElementById('pe-cargo').value,
+      disciplina: document.getElementById('pe-disciplina').value.trim(),
+      cidade:     document.getElementById('pe-cidade').value.trim(),
+    };
+    await setDoc(doc(db,'users',_uid,'perfil','dados'), upd, {merge:true});
+    _perfil = {..._perfil, ...upd};
+    cancelEditPessoal();
+    renderProfile();
+    // Atualiza nome na dashboard
+    document.getElementById('dash-welcome-name').textContent = nome;
+    document.getElementById('dash-user-name').textContent    = nome;
+    document.getElementById('dash-avatar').textContent       = nome[0]?.toUpperCase()||'?';
+    showToast('Dados pessoais atualizados! ✅','success');
+  } catch(e){ showMsgEl('pessoal-msg','Erro ao salvar: '+e.message,'error'); }
+  finally{ hideLoading(); }
+};
+
+// ── Edição de dados de acesso ───────────────────────────
+window.toggleEditAcesso = function(){
+  document.getElementById('acesso-view-mode').style.display='none';
+  document.getElementById('acesso-edit-mode').style.display='block';
+  document.getElementById('btn-edit-acesso').style.display='none';
+};
+window.cancelEditAcesso = function(){
+  document.getElementById('acesso-view-mode').style.display='block';
+  document.getElementById('acesso-edit-mode').style.display='none';
+  document.getElementById('btn-edit-acesso').style.display='';
+  document.getElementById('acesso-msg').textContent='';
+};
+window.saveEditAcesso = async function(){
+  const tel = document.getElementById('pe-telefone').value.trim();
+  showLoading('Salvando...');
+  try {
+    await setDoc(doc(db,'users',_uid,'perfil','dados'),{telefone:tel},{merge:true});
+    _perfil = {..._perfil, telefone:tel};
+    cancelEditAcesso();
+    renderProfile();
+    showToast('Celular atualizado! ✅','success');
+  } catch(e){ showMsgEl('acesso-msg','Erro ao salvar: '+e.message,'error'); }
+  finally{ hideLoading(); }
+};
+
+// ── Desativar / Reativar / Excluir escola ───────────────
+window.desativarEscola = async function(id){
+  if(!confirm('Desativar esta escola? Ela ficará visível aqui, mas não nas turmas e atividades.')) return;
+  showLoading('Desativando...');
+  try {
+    await setDoc(doc(db,'users',_uid,'escolas',id),{ativo:false},{merge:true});
+    const idx = _escolas.findIndex(e=>e.id===id);
+    if(idx!==-1) _escolas[idx].ativo=false;
+    renderProfileEscolas();
+    showToast('Escola desativada.','info');
+  } catch(e){ showToast('Erro: '+e.message,'error'); }
+  finally{ hideLoading(); }
+};
+
+window.reativarEscola = async function(id){
+  showLoading('Reativando...');
+  try {
+    await setDoc(doc(db,'users',_uid,'escolas',id),{ativo:true},{merge:true});
+    const idx = _escolas.findIndex(e=>e.id===id);
+    if(idx!==-1) _escolas[idx].ativo=true;
+    renderProfileEscolas();
+    showToast('Escola reativada! ✅','success');
+  } catch(e){ showToast('Erro: '+e.message,'error'); }
+  finally{ hideLoading(); }
+};
+
+window.excluirEscolaDefinitivo = async function(id){
+  const escola = _escolas.find(e=>e.id===id);
+  if(!escola || escola.ativo!==false){
+    showToast('Só é possível excluir escolas já desativadas.','error'); return;
+  }
+  if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
+  showLoading('Excluindo escola...');
+  try {
+    await deleteDoc(doc(db,'users',_uid,'escolas',id));
+    _escolas = _escolas.filter(e=>e.id!==id);
+    renderProfileEscolas();
+    showToast('Escola excluída definitivamente.','info');
+  } catch(e){ showToast('Erro: '+e.message,'error'); }
+  finally{ hideLoading(); }
+};
+
+function showMsgEl(id, txt, type){
+  const el=document.getElementById(id);
+  if(!el) return;
+  el.textContent=txt;
+  el.className=`ob-msg ${type}`;
+}
+
 window.showConfirmLogout = function(){
   document.getElementById('confirm-modal').classList.add('active');
 };
