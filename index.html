@@ -1170,16 +1170,12 @@ onAuthStateChanged(auth, async (user) => {
       try {
         await loadUserData();
         hideLoading();
-        console.log('[NM] Decisão → _perfil:', !!_perfil, '| setupCompleto:', _perfil?.setupCompleto);
         if(_perfil && _perfil.setupCompleto){
-          console.log('[NM] → showDashboard');
           showDashboard();
           showToast(`Bem-vindo(a) de volta, ${_perfil?.nome?.split(' ')[0] || 'professor(a)'}! 👋`,'success');
         } else if(_perfil === null){
-          console.log('[NM] → showOnboarding (perfil null — usuário novo)');
           showOnboarding();
         } else {
-          console.log('[NM] → showOnboarding (perfil existe mas setupCompleto=false/undefined)');
           showOnboarding();
         }
       } catch(e){
@@ -1224,9 +1220,6 @@ async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
 
-  console.log('[NM] loadUserData → pSnap.exists():', pSnap.exists());
-  console.log('[NM] loadUserData → _perfil:', JSON.stringify(_perfil));
-  console.log('[NM] loadUserData → setupCompleto:', _perfil?.setupCompleto);
 
   if(_perfil && _perfil.setupCompleto){
     try {
