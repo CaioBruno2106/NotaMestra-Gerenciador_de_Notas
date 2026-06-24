@@ -429,6 +429,122 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 }
 .turma-mini-meta strong{color:var(--pe-navy);}
 
+/* ── Turma inativa ── */
+.turma-mini.inativa{
+  opacity:.55;border-color:#ccc;background:#f8f8f8;
+}
+.turma-mini.inativa .turma-mini-name{color:var(--pe-muted);}
+.turma-mini-inativa-tag{
+  display:inline-flex;align-items:center;gap:4px;
+  background:#e0e0e0;color:#777;padding:2px 8px;border-radius:10px;
+  font-size:.65rem;font-weight:700;margin-top:6px;
+}
+.aluno-row.inativo{
+  opacity:.45;text-decoration:line-through;color:var(--pe-muted);
+}
+.aluno-row.inativo .aluno-actions{opacity:1;}
+
+/* ── Turma actions bar ── */
+.turma-mini-actions{
+  display:flex;gap:6px;margin-top:10px;padding-top:10px;
+  border-top:1px solid #f1f3f5;flex-wrap:wrap;
+}
+.turma-act-btn{
+  padding:5px 10px;border:none;border-radius:5px;font-size:.72rem;
+  font-weight:700;cursor:pointer;transition:var(--transition);
+  display:flex;align-items:center;gap:4px;
+}
+.turma-act-edit{background:#e8f0fe;color:var(--pe-blue);}
+.turma-act-edit:hover{background:#c5d8fb;}
+.turma-act-deact{background:#fff3e0;color:#e65100;}
+.turma-act-deact:hover{background:#ffe0b2;}
+.turma-act-react{background:#e8f5e9;color:#2e7d32;}
+.turma-act-react:hover{background:#c8e6c9;}
+.turma-act-del{background:#fdecea;color:var(--pe-red);}
+.turma-act-del:hover{background:#fbc8c5;}
+
+/* ── Filtros de ano ── */
+.ano-filter-row{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:16px;
+}
+.ano-chip{
+  padding:5px 14px;border-radius:16px;border:1.5px solid var(--pe-border);
+  background:#fff;font-size:.78rem;font-weight:700;cursor:pointer;
+  transition:var(--transition);color:var(--pe-muted);
+}
+.ano-chip.active{background:var(--pe-blue);color:#fff;border-color:var(--pe-blue);}
+.ano-chip:hover:not(.active){border-color:var(--pe-blue);color:var(--pe-blue);}
+
+/* ── Modal de Edição de Turma ── */
+#turma-modal-overlay{
+  display:none;position:fixed;inset:0;z-index:9000;
+  background:rgba(0,0,0,.5);align-items:flex-start;justify-content:center;
+  padding:20px 16px;overflow-y:auto;
+}
+#turma-modal-overlay.active{display:flex;}
+.turma-modal{
+  background:#fff;border-radius:var(--radius-lg);
+  width:100%;max-width:540px;box-shadow:var(--shadow-lg);
+  overflow:hidden;margin:auto;
+}
+.turma-modal-header{
+  background:var(--pe-navy);padding:18px 22px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.turma-modal-header h3{color:#fff;font-size:1rem;font-weight:800;}
+.turma-modal-close{
+  background:rgba(255,255,255,.15);border:none;color:#fff;
+  width:30px;height:30px;border-radius:50%;cursor:pointer;
+  font-size:1.1rem;display:flex;align-items:center;justify-content:center;
+}
+.turma-modal-close:hover{background:rgba(255,255,255,.3);}
+.turma-modal-body{padding:20px 22px;}
+.turma-modal-footer{
+  padding:14px 22px;border-top:1px solid #f1f3f5;
+  display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap;
+}
+
+/* ── Lista de alunos no modal ── */
+.alunos-list{display:flex;flex-direction:column;gap:6px;max-height:280px;overflow-y:auto;margin:10px 0;}
+.aluno-row{
+  display:flex;align-items:center;gap:8px;padding:7px 10px;
+  background:#f8f9fa;border-radius:6px;border:1px solid var(--pe-border);
+}
+.aluno-num{font-size:.72rem;color:var(--pe-muted);min-width:22px;text-align:right;}
+.aluno-name{flex:1;font-size:.85rem;font-weight:600;color:var(--pe-text);}
+.aluno-actions{display:flex;gap:4px;}
+.aluno-btn{
+  padding:3px 7px;border:none;border-radius:4px;font-size:.7rem;
+  font-weight:700;cursor:pointer;
+}
+.aluno-btn-deact{background:#fff3e0;color:#e65100;}
+.aluno-btn-react{background:#e8f5e9;color:#2e7d32;}
+.aluno-btn-del{background:#fdecea;color:var(--pe-red);}
+
+.add-aluno-row{
+  display:flex;gap:8px;margin-top:10px;
+}
+.add-aluno-row input{
+  flex:1;padding:8px 11px;border:1.5px solid var(--pe-border);
+  border-radius:var(--radius-sm);font-size:.88rem;outline:none;
+}
+.add-aluno-row input:focus{border-color:var(--pe-blue);}
+.add-aluno-btn{
+  padding:8px 14px;background:var(--pe-blue);color:#fff;
+  border:none;border-radius:var(--radius-sm);font-size:.85rem;
+  font-weight:700;cursor:pointer;white-space:nowrap;
+}
+.add-aluno-btn:hover{background:var(--pe-navy);}
+
+/* ── Onboarding: campo ano letivo ── */
+.ob-field-ano{margin-bottom:16px;}
+.ob-field-ano label{display:block;font-size:.78rem;font-weight:700;color:var(--pe-navy);margin-bottom:5px;}
+.ob-field-ano input{
+  width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);
+  border-radius:var(--radius-sm);font-size:.92rem;outline:none;background:#fafafa;
+}
+.ob-field-ano input:focus{border-color:var(--pe-blue);background:#fff;}
+
 /* ─── TOAST ─── */
 #toast{
   position:fixed;top:74px;left:50%;transform:translateX(-50%) translateY(-12px);
@@ -853,8 +969,8 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 
     <div class="section-title">
       Minhas turmas
-      <button class="btn-sm btn-sm-primary" onclick="showToast('Em breve: gerenciar turmas','info')">+ Nova turma</button>
     </div>
+    <div class="ano-filter-row" id="ano-filter-row"></div>
     <div class="turmas-grid" id="dash-turmas-grid">
       <div class="ob-empty">Carregando turmas...</div>
     </div>
@@ -869,6 +985,46 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 <div id="loading-overlay">
   <div class="spinner"></div>
   <div class="loading-text" id="loading-text">Aguarde...</div>
+</div>
+
+<!-- ── Modal de Edição de Turma ── -->
+<div id="turma-modal-overlay">
+  <div class="turma-modal">
+    <div class="turma-modal-header">
+      <h3 id="turma-modal-title">Editar turma</h3>
+      <button class="turma-modal-close" onclick="closeTurmaModal()">✕</button>
+    </div>
+    <div class="turma-modal-body">
+      <input type="hidden" id="tm-turma-id">
+
+      <div class="ob-field" style="margin-bottom:14px;">
+        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+          Número de atividades
+        </label>
+        <input type="number" id="tm-atividades" min="0" max="99"
+          style="width:120px;padding:9px 12px;border:1.5px solid var(--pe-border);border-radius:6px;font-size:.92rem;outline:none;"
+          onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
+      </div>
+
+      <div style="font-size:.78rem;font-weight:700;color:var(--pe-navy);margin-bottom:8px;">
+        Estudantes (<span id="tm-aluno-count">0</span>)
+      </div>
+      <div class="alunos-list" id="tm-alunos-list"></div>
+
+      <div class="add-aluno-row">
+        <input type="text" id="tm-novo-aluno" placeholder="Nome do novo estudante..." 
+               onkeydown="if(event.key==='Enter') addAlunoModal()">
+        <button class="add-aluno-btn" onclick="addAlunoModal()">+ Adicionar</button>
+      </div>
+      <div class="ob-msg" id="tm-msg" style="margin-top:10px;"></div>
+    </div>
+    <div class="turma-modal-footer">
+      <button class="ob-btn ob-btn-ghost" onclick="closeTurmaModal()">Cancelar</button>
+      <button class="ob-btn ob-btn-primary" onclick="saveTurmaModal()">
+        💾 Salvar alterações
+      </button>
+    </div>
+  </div>
 </div>
 
 <!-- ── Confirm modal (logout) ── -->
@@ -1090,12 +1246,14 @@ async function saveFullSetup(perfil, escolas, turmas){
           escolaNome: escolas[idxEscola].nome,
           escolaTipo: escolas[idxEscola].tipo,
           nome:       t.nome,
+          anoLetivo:  t.anoLetivo || new Date().getFullYear(),
           nivel:      t.nivel,
           turno:      t.turno,
           serie:      t.serie,
           turma:      t.turma,
           atividades: parseInt(t.atividades)||0,
           alunos:     t.alunos,
+          ativo:      true,
           criadoEm:   serverTimestamp()
         });
       }
@@ -1349,6 +1507,7 @@ function renderTurmasStep(){
       <div class="add-turma-box">
         <div class="add-turma-title">+ Adicionar turma em ${e.nome}</div>
         <div class="add-turma-grid">
+          <input type="number" id="at-ano-${ei}" placeholder="Ano letivo * (ex.: 2025)" min="2020" max="2040" style="grid-column:span 2">
           <select id="at-nivel-${ei}" style="grid-column:span 2">
             <option value="">Nível de ensino *</option>
             <option value="fund2">Fundamental II</option>
@@ -1405,14 +1564,15 @@ function renderTurmaCard(ei, ti, t){
 }
 
 window.addTurma = function(ei){
+  const ano   = document.getElementById(`at-ano-${ei}`).value.trim();
   const nivel = document.getElementById(`at-nivel-${ei}`).value;
   const turno = document.getElementById(`at-turno-${ei}`).value;
   const serie = document.getElementById(`at-serie-${ei}`).value.trim();
   const turma = document.getElementById(`at-turma-${ei}`).value.trim();
   const ativ  = document.getElementById(`at-ativ-${ei}`).value;
 
-  if(!nivel||!turno||!serie||!turma){
-    showMsg('step3-msg','Preencha: nível, turno, série e turma.','error'); return;
+  if(!ano||!nivel||!turno||!serie||!turma){
+    showMsg('step3-msg','Preencha: ano letivo, nível, turno, série e turma.','error'); return;
   }
   clearMsg('step3-msg');
 
@@ -1429,10 +1589,12 @@ window.addTurma = function(ei){
   if(!_obTurmas[ei]) _obTurmas[ei]=[];
   _obTurmas[ei].push({
     nome: `${serie} ${turma}`,
+    anoLetivo: parseInt(ano)||new Date().getFullYear(),
     nivel, turno, serie, turma,
     atividades: parseInt(ativ)||0,
     alunosRaw: '',
-    alunos: []
+    alunos: [],
+    ativo: true
   });
 
   renderTurmasStep();
@@ -1575,27 +1737,48 @@ window.finishSetup = async function(){
 };
 
 // ══════════════════════════════════════════════
+// ══════════════════════════════════════════════
 // DASHBOARD
 // ══════════════════════════════════════════════
+let _anoFiltro = null; // null = todos
+
 function showDashboard(){
   showScreen('dashboard-screen');
   renderDashboard();
 }
 
+function getAnos(){
+  const anos = [...new Set(_turmas.map(t=>t.anoLetivo||new Date().getFullYear()))].sort((a,b)=>b-a);
+  return anos;
+}
+
 function renderDashboard(){
-  const nome = _perfil?.nome || (_email?.split('@')[0] || 'Professor(a)');
+  const nome  = _perfil?.nome || (_email?.split('@')[0] || 'Professor(a)');
   const letra = nome[0]?.toUpperCase()||'P';
 
   document.getElementById('dash-welcome-name').textContent = nome;
   document.getElementById('dash-user-name').textContent    = nome;
   document.getElementById('dash-avatar').textContent       = letra;
 
-  const totalAlunos = _turmas.reduce((acc,t)=>acc+(t.alunos?.length||0),0);
+  const ativas   = _turmas.filter(t=>t.ativo!==false);
+  const inativas = _turmas.filter(t=>t.ativo===false);
+  const totalAlunos = ativas.reduce((acc,t)=>acc+(t.alunos?.filter(a=>a.ativo!==false).length||0),0);
 
   document.getElementById('stat-escolas').textContent       = _escolas.length;
-  document.getElementById('stat-turmas').textContent        = _turmas.length;
+  document.getElementById('stat-turmas').textContent        = ativas.length;
   document.getElementById('stat-alunos').textContent        = totalAlunos;
-  document.getElementById('dash-total-turmas').textContent  = _turmas.length;
+  document.getElementById('dash-total-turmas').textContent  = ativas.length;
+
+  // Filtro de anos
+  const anos = getAnos();
+  if(!_anoFiltro && anos.length>0) _anoFiltro = anos[0];
+  const filterRow = document.getElementById('ano-filter-row');
+  if(filterRow){
+    filterRow.innerHTML =
+      `<span style="font-size:.78rem;font-weight:700;color:var(--pe-muted);">Ano letivo:</span>` +
+      `<button class="ano-chip${_anoFiltro===null?' active':''}" onclick="setAnoFiltro(null)">Todos</button>` +
+      anos.map(a=>`<button class="ano-chip${_anoFiltro===a?' active':''}" onclick="setAnoFiltro(${a})">${a}</button>`).join('');
+  }
 
   const grid = document.getElementById('dash-turmas-grid');
   if(_turmas.length===0){
@@ -1603,24 +1786,210 @@ function renderDashboard(){
     return;
   }
 
-  grid.innerHTML = _turmas.map(t=>{
+  // Filtrar por ano
+  let turmasFiltradas = _anoFiltro!==null ? _turmas.filter(t=>(t.anoLetivo||new Date().getFullYear())===_anoFiltro) : _turmas;
+  const ativasFilt   = turmasFiltradas.filter(t=>t.ativo!==false);
+  const inativasFilt = turmasFiltradas.filter(t=>t.ativo===false);
+
+  const renderCard = (t, isInativa)=>{
     const tagC = t.escolaTipo==='municipal'?'tag-municipal':'tag-estadual';
     const tagL = t.escolaTipo==='municipal'?'Municipal':'Estadual';
+    const alunosAtivos = (t.alunos||[]).filter(a=>a.ativo!==false).length;
+    const alunosTotal  = (t.alunos||[]).length;
     return `
-    <div class="turma-mini">
+    <div class="turma-mini${isInativa?' inativa':''}">
       <div class="turma-mini-badge ${tagC}">
         🏫 ${t.escolaNome||'Escola'}
         <span style="background:rgba(0,0,0,.1);padding:1px 6px;border-radius:8px;margin-left:4px;">${tagL}</span>
       </div>
-      <div class="turma-mini-name">${t.serie||''} ${t.turma||''} &mdash; ${nivelLabel(t.nivel)}</div>
-      <div class="turma-mini-escola">${turnoLabel(t.turno)}</div>
+      <div class="turma-mini-name">${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}</div>
+      <div class="turma-mini-escola">${turnoLabel(t.turno)} · ${t.anoLetivo||'—'}</div>
+      ${isInativa?'<div class="turma-mini-inativa-tag">⏸ Turma inativa</div>':''}
       <div class="turma-mini-meta">
-        <span>👤 <strong>${t.alunos?.length||0}</strong> alunos</span>
+        <span>👤 <strong>${alunosAtivos}</strong>/${alunosTotal} alunos</span>
         <span>📝 <strong>${t.atividades||0}</strong> atividades</span>
+      </div>
+      <div class="turma-mini-actions">
+        <button class="turma-act-btn turma-act-edit" onclick="openEditTurma('${t.id}')">✏️ Editar</button>
+        ${isInativa
+          ? `<button class="turma-act-btn turma-act-react" onclick="reativarTurma('${t.id}')">▶️ Reativar</button>
+             <button class="turma-act-btn turma-act-del"   onclick="excluirTurmaDefinitivo('${t.id}')">🗑 Excluir</button>`
+          : `<button class="turma-act-btn turma-act-deact" onclick="desativarTurma('${t.id}')">⏸ Desativar</button>`
+        }
+      </div>
+    </div>`;
+  };
+
+  let html = ativasFilt.map(t=>renderCard(t,false)).join('');
+  if(ativasFilt.length===0 && inativasFilt.length===0){
+    html='<div class="ob-empty" style="grid-column:1/-1;">Nenhuma turma para este ano letivo.</div>';
+  }
+  if(inativasFilt.length>0){
+    html += `<div style="grid-column:1/-1;font-size:.78rem;font-weight:700;color:var(--pe-muted);margin-top:10px;padding-top:14px;border-top:1px dashed #ccc;">
+      ⏸ Turmas inativas (${inativasFilt.length})
+    </div>`;
+    html += inativasFilt.map(t=>renderCard(t,true)).join('');
+  }
+  grid.innerHTML = html;
+}
+
+window.setAnoFiltro = function(ano){
+  _anoFiltro = ano;
+  renderDashboard();
+};
+
+// ── DESATIVAR / REATIVAR turma ──────────────────────────────
+window.desativarTurma = async function(id){
+  if(!confirm('Desativar esta turma? Ela ficará visível no dashboard, mas não aparecerá nas notas e atividades.')) return;
+  showLoading('Desativando turma...');
+  try {
+    await setDoc(doc(db,'users',_uid,'turmas',id),{ativo:false},{merge:true});
+    const idx = _turmas.findIndex(t=>t.id===id);
+    if(idx!==-1) _turmas[idx].ativo=false;
+    renderDashboard();
+    showToast('Turma desativada.','info');
+  } catch(e){ showToast('Erro ao desativar: '+e.message,'error'); }
+  finally{ hideLoading(); }
+};
+
+window.reativarTurma = async function(id){
+  showLoading('Reativando turma...');
+  try {
+    await setDoc(doc(db,'users',_uid,'turmas',id),{ativo:true},{merge:true});
+    const idx = _turmas.findIndex(t=>t.id===id);
+    if(idx!==-1) _turmas[idx].ativo=true;
+    renderDashboard();
+    showToast('Turma reativada! ✅','success');
+  } catch(e){ showToast('Erro ao reativar: '+e.message,'error'); }
+  finally{ hideLoading(); }
+};
+
+window.excluirTurmaDefinitivo = async function(id){
+  const turma = _turmas.find(t=>t.id===id);
+  if(!turma || turma.ativo!==false){
+    showToast('Só é possível excluir definitivamente turmas já desativadas.','error'); return;
+  }
+  if(!confirm(`Excluir definitivamente "${turma.serie} ${turma.turma}"? Esta ação não pode ser desfeita.`)) return;
+  showLoading('Excluindo turma...');
+  try {
+    await deleteDoc(doc(db,'users',_uid,'turmas',id));
+    _turmas = _turmas.filter(t=>t.id!==id);
+    renderDashboard();
+    showToast('Turma excluída definitivamente.','info');
+  } catch(e){ showToast('Erro ao excluir: '+e.message,'error'); }
+  finally{ hideLoading(); }
+};
+
+// ── MODAL DE EDIÇÃO ─────────────────────────────────────────
+let _editTurmaId = null;
+let _editAlunos  = [];
+
+window.openEditTurma = function(id){
+  const turma = _turmas.find(t=>t.id===id);
+  if(!turma) return;
+  _editTurmaId = id;
+  _editAlunos  = (turma.alunos||[]).map(a=>
+    typeof a==='string' ? {nome:a, ativo:true} : {...a}
+  );
+  document.getElementById('turma-modal-title').textContent =
+    `Editar: ${turma.serie} ${turma.turma} (${turma.anoLetivo||'—'})`;
+  document.getElementById('tm-turma-id').value    = id;
+  document.getElementById('tm-atividades').value  = turma.atividades||0;
+  document.getElementById('tm-novo-aluno').value  = '';
+  document.getElementById('tm-msg').textContent   = '';
+  document.getElementById('tm-msg').className     = 'ob-msg';
+  renderAlunosModal();
+  document.getElementById('turma-modal-overlay').classList.add('active');
+};
+
+window.closeTurmaModal = function(){
+  document.getElementById('turma-modal-overlay').classList.remove('active');
+  _editTurmaId = null;
+  _editAlunos  = [];
+};
+
+function renderAlunosModal(){
+  const list = document.getElementById('tm-alunos-list');
+  document.getElementById('tm-aluno-count').textContent = _editAlunos.length;
+  if(_editAlunos.length===0){
+    list.innerHTML='<div style="font-size:.8rem;color:var(--pe-muted);padding:10px 0;">Nenhum estudante cadastrado.</div>';
+    return;
+  }
+  list.innerHTML = _editAlunos.map((a,i)=>{
+    const nome  = typeof a==='string'?a:a.nome;
+    const ativo = typeof a==='object'?a.ativo!==false:true;
+    return `
+    <div class="aluno-row${ativo?'':' inativo'}">
+      <span class="aluno-num">${i+1}.</span>
+      <span class="aluno-name">${nome}</span>
+      <div class="aluno-actions">
+        ${ativo
+          ? `<button class="aluno-btn aluno-btn-deact" onclick="toggleAluno(${i},false)" title="Desativar">⏸</button>`
+          : `<button class="aluno-btn aluno-btn-react" onclick="toggleAluno(${i},true)"  title="Reativar">▶️</button>`
+        }
+        <button class="aluno-btn aluno-btn-del" onclick="removeAluno(${i})" title="Excluir">✕</button>
       </div>
     </div>`;
   }).join('');
 }
+
+window.toggleAluno = function(i, ativo){
+  if(typeof _editAlunos[i]==='string'){
+    _editAlunos[i]={nome:_editAlunos[i], ativo};
+  } else {
+    _editAlunos[i].ativo=ativo;
+  }
+  renderAlunosModal();
+};
+
+window.removeAluno = function(i){
+  if(!confirm(`Remover "${typeof _editAlunos[i]==='string'?_editAlunos[i]:_editAlunos[i].nome}" definitivamente?`)) return;
+  _editAlunos.splice(i,1);
+  renderAlunosModal();
+};
+
+window.addAlunoModal = function(){
+  const inp  = document.getElementById('tm-novo-aluno');
+  const nome = inp.value.trim();
+  if(!nome){ return; }
+  if(_editAlunos.some(a=>(typeof a==='string'?a:a.nome).toLowerCase()===nome.toLowerCase())){
+    showMsgModal('Estudante já cadastrado nesta turma.','error'); return;
+  }
+  _editAlunos.push({nome, ativo:true});
+  inp.value='';
+  renderAlunosModal();
+  showMsgModal('Estudante adicionado. Clique em Salvar para confirmar.','info');
+};
+
+function showMsgModal(txt,type){
+  const el=document.getElementById('tm-msg');
+  el.textContent=txt; el.className=`ob-msg ${type}`;
+}
+
+window.saveTurmaModal = async function(){
+  const id   = _editTurmaId;
+  const ativ = parseInt(document.getElementById('tm-atividades').value)||0;
+  if(!id) return;
+  showLoading('Salvando alterações...');
+  try {
+    const alunosNorm = _editAlunos.map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
+    await setDoc(doc(db,'users',_uid,'turmas',id),{
+      atividades: ativ,
+      alunos: alunosNorm,
+      updatedAt: serverTimestamp()
+    },{merge:true});
+    const idx = _turmas.findIndex(t=>t.id===id);
+    if(idx!==-1){
+      _turmas[idx].atividades = ativ;
+      _turmas[idx].alunos     = alunosNorm;
+    }
+    closeTurmaModal();
+    renderDashboard();
+    showToast('Turma atualizada com sucesso! ✅','success');
+  } catch(e){
+    showMsgModal('Erro ao salvar: '+e.message,'error');
+  } finally { hideLoading(); }
+};
 
 // ── LOGOUT ────────────────────────────────────────────────────────────
 window.showConfirmLogout = function(){
