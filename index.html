@@ -953,8 +953,9 @@ onAuthStateChanged(auth, async (user) => {
         showDashboard();
       }
     } catch(e){
-      console.error(e);
-      showToast('Erro ao carregar dados: '+e.message,'error');
+      console.error('loadUserData error:', e);
+      // Erro de permissão em usuário novo é esperado — vai pro onboarding
+      _perfil = null;
       showOnboarding();
     } finally {
       hideLoading();
@@ -967,17 +968,32 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── CARREGAR DADOS DO USUÁRIO ─────────────────────────────────────────
 async function loadUserData(){
-  // Perfil
-  const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
-  _perfil = pSnap.exists() ? pSnap.data() : null;
+  // Para usuário novo, documentos ainda não existem.
+  // Tentamos ler apenas o perfil (leitura de doc único é segura pelas regras).
+  // Coleções (escolas/turmas) só existem após o setup, então protegemos com try/catch.
+  try {
+    const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
+    _perfil = pSnap.exists() ? pSnap.data() : null;
+  } catch(e) {
+    // Documento de perfil não existe ainda — usuário novo
+    _perfil = null;
+  }
 
-  // Escolas
-  const eSnap = await getDocs(collection(db,'users',_uid,'escolas'));
-  _escolas = eSnap.docs.map(d=>({id:d.id,...d.data()}));
+  // Só tenta carregar escolas/turmas se o setup já foi concluído
+  if(_perfil && _perfil.setupCompleto){
+    try {
+      const eSnap = await getDocs(collection(db,'users',_uid,'escolas'));
+      _escolas = eSnap.docs.map(d=>({id:d.id,...d.data()}));
+    } catch(e) { _escolas = []; }
 
-  // Turmas
-  const tSnap = await getDocs(collection(db,'users',_uid,'turmas'));
-  _turmas = tSnap.docs.map(d=>({id:d.id,...d.data()}));
+    try {
+      const tSnap = await getDocs(collection(db,'users',_uid,'turmas'));
+      _turmas = tSnap.docs.map(d=>({id:d.id,...d.data()}));
+    } catch(e) { _turmas = []; }
+  } else {
+    _escolas = [];
+    _turmas  = [];
+  }
 }
 
 // ── SALVAR PERFIL COMPLETO ────────────────────────────────────────────
