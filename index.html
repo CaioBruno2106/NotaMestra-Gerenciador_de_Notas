@@ -1161,22 +1161,55 @@ onAuthStateChanged(auth, async (user) => {
     _uid   = user.uid;
     _email = user.email;
     showLoading('Carregando seu perfil...');
-    try {
-      await loadUserData();
-      hideLoading();
-      if(!_perfil || !_perfil.setupCompleto){
-        showOnboarding();
-      } else {
-        showDashboard();
-        showToast(`Bem-vindo(a) de volta, ${_perfil?.nome?.split(' ')[0] || 'professor(a)'}! 👋`,'success');
+
+    let tentativas = 0;
+    const MAX_TENT = 3;
+
+    const tentarCarregar = async () => {
+      tentativas++;
+      try {
+        await loadUserData();
+        hideLoading();
+        if(_perfil && _perfil.setupCompleto){
+          showDashboard();
+          showToast(`Bem-vindo(a) de volta, ${_perfil?.nome?.split(' ')[0] || 'professor(a)'}! 👋`,'success');
+        } else if(_perfil === null){
+          // Perfil realmente não existe — usuário novo
+          showOnboarding();
+        } else {
+          // Perfil existe mas setup incompleto
+          showOnboarding();
+        }
+      } catch(e){
+        console.error(`loadUserData erro (tentativa ${tentativas}):`, e.code, e.message);
+        if(tentativas < MAX_TENT){
+          // Aguarda 1s e tenta de novo (pode ser lentidão de rede)
+          showLoading(`Reconectando... (${tentativas}/${MAX_TENT})`);
+          await new Promise(r=>setTimeout(r,1000));
+          return tentarCarregar();
+        }
+        // Após todas as tentativas, decide baseado no que conseguiu ler
+        hideLoading();
+        if(e.code === 'permission-denied'){
+          // Regras do Firestore bloqueando — mostra erro claro em vez de mandar pro onboarding
+          showLogin();
+          showAuthMsg('login-msg',
+            'Erro de permissão ao carregar seus dados. Verifique as regras do Firestore ou entre em contato com o suporte.',
+            'error');
+        } else if(_perfil && _perfil.setupCompleto){
+          // Tinha perfil mas falhou ao buscar turmas/escolas (erro de rede) — vai pra dashboard
+          showDashboard();
+          showToast('Alguns dados podem não ter carregado. Verifique sua conexão.','info');
+        } else {
+          // Sem perfil e sem rede — mostra login com mensagem
+          showLogin();
+          showAuthMsg('login-msg','Sem conexão com o servidor. Verifique a internet e tente novamente.','error');
+        }
       }
-    } catch(e){
-      console.error('loadUserData error:', e);
-      // Erro de permissão em usuário novo é esperado — vai pro onboarding
-      _perfil = null;
-      hideLoading();
-      showOnboarding();
-    }
+    };
+
+    await tentarCarregar();
+
   } else {
     _uid = null; _email = null; _perfil = null;
     hideLoading();
@@ -1186,28 +1219,27 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── CARREGAR DADOS DO USUÁRIO ─────────────────────────────────────────
 async function loadUserData(){
-  // Para usuário novo, documentos ainda não existem.
-  // Tentamos ler apenas o perfil (leitura de doc único é segura pelas regras).
-  // Coleções (escolas/turmas) só existem após o setup, então protegemos com try/catch.
-  try {
-    const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
-    _perfil = pSnap.exists() ? pSnap.data() : null;
-  } catch(e) {
-    // Documento de perfil não existe ainda — usuário novo
-    _perfil = null;
-  }
+  // Lê o perfil — se não existir, _perfil fica null (usuário novo)
+  // Se der erro de permissão, lança exceção para o caller tratar
+  const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
+  _perfil = pSnap.exists() ? pSnap.data() : null;
 
   // Só tenta carregar escolas/turmas se o setup já foi concluído
   if(_perfil && _perfil.setupCompleto){
     try {
       const eSnap = await getDocs(collection(db,'users',_uid,'escolas'));
       _escolas = eSnap.docs.map(d=>({id:d.id,...d.data()}));
-    } catch(e) { _escolas = []; }
-
+    } catch(e) {
+      console.warn('Erro ao carregar escolas:', e);
+      _escolas = [];
+    }
     try {
       const tSnap = await getDocs(collection(db,'users',_uid,'turmas'));
       _turmas = tSnap.docs.map(d=>({id:d.id,...d.data()}));
-    } catch(e) { _turmas = []; }
+    } catch(e) {
+      console.warn('Erro ao carregar turmas:', e);
+      _turmas = [];
+    }
   } else {
     _escolas = [];
     _turmas  = [];
