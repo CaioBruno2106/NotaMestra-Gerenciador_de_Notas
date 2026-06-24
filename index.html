@@ -804,6 +804,13 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
             <label for="ob-cidade">Município</label>
             <input type="text" id="ob-cidade" placeholder="Ex.: Recife">
           </div>
+          <div class="ob-field">
+            <label for="ob-telefone">Celular para recuperação de senha *
+              <span style="font-weight:400;color:var(--pe-muted)">(WhatsApp ou SMS)</span>
+            </label>
+            <input type="tel" id="ob-telefone" placeholder="(81) 99999-9999"
+              oninput="mascaraTelefone(this)">
+          </div>
           <div class="ob-msg" id="step1-msg"></div>
         </div>
         <div class="ob-footer">
@@ -1039,6 +1046,65 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
   </div>
 </div>
 
+<!-- ── Modal: Cadastrar telefone (usuários sem telefone) ── -->
+<div id="phone-modal-overlay" style="
+  display:none;position:fixed;inset:0;z-index:3000;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px;">
+  <div style="
+    background:#fff;border-radius:var(--radius-lg);width:100%;max-width:400px;
+    box-shadow:var(--shadow-lg);overflow:hidden;animation:fadeUp .3s ease both;">
+    <div style="background:var(--pe-navy);padding:20px 22px;position:relative;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--pe-yellow);
+          display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;">📱</div>
+        <div>
+          <h3 style="color:#fff;font-size:1rem;font-weight:800;">Novo recurso disponível</h3>
+          <p style="color:var(--pe-cyan);font-size:.75rem;margin-top:2px;">Cadastre seu celular para recuperar a senha por SMS</p>
+        </div>
+      </div>
+      <div class="brand-line" style="bottom:0;left:0;right:0;height:3px;display:flex;position:absolute;">
+        <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
+      </div>
+    </div>
+    <div style="padding:22px;">
+      <p style="font-size:.85rem;color:var(--pe-muted);margin-bottom:18px;line-height:1.5;">
+        Para habilitar a recuperação de senha via SMS, informe seu número de celular. 
+        Você pode pular e fazer isso mais tarde nas configurações.
+      </p>
+      <div class="ob-field">
+        <label for="phone-modal-input" style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+          Número de celular *
+        </label>
+        <input type="tel" id="phone-modal-input"
+          placeholder="(81) 99999-9999"
+          oninput="mascaraTelefone(this)"
+          onkeydown="if(event.key==='Enter') savePhoneModal()"
+          style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);
+            border-radius:var(--radius-sm);font-size:.95rem;outline:none;
+            font-family:inherit;letter-spacing:.5px;"
+          onfocus="this.style.borderColor='var(--pe-blue)'"
+          onblur="this.style.borderColor='var(--pe-border)'">
+      </div>
+      <div id="phone-modal-msg" class="auth-msg" style="margin-bottom:12px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="skipPhoneModal()"
+          style="flex:1;padding:11px;background:transparent;border:1.5px solid var(--pe-border);
+            border-radius:var(--radius-sm);font-size:.88rem;font-weight:600;
+            color:var(--pe-muted);cursor:pointer;">
+          Pular por agora
+        </button>
+        <button onclick="savePhoneModal()"
+          style="flex:2;padding:11px;background:var(--pe-blue);color:#fff;border:none;
+            border-radius:var(--radius-sm);font-size:.88rem;font-weight:700;
+            cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px;">
+          📱 Salvar número
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════════════════════════════════════
      FIREBASE + LÓGICA
      ═══════════════════════════════════════════ -->
@@ -1135,6 +1201,9 @@ function showScreen(name){
       el.classList.remove('active');
     }
   });
+  // Fecha o modal de telefone sempre que troca de tela
+  const pm = document.getElementById('phone-modal-overlay');
+  if(pm) pm.style.display = 'none';
 }
 
 window.showLogin = function(){
@@ -1452,6 +1521,12 @@ function validateStep(step){
   if(step===1){
     const nome = document.getElementById('ob-nome').value.trim();
     if(!nome){ showMsg('step1-msg','Informe seu nome completo.','error'); return false; }
+    const tel = document.getElementById('ob-telefone').value.trim();
+    if(!tel || !validarTelefone(tel)){
+      showMsg('step1-msg','Informe um celular válido com DDD. Ex.: (81) 99999-9999','error');
+      document.getElementById('ob-telefone').focus();
+      return false;
+    }
     clearMsg('step1-msg'); return true;
   }
   if(step===2){
@@ -1678,6 +1753,69 @@ function parseStudents(raw){
 function nivelLabel(v){ return {fund2:'Fund. II',medio:'Ens. Médio'}[v]||v; }
 function turnoLabel(v){ return {manha:'Manhã',tarde:'Tarde',turno1:'Turno 1',turno2:'Turno 2'}[v]||v; }
 
+// ── MÁSCARA DE TELEFONE ───────────────────────────────────────────────
+window.mascaraTelefone = function(input){
+  let v = input.value.replace(/\D/g,'');
+  if(v.length > 11) v = v.slice(0,11);
+  if(v.length === 0){ input.value=''; return; }
+  if(v.length <= 2)       input.value = `(${v}`;
+  else if(v.length <= 6)  input.value = `(${v.slice(0,2)}) ${v.slice(2)}`;
+  else if(v.length <= 10) input.value = `(${v.slice(0,2)}) ${v.slice(2,6)}-${v.slice(6)}`;
+  else                    input.value = `(${v.slice(0,2)}) ${v.slice(2,7)}-${v.slice(7)}`;
+};
+
+function validarTelefone(tel){
+  const digits = tel.replace(/\D/g,'');
+  return digits.length >= 10 && digits.length <= 11;
+}
+
+// ── MODAL DE TELEFONE (usuários sem telefone) ─────────────────────────
+function openPhoneModal(){
+  const overlay = document.getElementById('phone-modal-overlay');
+  const input   = document.getElementById('phone-modal-input');
+  const msg     = document.getElementById('phone-modal-msg');
+  input.value = '';
+  msg.className = 'auth-msg';
+  msg.textContent = '';
+  overlay.style.display = 'flex';
+  setTimeout(()=>input.focus(), 100);
+}
+
+window.skipPhoneModal = function(){
+  document.getElementById('phone-modal-overlay').style.display = 'none';
+  window._phoneModalSkippedThisSession = true;
+  showToast('Você pode cadastrar seu celular depois nas configurações.','info');
+};
+
+window.savePhoneModal = async function(){
+  const input = document.getElementById('phone-modal-input');
+  const msg   = document.getElementById('phone-modal-msg');
+  const tel   = input.value.trim();
+
+  if(!tel || !validarTelefone(tel)){
+    msg.textContent = 'Informe um número válido com DDD. Ex.: (81) 99999-9999';
+    msg.className   = 'auth-msg error';
+    input.focus();
+    return;
+  }
+
+  const btn = document.querySelector('#phone-modal-overlay button:last-child');
+  if(btn){ btn.disabled=true; btn.textContent='Salvando...'; }
+
+  try {
+    await setDoc(doc(db,'users',_uid,'perfil','dados'),
+      { telefone: tel }, { merge: true });
+    _perfil.telefone = tel;
+    document.getElementById('phone-modal-overlay').style.display = 'none';
+    showToast('📱 Celular cadastrado com sucesso!','success');
+  } catch(e){
+    msg.textContent = 'Erro ao salvar: ' + e.message;
+    msg.className   = 'auth-msg error';
+  } finally {
+    if(btn){ btn.disabled=false; btn.innerHTML='📱 Salvar número'; }
+  }
+};
+
 // ── STEP 4: Revisão ───────────────────────────────────────────────────
 function renderReview(){
   // Antes de salvar, sincroniza os textarea values que podem estar no DOM
@@ -1695,6 +1833,7 @@ function renderReview(){
   const cargo = document.getElementById('ob-cargo').value;
   const disc  = document.getElementById('ob-disciplina').value.trim();
   const cidade= document.getElementById('ob-cidade').value.trim();
+  const tel   = document.getElementById('ob-telefone').value.trim();
 
   let totalAlunos = 0;
   let totalTurmas = 0;
@@ -1707,6 +1846,14 @@ function renderReview(){
         <div style="font-size:.92rem;font-weight:700;color:var(--pe-navy);">${nome}</div>
         ${cargo?`<div style="font-size:.78rem;color:var(--pe-muted);">${cargo}${disc?' · '+disc:''}</div>`:''}
         ${cidade?`<div style="font-size:.78rem;color:var(--pe-muted);">📍 ${cidade}</div>`:''}
+        <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--pe-border);display:flex;flex-direction:column;gap:4px;">
+          <div style="font-size:.78rem;color:var(--pe-muted);">
+            ✉️ <strong style="color:var(--pe-navy);">${_email||'—'}</strong>
+          </div>
+          <div style="font-size:.78rem;color:var(--pe-muted);">
+            📱 <strong style="color:var(--pe-navy);">${tel||'—'}</strong>
+          </div>
+        </div>
       </div>
 
       <div style="background:#f8f9fa;border-radius:8px;padding:14px;border:1px solid var(--pe-border);">
@@ -1750,6 +1897,7 @@ window.finishSetup = async function(){
     cargo:      document.getElementById('ob-cargo').value,
     disciplina: document.getElementById('ob-disciplina').value.trim(),
     cidade:     document.getElementById('ob-cidade').value.trim(),
+    telefone:   document.getElementById('ob-telefone').value.trim(),
     email:      _email
   };
 
@@ -1777,6 +1925,10 @@ let _anoFiltro = null; // null = todos
 function showDashboard(){
   showScreen('dashboard-screen');
   renderDashboard();
+  // Se o usuário não tem telefone cadastrado E não pulou nesta sessão, exibe o modal
+  if(_perfil && !_perfil.telefone && !window._phoneModalSkippedThisSession){
+    setTimeout(()=>{ openPhoneModal(); }, 600);
+  }
 }
 
 function getAnos(){
