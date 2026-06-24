@@ -1170,14 +1170,16 @@ onAuthStateChanged(auth, async (user) => {
       try {
         await loadUserData();
         hideLoading();
+        console.log('[NM] Decisão → _perfil:', !!_perfil, '| setupCompleto:', _perfil?.setupCompleto);
         if(_perfil && _perfil.setupCompleto){
+          console.log('[NM] → showDashboard');
           showDashboard();
           showToast(`Bem-vindo(a) de volta, ${_perfil?.nome?.split(' ')[0] || 'professor(a)'}! 👋`,'success');
         } else if(_perfil === null){
-          // Perfil realmente não existe — usuário novo
+          console.log('[NM] → showOnboarding (perfil null — usuário novo)');
           showOnboarding();
         } else {
-          // Perfil existe mas setup incompleto
+          console.log('[NM] → showOnboarding (perfil existe mas setupCompleto=false/undefined)');
           showOnboarding();
         }
       } catch(e){
@@ -1219,12 +1221,13 @@ onAuthStateChanged(auth, async (user) => {
 
 // ── CARREGAR DADOS DO USUÁRIO ─────────────────────────────────────────
 async function loadUserData(){
-  // Lê o perfil — se não existir, _perfil fica null (usuário novo)
-  // Se der erro de permissão, lança exceção para o caller tratar
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
 
-  // Só tenta carregar escolas/turmas se o setup já foi concluído
+  console.log('[NM] loadUserData → pSnap.exists():', pSnap.exists());
+  console.log('[NM] loadUserData → _perfil:', JSON.stringify(_perfil));
+  console.log('[NM] loadUserData → setupCompleto:', _perfil?.setupCompleto);
+
   if(_perfil && _perfil.setupCompleto){
     try {
       const eSnap = await getDocs(collection(db,'users',_uid,'escolas'));
