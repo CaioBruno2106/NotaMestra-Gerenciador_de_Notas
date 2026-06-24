@@ -1232,13 +1232,23 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
     <div class="turma-modal-body">
       <input type="hidden" id="tm-turma-id">
 
-      <div class="ob-field" style="margin-bottom:14px;">
-        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
-          Número de atividades
-        </label>
-        <input type="number" id="tm-atividades" min="0" max="99"
-          style="width:120px;padding:9px 12px;border:1.5px solid var(--pe-border);border-radius:6px;font-size:.92rem;outline:none;"
-          onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="ob-field">
+          <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+            Número de atividades
+          </label>
+          <input type="number" id="tm-atividades" min="0" max="99"
+            style="width:100%;padding:9px 12px;border:1.5px solid var(--pe-border);border-radius:6px;font-size:.92rem;outline:none;"
+            onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
+        </div>
+        <div class="ob-field">
+          <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+            Disciplina(s)
+          </label>
+          <input type="text" id="tm-disciplina" placeholder="Ex.: Matemática"
+            style="width:100%;padding:9px 12px;border:1.5px solid var(--pe-border);border-radius:6px;font-size:.92rem;outline:none;"
+            onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
+        </div>
       </div>
 
       <div style="font-size:.78rem;font-weight:700;color:var(--pe-navy);margin-bottom:8px;">
@@ -1580,6 +1590,7 @@ async function saveFullSetup(perfil, escolas, turmas){
           turno:      t.turno,
           serie:      t.serie,
           turma:      t.turma,
+          disciplina: t.disciplina||'',
           atividades: parseInt(t.atividades)||0,
           alunos:     t.alunos,
           ativo:      true,
@@ -1858,6 +1869,7 @@ function renderTurmasStep(){
           <input type="text" id="at-serie-${ei}" placeholder="Série * (ex.: 6º, 7º, 1ª)">
           <input type="text" id="at-turma-${ei}" placeholder="Turma * (ex.: A, B, C)">
           <input type="number" id="at-ativ-${ei}" placeholder="Nº atividades" min="1" max="99" style="grid-column:span 2">
+          <input type="text" id="at-disc-${ei}" placeholder="Disciplina(s) (ex.: Matemática, Física)" style="grid-column:span 2">
         </div>
         <button class="btn-add-turma" onclick="addTurma(${ei})">Adicionar turma</button>
       </div>
@@ -1871,7 +1883,7 @@ function renderTurmaCard(ei, ti, t){
     <div class="turma-card-header">
       <div>
         <div class="turma-card-title">${t.serie} ${t.turma} &mdash; ${nivelLabel(t.nivel)}</div>
-        <div class="turma-card-meta">${turnoLabel(t.turno)} &nbsp;·&nbsp; ${t.atividades||0} atividades</div>
+        <div class="turma-card-meta">${turnoLabel(t.turno)} &nbsp;·&nbsp; ${t.atividades||0} atividades${t.disciplina?' &nbsp;·&nbsp; '+t.disciplina:''}</div>
       </div>
       <button class="btn-del-turma" onclick="removeTurma(${ei},${ti})">✕ Remover</button>
     </div>
@@ -1905,6 +1917,7 @@ window.addTurma = function(ei){
   const serie = document.getElementById(`at-serie-${ei}`).value.trim();
   const turma = document.getElementById(`at-turma-${ei}`).value.trim();
   const ativ  = document.getElementById(`at-ativ-${ei}`).value;
+  const disc  = document.getElementById(`at-disc-${ei}`)?.value.trim()||'';
 
   if(!ano||!nivel||!turno||!serie||!turma){
     showMsg('step3-msg','Preencha: ano letivo, nível, turno, série e turma.','error'); return;
@@ -1926,6 +1939,7 @@ window.addTurma = function(ei){
     nome: `${serie} ${turma}`,
     anoLetivo: parseInt(ano)||new Date().getFullYear(),
     nivel, turno, serie, turma,
+    disciplina: disc,
     atividades: parseInt(ativ)||0,
     alunosRaw: '',
     alunos: [],
@@ -2215,7 +2229,7 @@ function renderDashboard(){
         <span style="background:rgba(0,0,0,.1);padding:1px 6px;border-radius:8px;margin-left:4px;">${tagL}</span>
       </div>
       <div class="turma-mini-name">${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}</div>
-      <div class="turma-mini-escola">${turnoLabel(t.turno)} · ${t.anoLetivo||'—'}</div>
+      <div class="turma-mini-escola">${turnoLabel(t.turno)} · ${t.anoLetivo||'—'}${t.disciplina?' · '+t.disciplina:''}</div>
       ${isInativa?'<div class="turma-mini-inativa-tag">⏸ Turma inativa</div>':''}
       <div class="turma-mini-meta">
         <span>👤 <strong>${alunosAtivos}</strong>/${alunosTotal} alunos</span>
@@ -2307,6 +2321,7 @@ window.openEditTurma = function(id){
     `Editar: ${turma.serie} ${turma.turma} (${turma.anoLetivo||'—'})`;
   document.getElementById('tm-turma-id').value    = id;
   document.getElementById('tm-atividades').value  = turma.atividades||0;
+  document.getElementById('tm-disciplina').value  = turma.disciplina||'';
   document.getElementById('tm-novo-aluno').value  = '';
   document.getElementById('tm-msg').textContent   = '';
   document.getElementById('tm-msg').className     = 'ob-msg';
@@ -2385,14 +2400,17 @@ window.saveTurmaModal = async function(){
   showLoading('Salvando alterações...');
   try {
     const alunosNorm = _editAlunos.map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
+    const disc = document.getElementById('tm-disciplina').value.trim();
     await setDoc(doc(db,'users',_uid,'turmas',id),{
       atividades: ativ,
+      disciplina: disc,
       alunos: alunosNorm,
       updatedAt: serverTimestamp()
     },{merge:true});
     const idx = _turmas.findIndex(t=>t.id===id);
     if(idx!==-1){
       _turmas[idx].atividades = ativ;
+      _turmas[idx].disciplina = disc;
       _turmas[idx].alunos     = alunosNorm;
     }
     closeTurmaModal();
