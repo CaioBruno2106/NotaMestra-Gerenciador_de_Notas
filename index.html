@@ -1728,14 +1728,15 @@ async function loadUserData(){
     _turmas  = [];
   }
 
-  // Corrige turmas cujo tipo de rede diverge da escola
+  // Corrige turmas cujo tipo de rede diverge da escola (operação silenciosa, não bloqueia)
   if(_perfil?.setupCompleto && _escolas.length && _turmas.length){
-    await syncEscolaTiposNasTurmas(true);
+    syncEscolaTiposNasTurmas(true).catch(e=>console.warn('syncEscolaTipos:', e));
   }
 
-  // Mantém índice telefone → usuário para recuperação por SMS
+  // Índice telefone → usuário para recuperação por SMS
+  // Executado em background: nunca deve bloquear nem lançar erro para o caller
   if(_perfil?.telefone){
-    await syncTelefoneIndex(_perfil.telefone);
+    syncTelefoneIndex(_perfil.telefone).catch(e=>console.warn('syncTelefoneIndex (permissão?):', e.code, e.message));
   }
 }
 
@@ -1787,8 +1788,9 @@ async function saveFullSetup(perfil, escolas, turmas){
 
     // Recarregar
     await loadUserData();
+    // Índice de telefone em background — não bloqueia nem propaga erro
     if(perfil.telefone){
-      await syncTelefoneIndex(perfil.telefone);
+      syncTelefoneIndex(perfil.telefone).catch(e=>console.warn('syncTelefoneIndex:', e.code, e.message));
     }
     showDashboard();
     showToast('✅ Conta configurada com sucesso!','success');
@@ -2489,7 +2491,8 @@ window.savePhoneModal = async function(){
     await setDoc(doc(db,'users',_uid,'perfil','dados'),
       { telefone: tel }, { merge: true });
     _perfil.telefone = tel;
-    await syncTelefoneIndex(tel);
+    // Índice em background — não bloqueia nem mascara erro do setDoc acima
+    syncTelefoneIndex(tel).catch(e=>console.warn('syncTelefoneIndex:', e.code));
     document.getElementById('phone-modal-overlay').style.display = 'none';
     showToast('📱 Celular cadastrado com sucesso!','success');
   } catch(e){
@@ -3008,7 +3011,7 @@ window.saveEditAcesso = async function(){
   try {
     await setDoc(doc(db,'users',_uid,'perfil','dados'),{telefone:tel},{merge:true});
     _perfil = {..._perfil, telefone:tel};
-    if(tel) await syncTelefoneIndex(tel);
+    if(tel) syncTelefoneIndex(tel).catch(e=>console.warn('syncTelefoneIndex:', e.code));
     cancelEditAcesso();
     renderProfile();
     showToast('Celular atualizado! ✅','success');
