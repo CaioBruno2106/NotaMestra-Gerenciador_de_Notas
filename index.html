@@ -938,15 +938,23 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 }
 .grp-btn-avancar:hover{background:#6a1b9a;}
 
-/* Grupos já avaliados (lista resumida no topo) */
-.grp-feitos-lista{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
-.grp-feito-item{
-  display:flex;align-items:center;gap:8px;
-  padding:7px 10px;background:#f3e5f5;border-radius:7px;
-  border:1px solid #ce93d8;font-size:.78rem;
+/* Grupos finalizados — acordeao colapsavel */
+.grp-feitos-lista{display:flex;flex-direction:column;gap:4px;margin-bottom:12px;}
+.grp-feito-acordeao{
+  border:1.5px solid #e1bee7;border-radius:8px;overflow:hidden;
+  background:#fff;
 }
-.grp-feito-nome{font-weight:700;color:#6a1b9a;flex:1;}
-.grp-feito-members{color:var(--pe-muted);font-size:.72rem;}
+.grp-feito-acordeao.ativo{border-color:#8e24aa;}
+.grp-feito-header{
+  display:flex;align-items:center;gap:8px;
+  padding:8px 10px;cursor:pointer;user-select:none;
+  background:#faf5fe;
+}
+.grp-feito-acordeao.ativo .grp-feito-header{background:#ede7f6;}
+.grp-feito-chevron{font-size:.65rem;color:var(--pe-muted);margin-right:2px;transition:transform .2s;flex-shrink:0;}
+.grp-feito-acordeao.aberto .grp-feito-chevron{transform:rotate(180deg);}
+.grp-feito-nome{font-size:.82rem;font-weight:800;color:#6a1b9a;flex:1;}
+.grp-feito-members{font-size:.71rem;color:var(--pe-muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:200px;}
 .grp-feito-reabrir{
   padding:3px 9px;border:none;border-radius:5px;
   background:#ede7f6;color:#6a1b9a;font-size:.7rem;font-weight:700;cursor:pointer;flex-shrink:0;
@@ -957,6 +965,19 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
   background:#fdecea;color:#c62828;font-size:.7rem;font-weight:700;cursor:pointer;flex-shrink:0;
 }
 .grp-feito-excluir:hover{background:#fbc8c5;}
+.grp-feito-body{
+  display:none;padding:10px 10px 12px;border-top:1px solid #e1bee7;
+  overflow-x:auto;
+}
+.grp-feito-acordeao.aberto .grp-feito-body{display:block;}
+
+/* Tabela geral alfabetica de notas */
+.grp-tabela-geral{margin-top:4px;}
+.grp-tabela-geral-titulo{
+  font-size:.76rem;font-weight:800;color:var(--pe-navy);
+  margin-bottom:6px;padding-bottom:4px;
+  border-bottom:1.5px solid var(--pe-border);
+}
 
 /* Hint sem grupos */
 .grp-sem-grupos-hint{
@@ -3363,7 +3384,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════  ═════════════════════════════════════════
+// ════  ══════════════════════════════════   ══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -5099,21 +5120,70 @@ function _trabStep3(uid, idx, atv, alunos){
   const grupos = atv.grupos || [];
   const st     = _grpWizState(uid, idx, atv);
 
-  // ── Barra de grupos já finalizados ──────────────────────────────────
+  // ── Grupos ja configurados — acordeão colapsável ────────────────────
   let feitosHtml = '';
   if(grupos.length){
+    const subs    = trabSubtipos(atv);
+    const formato = trabFormato(atv);
+    const subGrupo = subs.filter(s=>trabModalidade(atv,s)==='grupo');
+    const subInd   = subs.filter(s=>trabModalidade(atv,s)==='individual');
+    const colsInd  = [];
+    subInd.forEach(s=>{ const sub=TRABALHO_SUBTIPOS[s]; if(sub) sub.criterios.forEach(c=>colsInd.push({s,c})); });
+    const notas = (_notasCache[uid]?.atv?.[idx]) || {};
+
     const items = grupos.map((gr, gi)=>{
-      const membros = alunos.filter((_,ai)=> atv.alunoGrupo?.[ai] === gi);
-      const nomes   = membros.map((a)=> typeof a==='string'?a:a.nome).join(', ');
-      const ativo   = (st.gi === gi);
+      const membrosIdx = alunos.map((_,ai)=>ai).filter(ai=> atv.alunoGrupo?.[ai] === gi);
+      const nomes      = membrosIdx.map(ai=>{ const a=alunos[ai]; return typeof a==='string'?a:a.nome; });
+      const ativo      = (st.gi === gi);
+
+      // Criterios de grupo (para exibir na tabela expandida)
+      let grpCritHtml = '';
+      if(subGrupo.length && membrosIdx.length){
+        const cells = subGrupo.flatMap(s=>{
+          const sub = TRABALHO_SUBTIPOS[s];
+          return sub.criterios.map(c=>{
+            const v = trabCritVal((notas[membrosIdx[0]]||{}), s, c.id);
+            return `<div class="trab-grp-crit">
+              <label title="${c.niveis.join(' | ').replace(/"/g,'&quot;')}">${c.label}</label>
+              ${_trabCell(uid,idx,{kind:'grp',gi},s,c.id,c,v,formato)}
+            </div>`;
+          });
+        }).join('');
+        grpCritHtml = `<div class="trab-grp-sub" style="margin-bottom:8px;">
+          <div class="trab-grp-sub-title">Criterios do grupo</div>
+          <div class="trab-grp-crit-row">${cells}</div>
+        </div>`;
+      }
+
+      // Tabela de integrantes (criterios individuais + nota)
+      let tabHtml = '';
+      if(membrosIdx.length){
+        const ths = colsInd.map(col=>`<th class="col-visto" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${col.c.label}</th>`).join('');
+        const rows = membrosIdx.map(ai=>{
+          const a    = alunos[ai];
+          const nome = typeof a==='string'?a:a.nome;
+          const crits= (notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
+          const tds  = colsInd.map(col=>{ const v=trabCritVal(crits,col.s,col.c.id);
+            return `<td class="col-visto" style="text-align:center;">${_trabCell(uid,idx,{kind:'ind',ai},col.s,col.c.id,col.c,v,formato)}</td>`; }).join('');
+          return `<tr><td class="col-aluno">${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td></tr>`;
+        }).join('');
+        tabHtml = `<table class="notas-table"><thead><tr><th class="col-aluno">Integrante</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table>`;
+      } else {
+        tabHtml = `<div class="trab-hint">Nenhum integrante neste grupo.</div>`;
+      }
+
       return `
-      <div class="grp-feito-item" style="${ativo?'background:#ede7f6;border-color:#8e24aa;':''}">
-        <span class="grp-feito-nome">${gr.nome||'Grupo '+(gi+1)}</span>
-        <span class="grp-feito-members">${nomes||'sem integrantes'}</span>
-        <button class="grp-feito-reabrir" onclick="grpReabrirGrupo('${uid}',${idx},${gi})">
-          ${ativo ? 'atual' : 'reabrir'}
-        </button>
-        <button class="grp-feito-excluir" onclick="grpExcluirGrupo('${uid}',${idx},${gi})">excluir</button>
+      <div class="grp-feito-acordeao${ativo?' ativo':''}" id="grp-acordeao-${uid}-${idx}-${gi}">
+        <div class="grp-feito-header" onclick="grpToggleAcordeao('${uid}',${idx},${gi})">
+          <span class="grp-feito-chevron">▼</span>
+          <span class="grp-feito-nome">${gr.nome||'Grupo '+(gi+1)}</span>
+          <span class="grp-feito-members">${nomes.join(', ')||'sem integrantes'}</span>
+          <button class="grp-feito-reabrir" onclick="event.stopPropagation();grpReabrirGrupo('${uid}',${idx},${gi})">${ativo?'atual':'reabrir'}</button>
+          <button class="grp-feito-excluir" onclick="event.stopPropagation();grpExcluirGrupo('${uid}',${idx},${gi})">excluir</button>
+        </div>
+        <div class="grp-feito-body">
+          ${grpCritHtml}${tabHtml}
+        </div>
       </div>`;
     }).join('');
     feitosHtml = `<div class="grp-feitos-lista">${items}</div>`;
@@ -5380,52 +5450,35 @@ function renderTabelaTrabalho(uid, idx, atv, alunos, notas){
     return `<div class="lancamento-tabela">${titulo}<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Aluno</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
 
-  // ── Com grupos → mostra apenas o grupo ativo no wizard ──────────────
-  const subGrupo = subs.filter(s=>trabModalidade(atv,s)==='grupo');
-  const subInd   = subs.filter(s=>trabModalidade(atv,s)==='individual');
-  const colsInd  = [];
-  subInd.forEach(s=>{ const sub=TRABALHO_SUBTIPOS[s]; if(sub) sub.criterios.forEach(c=>colsInd.push({s,c})); });
+  // ── Com grupos → tabela geral unica em ordem alfabetica ─────────────
+  // Monta lista de todos os alunos alocados, ordenada alfabeticamente
+  const alocados = alunos
+    .map((a, ai) => ({ ai, nome: typeof a==='string'?a:a.nome, gi: atv.alunoGrupo?.[ai] }))
+    .filter(({gi}) => gi !== undefined);
 
-  // Determina qual grupo está ativo no wizard (padrão: 0 se não há estado)
-  const wizKey = `${uid}-${idx}`;
-  const giAtivo = window._grpWizard?.[wizKey]?.gi ?? 0;
-  // Limita ao último grupo válido caso o wizard aponte para um índice além
-  const giMostra = Math.min(giAtivo, grupos.length - 1);
+  alocados.sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
 
-  const gr = grupos[giMostra];
-  const members = [];
-  alunos.forEach((_,ai)=>{ if(atv.alunoGrupo?.[ai]===giMostra) members.push(ai); });
-  const nomes = members.map(ai=>{ const a=alunos[ai]; return (ai+1)+'. '+(typeof a==='string'?a:a.nome); });
-
-  let grpHtml = '';
-  if(subGrupo.length){
-    grpHtml = subGrupo.map(s=>{
-      const sub = TRABALHO_SUBTIPOS[s];
-      const cells = sub.criterios.map(c=>{
-        const v = members.length ? trabCritVal((notas[members[0]]||{}), s, c.id) : undefined;
-        return `<div class="trab-grp-crit"><label title="${c.niveis.join(' | ').replace(/"/g,'&quot;')}">${c.label}</label>${_trabCell(uid,idx,{kind:'grp',gi:giMostra},s,c.id,c,v,formato)}</div>`;
-      }).join('');
-      return `<div class="trab-grp-sub"><div class="trab-grp-sub-title">${sub.label} · nota do grupo</div><div class="trab-grp-crit-row">${cells}</div></div>`;
-    }).join('');
+  if(!alocados.length){
+    return `<div class="lancamento-tabela">${titulo}<div class="trab-hint" style="padding:10px 0;">Nenhum aluno alocado em grupos ainda.</div></div>`;
   }
 
-  let indHtml = '';
-  if(members.length){
-    const ths = colsInd.map(col=>`<th class="col-visto" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${col.c.label}</th>`).join('');
-    const rows = members.map(ai=>{
-      const a=alunos[ai]; const nome=typeof a==='string'?a:a.nome;
-      const crits=(notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
-      const tds=colsInd.map(col=>{ const v=trabCritVal(crits,col.s,col.c.id); return `<td class="col-visto" style="text-align:center;">${_trabCell(uid,idx,{kind:'ind',ai},col.s,col.c.id,col.c,v,formato)}</td>`; }).join('');
-      return `<tr><td class="col-aluno">${ai+1}. ${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td></tr>`;
-    }).join('');
-    indHtml = `<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Integrante</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-  } else {
-    indHtml = `<div class="trab-hint" style="margin:6px 0;">Nenhum aluno neste grupo ainda.</div>`;
-  }
+  const rows = alocados.map(({ai, nome, gi}) => {
+    const crits = (notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
+    const nomeGrupo = grupos[gi]?.nome || ('Grupo '+(gi+1));
+    return `<tr>
+      <td class="col-aluno">${nome}</td>
+      <td style="font-size:.72rem;color:var(--pe-muted);white-space:nowrap;">${nomeGrupo}</td>
+      <td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td>
+    </tr>`;
+  }).join('');
 
-  const block = `<div class="trab-grupo-card"><div class="trab-grupo-head">Grupo ${giMostra+1} de ${grupos.length} <small>${nomes.length?nomes.join(' · '):'sem integrantes'}</small></div>${grpHtml}${indHtml}</div>`;
+  const tabela = `<div class="grp-tabela-geral"><div class="grp-tabela-geral-titulo">Notas — ${alocados.length} aluno${alocados.length!==1?'s':''}</div>
+    <div style="overflow-x:auto;"><table class="notas-table">
+      <thead><tr><th class="col-aluno">Aluno</th><th class="col-visto">Grupo</th><th class="col-nota">Nota</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div></div>`;
 
-  return `<div class="lancamento-tabela">${titulo}${block}</div>`;
+  return `<div class="lancamento-tabela">${titulo}${tabela}</div>`;
 }
 
 // ── Gravação de critérios ────────────────────────────────────────────
@@ -5632,6 +5685,12 @@ window.grpExcluirGrupo = function(uid, idx, gi){
   renderTrabalhoConfig(uid, idx);
   rerenderTabelaAtvCard(uid, idx);
   agendarAutosave();
+};
+
+// Abre/fecha o acordeão de um grupo finalizado
+window.grpToggleAcordeao = function(uid, idx, gi){
+  const el = document.getElementById(`grp-acordeao-${uid}-${idx}-${gi}`);
+  if(el) el.classList.toggle('aberto');
 };
 
 // Reabre um grupo já criado (volta para tela A ou B)
