@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Nota Mestra v12 – Sistema de Gestão de Notas</title>
+<title>Nota Mestra – Sistema de Gestão de Notas</title>
 <style>
 /* ═══════════════════════════════════════════════
    PALETA OFICIAL – GOVERNO DE PERNAMBUCO
@@ -4528,7 +4528,7 @@ function renderTabelaMedias(unidade, alunos, regras){
         <th class="col-nota">Prova</th>
         <th class="col-nota">Extra</th>
         <th class="col-nota">Média</th>
-        <th class="col-nota">C/ Rec.</th>
+        <th class="col-nota">Pós-rec.</th>
         <th class="col-situacao">Situação</th>
       </tr></thead>
       <tbody id="tbody-medias-${unidade.id}">
@@ -4832,12 +4832,15 @@ function recalcularPrevia(uid, ai){
   const { somaAtv:somaAtv2, notaBase, notaUnidade, usouRec } =
     calcularUnidade(somaAtv, prova, extras, rec, regras);
 
-  // Situação da unidade (para prévia — sem nota final)
-  const limAprov = regras.limiteAprovacao;
-  const sit = notaUnidade >= limAprov ? 'aprovado'
-            : notaUnidade < regras.limiteRecFinal ? 'reprovado'
-            : 'recuperacao';
-  const sitCor = {aprovado:'#2e7d32',recuperacao:'#e65100',reprovado:'#c62828'};
+  // Situação POR UNIDADE (independente do fechamento final)
+  //   nota ≥ 6              → Aprovado na unidade
+  //   nota < 6 e sem rec    → Em recuperação
+  //   nota < 6 e com rec    → Não recuperado
+  const recLancada = nc.rec[ai] != null && nc.rec[ai] !== '';
+  const sit = notaUnidade >= 6
+            ? 'aprovado'
+            : (recLancada ? 'nao_recuperado' : 'em_recuperacao');
+  const sitCor = {aprovado:'#2e7d32', em_recuperacao:'#e65100', nao_recuperado:'#c62828'};
 
   const set = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
   // Atualiza célula de somatório
@@ -4854,7 +4857,7 @@ function recalcularPrevia(uid, ai){
 
   const sitEl = document.getElementById(`m-sit-${uid}-${ai}`);
   if(sitEl){
-    sitEl.textContent = {aprovado:'Aprovado',recuperacao:'Rec. Final',reprovado:'Reprovado'}[sit]||'—';
+    sitEl.textContent = {aprovado:'Aprovado', em_recuperacao:'Em recuperação', nao_recuperado:'Não recuperado'}[sit]||'—';
     sitEl.style.color = sitCor[sit]||'';
     sitEl.style.fontWeight = '700';
   }
