@@ -3264,6 +3264,200 @@ function showMsgEl(id, txt, type){
   el.className=`ob-msg ${type}`;
 }
 
+
+// ══════════════════════════════════════════════════════════════════════
+// ETAPA 2 — REGRAS POR REDE DE ENSINO
+// Vinculadas ao escolaTipo da turma. Sem dependência de tela.
+// ══════════════════════════════════════════════════════════════════════
+
+/**
+ * Retorna o objeto de regras para a rede informada.
+ *
+ * MUNICIPAL (Recife)
+ *   - Atividades: soma até 10,0
+ *   - Prova:      até 10,0
+ *   - Extras:     positivo ou negativo, teto definido pela rede
+ *   - Fórmula:    (somaAtv + prova + extras) / 2  → arredonda para 0,5
+ *   - Sistema:    bimestral (4 bimestres)
+ *   - Aprovação normal:   média anual ≥ 6,0
+ *   - Vai pra final:      2,5 ≤ média < 6,0
+ *   - Reprovado direto:   média < 2,5
+ *   - Critério final:     ((média×2) + rec.final) / 3 ≥ 5,0
+ *   - Rec. por unidade:   substitui o MENOR componente (atv ou prova)
+ *                         apenas se rec > menor. Empate = não substitui.
+ *
+ * ESTADUAL (PE)
+ *   - Mesma fórmula base
+ *   - Sistema:    trimestral (3 trimestres)
+ *   - Aprovação normal:   média anual ≥ 6,0
+ *   - Vai pra final:      4,0 ≤ média < 6,0
+ *   - Reprovado direto:   média < 4,0
+ *   - Critério final:     rec.final ≥ 6,0  (substitui média se maior)
+ *   - Rec. por unidade:   substitui a nota da UNIDADE INTEIRA
+ *                         apenas se rec > nota. Empate = não substitui.
+ */
+function getRegrasRede(escolaTipo){
+  const base = {
+    tetoAtividades:  10.0,
+    tetoProva:       10.0,
+    tetoExtra:        2.0,   // teto absoluto de ponto extra (positivo)
+    pisoExtra:       -2.0,   // mínimo (negativo)
+    limiteAprovacao:  6.0,   // ≥ este valor → aprovado
+  };
+
+  if(escolaTipo === 'municipal'){
+    return {
+      ...base,
+      rede:               'municipal',
+      sistemaDefault:     'bimestral',
+      // Faixas para aprovação final
+      limiteRecFinal:     2.5,   // abaixo disso → reprovado direto (sem direito à final)
+      // Cálculo da nota final com recuperação
+      // ((média×2) + rec) / 3 ≥ 5,0 → aprovado
+      limiteAprovacaoFinal: 5.0,
+      calcNotaFinal: (media, rec) => {
+        const resultado = ((media * 2) + rec) / 3;
+        return arredondarPE(resultado);
+      },
+      // Recuperação por unidade: substitui o MENOR componente (atv ou prova)
+      // somente se rec > menor. Empate → não substitui.
+      // Retorna valor BRUTO — arredondarPE é aplicado em calcularUnidade
+      calcRecUnidade: (somaAtv, prova, extras, rec) => {
+        const menor = somaAtv <= prova ? somaAtv : prova;
+        if(rec > menor){
+          const novaAtv   = somaAtv <= prova ? rec : somaAtv;
+          const novaProva = prova   <  somaAtv ? rec : prova;
+          return Math.min((novaAtv + novaProva + extras) / 2, 10.0);
+        }
+        return Math.min((somaAtv + prova + extras) / 2, 10.0);
+      },
+    };
+  }
+
+  // estadual (PE)
+  return {
+    ...base,
+    rede:               'estadual',
+    sistemaDefault:     'trimestral',
+    limiteRecFinal:     4.0,   // abaixo disso → reprovado direto
+    limiteAprovacaoFinal: 6.0,
+    calcNotaFinal: (media, rec) => {
+      // Usa a maior entre média e rec; aprovado se resultado ≥ 6,0
+      const resultado = rec > media ? rec : media;
+      return arredondarPE(resultado);
+    },
+    // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
+    // somente se rec > nota. Empate → não substitui.
+    // Retorna valor BRUTO — arredondarPE é aplicado em calcularUnidade
+    calcRecUnidade: (somaAtv, prova, extras, rec) => {
+      const notaOriginal = Math.min((somaAtv + prova + extras) / 2, 10.0);
+      return rec > arredondarPE(notaOriginal) ? rec : notaOriginal;
+    },
+  };
+}
+
+/**
+ * Arredondamento padrão PE:
+ *   decimal = 0       → inteiro
+ *   decimal ≤ 0,5    → inteiro + 0,5
+ *   decimal > 0,5    → próximo inteiro
+ */
+function arredondarPE(nota){
+  if(nota >= 10.0) return 10.0;
+  if(nota <= 0.0)  return 0.0;
+  const intPart = Math.floor(nota);
+  const dec     = nota - intPart;
+  if(dec === 0)    return intPart;
+  if(dec <= 0.5)   return intPart + 0.5;
+  return intPart + 1;
+}
+
+/**
+ * Motor de cálculo de uma unidade.
+ * Recebe os valores brutos e retorna nota + situação.
+ *
+ * @param {number}  somaAtvBruta  — soma das notas de atividades (antes de aplicar teto)
+ * @param {number}  prova         — nota da prova (0–10)
+ * @param {number}  extras        — ponto extra (pode ser negativo)
+ * @param {number|null} rec       — nota de recuperação da unidade (null = não fez)
+ * @param {object}  regras        — retorno de getRegrasRede()
+ * @returns {{ somaAtv, notaUnidade, comRec, usouRec }}
+ */
+function calcularUnidade(somaAtvBruta, prova, extras, rec, regras){
+  const somaAtv     = Math.min(somaAtvBruta, regras.tetoAtividades);
+  const provaVal    = Math.max(0, Math.min(prova  || 0, regras.tetoProva));
+  const extrasVal   = Math.max(regras.pisoExtra,
+                       Math.min(extras || 0, regras.tetoExtra));
+
+  const notaBase    = arredondarPE(
+    Math.min((somaAtv + provaVal + extrasVal) / 2, 10.0)
+  );
+
+  let notaUnidade = notaBase;
+  let usouRec     = false;
+
+  if(rec !== null && rec !== undefined && rec !== ''){
+    const recVal        = Math.max(0, Math.min(parseFloat(rec)||0, 10.0));
+    const notaComRecRaw = regras.calcRecUnidade(somaAtv, provaVal, extrasVal, recVal);
+    const notaComRec    = arredondarPE(notaComRecRaw);
+    if(notaComRec > notaBase){
+      notaUnidade = notaComRec;
+      usouRec     = true;
+    }
+  }
+
+  return { somaAtv, notaBase, notaUnidade, usouRec };
+}
+
+/**
+ * Calcula a média anual (bimestral ou trimestral) e a situação do aluno.
+ *
+ * @param {number[]} notasUnidades — array de notas finais por unidade
+ * @param {number|null} recFinal   — nota da recuperação final (null = não fez)
+ * @param {object}  regras
+ * @returns {{ mediaAnual, notaFinal, situacao }}
+ *   situacao: 'aprovado' | 'recuperacao' | 'reprovado'
+ */
+function calcularSituacaoFinal(notasUnidades, recFinal, regras){
+  if(!notasUnidades.length) return { mediaAnual: 0, notaFinal: 0, situacao: 'sem_dados' };
+
+  const soma       = notasUnidades.reduce((a,b)=>a+b, 0);
+  const mediaAnual = arredondarPE(soma / notasUnidades.length);
+
+  // Aprovado direto
+  if(mediaAnual >= regras.limiteAprovacao){
+    return { mediaAnual, notaFinal: mediaAnual, situacao: 'aprovado' };
+  }
+
+  // Reprovado direto (abaixo do piso para ter direito à final)
+  if(mediaAnual < regras.limiteRecFinal){
+    return { mediaAnual, notaFinal: mediaAnual, situacao: 'reprovado' };
+  }
+
+  // Faixa de recuperação final
+  if(recFinal === null || recFinal === undefined || recFinal === ''){
+    return { mediaAnual, notaFinal: mediaAnual, situacao: 'recuperacao' };
+  }
+
+  const recVal    = Math.max(0, Math.min(parseFloat(recFinal)||0, 10.0));
+  const notaFinal = regras.calcNotaFinal(mediaAnual, recVal);
+  const situacao  = notaFinal >= regras.limiteAprovacaoFinal ? 'aprovado' : 'reprovado';
+
+  return { mediaAnual, notaFinal, situacao };
+}
+
+/**
+ * Label legível da situação.
+ */
+function labelSituacao(situacao){
+  return {
+    'aprovado':   'Aprovado(a)',
+    'recuperacao':'Recuperação Final',
+    'reprovado':  'Reprovado(a)',
+    'sem_dados':  '—',
+  }[situacao] || '—';
+}
+
 window.showConfirmLogout = function(){
   document.getElementById('confirm-modal').classList.add('active');
 };
