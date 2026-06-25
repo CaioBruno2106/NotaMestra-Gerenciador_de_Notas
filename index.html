@@ -2238,6 +2238,57 @@ async function garantirUnidades(turma){
 }
 
 /**
+ * Retorna true se qualquer unidade de uma turma já tem notas lançadas.
+ * Lê direto do Firestore para ser preciso (não depende do cache).
+ */
+async function temNotasNasUnidades(turmaId){
+  const snap = await getDocs(
+    collection(db,'users',_uid,'turmas',turmaId,'unidades')
+  );
+  for(const d of snap.docs){
+    const nl = d.data().notasLancadas;
+    if(!nl) continue;
+    // Verifica prova
+    const prova = nl.prova || {};
+    if(Object.values(prova).some(v=>v!=null && v!=='')) return true;
+    // Verifica extras
+    const extras = nl.extras || {};
+    if(Object.values(extras).some(v=>v!=null && v!=='')) return true;
+    // Verifica atividades
+    const atvs = nl.atividades || {};
+    for(const atv of Object.values(atvs)){
+      const notas = atv.notas || {};
+      if(Object.values(notas).some(v=>v!=null && v!=='')) return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Apaga todas as unidades de uma turma e recria com o novo sistema.
+ * Preserva qtdAtividades da turma.
+ * ATENÇÃO: só deve ser chamada após confirmar que não há notas (ou após
+ * confirmação explícita do usuário para apagar mesmo assim).
+ */
+async function sincronizarUnidadesSistema(turmaId, novoSistema, qtdAtividades){
+  // 1. Lê unidades existentes
+  const snapAntigo = await getDocs(
+    collection(db,'users',_uid,'turmas',turmaId,'unidades')
+  );
+
+  // 2. Deleta todas em batch
+  const batchDel = writeBatch(db);
+  snapAntigo.docs.forEach(d => batchDel.delete(d.ref));
+  await batchDel.commit();
+
+  // 3. Cria as novas com o sistema correto
+  await inicializarUnidades(turmaId, novoSistema, qtdAtividades || 0);
+
+  // 4. Limpa cache para forçar releitura
+  delete _unidades[turmaId];
+}
+
+/**
  * Carrega unidades de uma turma para o cache.
  * Retorna array ordenado por `ordem`.
  */
