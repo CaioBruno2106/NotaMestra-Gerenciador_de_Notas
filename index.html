@@ -2238,57 +2238,6 @@ async function garantirUnidades(turma){
 }
 
 /**
- * Retorna true se qualquer unidade de uma turma já tem notas lançadas.
- * Lê direto do Firestore para ser preciso (não depende do cache).
- */
-async function temNotasNasUnidades(turmaId){
-  const snap = await getDocs(
-    collection(db,'users',_uid,'turmas',turmaId,'unidades')
-  );
-  for(const d of snap.docs){
-    const nl = d.data().notasLancadas;
-    if(!nl) continue;
-    // Verifica prova
-    const prova = nl.prova || {};
-    if(Object.values(prova).some(v=>v!=null && v!=='')) return true;
-    // Verifica extras
-    const extras = nl.extras || {};
-    if(Object.values(extras).some(v=>v!=null && v!=='')) return true;
-    // Verifica atividades
-    const atvs = nl.atividades || {};
-    for(const atv of Object.values(atvs)){
-      const notas = atv.notas || {};
-      if(Object.values(notas).some(v=>v!=null && v!=='')) return true;
-    }
-  }
-  return false;
-}
-
-/**
- * Apaga todas as unidades de uma turma e recria com o novo sistema.
- * Preserva qtdAtividades da turma.
- * ATENÇÃO: só deve ser chamada após confirmar que não há notas (ou após
- * confirmação explícita do usuário para apagar mesmo assim).
- */
-async function sincronizarUnidadesSistema(turmaId, novoSistema, qtdAtividades){
-  // 1. Lê unidades existentes
-  const snapAntigo = await getDocs(
-    collection(db,'users',_uid,'turmas',turmaId,'unidades')
-  );
-
-  // 2. Deleta todas em batch
-  const batchDel = writeBatch(db);
-  snapAntigo.docs.forEach(d => batchDel.delete(d.ref));
-  await batchDel.commit();
-
-  // 3. Cria as novas com o sistema correto
-  await inicializarUnidades(turmaId, novoSistema, qtdAtividades || 0);
-
-  // 4. Limpa cache para forçar releitura
-  delete _unidades[turmaId];
-}
-
-/**
  * Carrega unidades de uma turma para o cache.
  * Retorna array ordenado por `ordem`.
  */
@@ -3639,8 +3588,9 @@ window.saveEscolaTipoModal = async function(){
   const escola    = _escolas.find(e=>e.id===escolaId);
   if(!escola) return;
 
+  const sistAtual   = escola.sistema || 'bimestral';
   const tipoIgual   = escola.tipo    === novoTipo;
-  const sistIgual   = (escola.sistema||'bimestral') === novoSist;
+  const sistIgual   = sistAtual === novoSist;
   if(tipoIgual && sistIgual){
     closeEscolaTipoModal();
     showToast('Nenhuma alteração detectada.','info');
@@ -3649,6 +3599,38 @@ window.saveEscolaTipoModal = async function(){
 
   const turmasAfetadas = _turmas.filter(t=>t.escolaId===escolaId);
   const msgEl = document.getElementById('escola-tipo-modal-msg');
+
+  // ── Confirmação quando o sistema letivo muda ──────────────────────────
+  if(!sistIgual){
+    const de = sistAtual === 'bimestral' ? 'Bimestral (4 bimestres)' : 'Trimestral (3 trimestres)';
+    const para = novoSist  === 'bimestral' ? 'Bimestral (4 bimestres)' : 'Trimestral (3 trimestres)';
+    const nTurmas = turmasAfetadas.length;
+
+    // Aviso extra: bimestral → trimestral (4º Bimestre será apagado)
+    if(sistAtual === 'bimestral' && novoSist === 'trimestral'){
+      const confirmaExtra = confirm(
+        `⚠️ ATENÇÃO — DADOS SERÃO APAGADOS\n\n` +
+        `Você está mudando de "${de}" para "${para}".\n\n` +
+        `O 4º Bimestre e TODAS as notas lançadas nele (atividades, prova, extras) ` +
+        `serão PERMANENTEMENTE APAGADOS em ${nTurmas} turma(s).\n\n` +
+        `As notas dos 1º, 2º e 3º Bimestres serão mantidas e migradas para os trimestres correspondentes.\n\n` +
+        `Essa ação NÃO pode ser desfeita. Deseja continuar?`
+      );
+      if(!confirmaExtra) return;
+    } else {
+      // trimestral → bimestral: apenas confirmação padrão
+      const confirma = confirm(
+        `Confirmar mudança do sistema letivo?\n\n` +
+        `De: ${de}\n` +
+        `Para: ${para}\n\n` +
+        `Isso afetará ${nTurmas} turma(s). As notas existentes serão migradas para as ` +
+        `unidades correspondentes. Um 4º Bimestre vazio será criado para cada turma.\n\n` +
+        `Deseja continuar?`
+      );
+      if(!confirma) return;
+    }
+  }
+
   showLoading('Atualizando escola e turmas...');
   try {
     // Salva escola
@@ -3657,7 +3639,7 @@ window.saveEscolaTipoModal = async function(){
     escola.tipo    = novoTipo;
     escola.sistema = novoSist;
 
-    // Propaga para todas as turmas vinculadas
+    // Propaga tipo/sistema para todas as turmas vinculadas
     await Promise.all(turmasAfetadas.map(t =>
       setDoc(doc(db,'users',_uid,'turmas',t.id),
         { escolaTipo: novoTipo, sistema: novoSist }, { merge: true })
@@ -3666,6 +3648,15 @@ window.saveEscolaTipoModal = async function(){
       t.escolaTipo = novoTipo;
       t.sistema    = novoSist;
     });
+
+    // ── Migração das unidades letivas (só quando o sistema mudou) ────────
+    if(!sistIgual){
+      for(const turma of turmasAfetadas){
+        await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
+        // Limpa cache para forçar releitura na próxima abertura
+        delete _unidades[turma.id];
+      }
+    }
 
     closeEscolaTipoModal();
     // Re-renderiza a tela que estiver ativa
@@ -3687,6 +3678,81 @@ window.saveEscolaTipoModal = async function(){
     msgEl.className   = 'auth-msg error';
   } finally { hideLoading(); }
 };
+
+/**
+ * Migra as unidades letivas de uma turma de um sistema para outro.
+ *
+ * Estratégia de mapeamento (ordem → ordem):
+ *   bimestral → trimestral : 1→1, 2→2, 3→3, 4→EXCLUIR (com todas as notas)
+ *   trimestral → bimestral : 1→1, 2→2, 3→3, criar 4º Bimestre vazio
+ *
+ * Para cada unidade mantida:
+ *   - Renomeia o label (ex.: "1º Bimestre" → "1º Trimestre")
+ *   - Atualiza o campo `sistema`
+ *   - Mantém todas as notas intactas (atividades, prova, extras)
+ *
+ * @param {string} turmaId
+ * @param {string} sistemaAntigo  "bimestral" | "trimestral"
+ * @param {string} sistemaNovo    "bimestral" | "trimestral"
+ */
+async function _migrarUnidadesTurma(turmaId, sistemaAntigo, sistemaNovo){
+  const basePath = collection(db,'users',_uid,'turmas',turmaId,'unidades');
+  const snap = await getDocs(basePath);
+  if(snap.empty) return; // nada a migrar
+
+  const unidades = snap.docs
+    .map(d=>({id:d.id,...d.data()}))
+    .sort((a,b)=>a.ordem-b.ordem);
+
+  const novosLabels = getUnidadesConfig(sistemaNovo); // [{label, ordem}]
+  const batch = writeBatch(db);
+
+  if(sistemaAntigo === 'bimestral' && sistemaNovo === 'trimestral'){
+    // ── 4 bimestres → 3 trimestres ────────────────────────────────────
+    for(const u of unidades){
+      const uRef = doc(db,'users',_uid,'turmas',turmaId,'unidades',u.id);
+      if(u.ordem <= 3){
+        // Renomeia e atualiza sistema
+        const novoLabel = novosLabels.find(n=>n.ordem===u.ordem)?.label || u.label;
+        batch.update(uRef, { label: novoLabel, sistema: sistemaNovo });
+      } else {
+        // ordem 4 → excluir
+        // Primeiro exclui subcoleção de atividades (Firestore não faz cascata)
+        const atvSnap = await getDocs(
+          collection(db,'users',_uid,'turmas',turmaId,'unidades',u.id,'atividades')
+        );
+        for(const atvDoc of atvSnap.docs){
+          batch.delete(doc(
+            db,'users',_uid,'turmas',turmaId,'unidades',u.id,'atividades',atvDoc.id
+          ));
+        }
+        batch.delete(uRef);
+      }
+    }
+  } else if(sistemaAntigo === 'trimestral' && sistemaNovo === 'bimestral'){
+    // ── 3 trimestres → 4 bimestres ────────────────────────────────────
+    for(const u of unidades){
+      const uRef = doc(db,'users',_uid,'turmas',turmaId,'unidades',u.id);
+      const novoLabel = novosLabels.find(n=>n.ordem===u.ordem)?.label || u.label;
+      batch.update(uRef, { label: novoLabel, sistema: sistemaNovo });
+    }
+    // Cria o 4º Bimestre vazio
+    const qtdAtividades = unidades[0]?.qtdAtividades || 0;
+    const novoRef = doc(basePath); // auto-ID
+    batch.set(novoRef, {
+      label:         '4º Bimestre',
+      ordem:         4,
+      sistema:       'bimestral',
+      qtdAtividades,
+      fechada:       false,
+      prova:  { notas:{} },
+      extras: { notas:{} },
+      criadoEm: serverTimestamp()
+    });
+  }
+
+  await batch.commit();
+}
 
 // ── Desativar / Reativar / Excluir escola ───────────────
 window.desativarEscola = async function(id){
