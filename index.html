@@ -3849,6 +3849,8 @@ function getRegrasRede(escolaTipo){
       ...base,
       rede:               'municipal',
       sistemaDefault:     'bimestral',
+      // Média anual É arredondada (PE) no municipal
+      arredondaMedia:     true,
       // Faixas para aprovação final
       limiteRecFinal:     2.5,   // abaixo disso → reprovado direto (sem direito à final)
       // Cálculo da nota final com recuperação
@@ -3878,12 +3880,15 @@ function getRegrasRede(escolaTipo){
     ...base,
     rede:               'estadual',
     sistemaDefault:     'trimestral',
-    limiteRecFinal:     4.0,   // abaixo disso → reprovado direto
+    // Média anual NÃO é arredondada no estadual
+    arredondaMedia:     false,
+    // Estadual não tem piso para recuperação final:
+    // qualquer média < 6,0 vai para recuperação final.
+    limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Usa a maior entre média e rec; aprovado se resultado ≥ 6,0
-      const resultado = rec > media ? rec : media;
-      return arredondarPE(resultado);
+      // Recuperação substitui a média se for maior. Sem arredondamento.
+      return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
     // somente se rec > nota. Empate → não substitui.
@@ -3960,8 +3965,9 @@ function calcularUnidade(somaAtvBruta, prova, extras, rec, regras){
 function calcularSituacaoFinal(notasUnidades, recFinal, regras){
   if(!notasUnidades.length) return { mediaAnual: 0, notaFinal: 0, situacao: 'sem_dados' };
 
-  const soma       = notasUnidades.reduce((a,b)=>a+b, 0);
-  const mediaAnual = arredondarPE(soma / notasUnidades.length);
+  const soma        = notasUnidades.reduce((a,b)=>a+b, 0);
+  const mediaCrua   = soma / notasUnidades.length;
+  const mediaAnual  = regras.arredondaMedia === false ? mediaCrua : arredondarPE(mediaCrua);
 
   // Aprovado direto
   if(mediaAnual >= regras.limiteAprovacao){
@@ -4081,7 +4087,10 @@ function renderUnidadesTabs(unidades){
   bar.innerHTML = unidades.map(u=>
     `<button class="unidade-tab" id="tab-btn-${u.id}"
        onclick="abrirUnidadePorId('${u.id}')">${u.label}</button>`
-  ).join('');
+  ).join('') + `
+    <button class="unidade-tab" id="tab-btn-consolidacao"
+       style="margin-left:auto;background:rgba(253,185,19,.18);"
+       onclick="abrirConsolidacao()">🏁 Consolidação</button>`;
 }
 
 window.abrirUnidadePorId = function(id){
@@ -4862,6 +4871,248 @@ function recalcularPrevia(uid, ai){
     sitEl.style.fontWeight = '700';
   }
 }
+
+
+// ══════════════════════════════════════════════════════════
+// ETAPA 5 — CONSOLIDAÇÃO E RECUPERAÇÃO FINAL
+// ══════════════════════════════════════════════════════════
+//
+// Tela acessada pela aba "🏁 Consolidação" dentro da turma.
+// Carrega notas de TODAS as unidades, calcula média anual,
+// permite lançar nota de recuperação final por aluno e
+// mostra resultado (Aprovado / Reprovado / Recuperação).
+// ----------------------------------------------------------
+let _recFinalCache = {};  // { [turmaId]: { [alunoIdx]: valor } }
+
+// Carrega doc de consolidação (rec final) do Firestore
+async function carregarConsolidacao(turmaId){
+  if(_recFinalCache[turmaId]) return _recFinalCache[turmaId];
+  try {
+    const snap = await getDoc(doc(db,'users',_uid,'turmas',turmaId,'consolidacao','final'));
+    _recFinalCache[turmaId] = (snap.exists() ? snap.data().recFinal : null) || {};
+  } catch(e){
+    console.warn('Erro ao carregar consolidação:', e.message);
+    _recFinalCache[turmaId] = {};
+  }
+  return _recFinalCache[turmaId];
+}
+
+async function salvarRecFinal(turmaId, alunoIdx, valor){
+  if(!_recFinalCache[turmaId]) _recFinalCache[turmaId] = {};
+  _recFinalCache[turmaId][alunoIdx] = (valor===''||valor==null) ? null : parseFloat(valor);
+  setSaveStatus('saving','Salvando...');
+  try {
+    await setDoc(
+      doc(db,'users',_uid,'turmas',turmaId,'consolidacao','final'),
+      { recFinal: _recFinalCache[turmaId], updatedAt: new Date().toISOString() },
+      { merge: true }
+    );
+    setSaveStatus('saved','Salvo ✓');
+    setTimeout(()=>setSaveStatus('idle','Salvo'),1500);
+  } catch(e){
+    setSaveStatus('error','Erro ao salvar');
+    console.warn(e);
+  }
+}
+
+// Garante que o cache local de notas de TODAS as unidades está carregado
+async function carregarTodasUnidadesNotas(turma){
+  const lista = await garantirUnidades(turma);
+  for(const u of lista){
+    if(u.id.startsWith('local-')) continue;
+    // Inicializa cache se preciso
+    if(!_atvConfig[u.id]){
+      const qtd = u.qtdAtividades ?? turma.atividades ?? 0;
+      _atvConfig[u.id] = {
+        qtdAtividades: qtd,
+        atividades: Array.from({length:qtd},(_,i)=>defaultAtv(i))
+      };
+    }
+    if(!_notasCache[u.id]) _notasCache[u.id]={atv:{},prova:{},extras:{},rec:{}};
+    await carregarNotasUnidade(turma.id, u);
+  }
+  return lista;
+}
+
+// Calcula nota final da unidade para um aluno (usa mesma lógica de recalcularPrevia)
+function calcularNotaUnidadeAluno(uid, ai, regras){
+  const nc  = _notasCache[uid];
+  const cfg = _atvConfig[uid];
+  if(!nc||!cfg) return null;
+  let somaAtv = 0;
+  cfg.atividades.forEach((atv,idx)=>{
+    const raw = nc.atv[idx]?.[ai];
+    if(atv.tipo==='vistos'){
+      const marcados = typeof raw==='object' ? raw : {};
+      somaAtv += parseFloat(calcNotaVistos(atv, marcados))||0;
+    } else {
+      somaAtv += parseFloat(raw)||0;
+    }
+  });
+  const prova  = parseFloat(nc.prova[ai])||0;
+  const extras = parseFloat(nc.extras[ai])||0;
+  const rec    = nc.rec[ai]!=null ? parseFloat(nc.rec[ai]) : null;
+  // Considera "sem nota" se atv+prova ambos zerados
+  const temAlgo = somaAtv>0 || prova>0 || extras!==0 || rec!=null;
+  if(!temAlgo) return null;
+  const { notaUnidade } = calcularUnidade(somaAtv, prova, extras, rec, regras);
+  return notaUnidade;
+}
+
+window.abrirConsolidacao = async function(){
+  const turma = _turmaAtual;
+  if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
+
+  // Marca aba ativa
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-btn-consolidacao')?.classList.add('active');
+
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  el.innerHTML = `<div class="unidade-empty"><span>⏳</span>Carregando consolidação...</div>`;
+
+  try {
+    const [unidades] = await Promise.all([
+      carregarTodasUnidadesNotas(turma),
+      carregarConsolidacao(turma.id),
+    ]);
+    renderConsolidacao(turma, unidades);
+  } catch(e){
+    console.error(e);
+    el.innerHTML = `<div class="unidade-empty"><span>⚠️</span>Erro ao carregar consolidação.</div>`;
+  }
+};
+
+function renderConsolidacao(turma, unidades){
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  const regras = getRegrasRede(turma.escolaTipo||'municipal');
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  const recFinalMap = _recFinalCache[turma.id] || {};
+
+  // Cabeçalho de unidades
+  const thsUnid = unidades.map(u=>`<th class="col-nota">${u.label}</th>`).join('');
+
+  // Pré-calcula por aluno
+  const linhas = alunos.map((al,ai)=>{
+    const nome = typeof al==='string' ? al : al.nome;
+    const notasUnid = unidades.map(u=>calcularNotaUnidadeAluno(u.id, ai, regras));
+    const notasValidas = notasUnid.filter(n=>n!=null);
+    const todasLancadas = notasUnid.length>0 && notasValidas.length===notasUnid.length;
+
+    let sit='sem_dados', mediaAnual=0, notaFinal=0;
+    if(todasLancadas){
+      const rf = recFinalMap[ai];
+      const res = calcularSituacaoFinal(notasValidas, rf, regras);
+      sit = res.situacao; mediaAnual = res.mediaAnual; notaFinal = res.notaFinal;
+    } else if(notasValidas.length){
+      const mc = notasValidas.reduce((a,b)=>a+b,0)/notasValidas.length;
+      mediaAnual = regras.arredondaMedia === false ? mc : arredondarPE(mc);
+      sit = 'pendente';
+    }
+
+    const tdsUnid = notasUnid.map(n=>
+      `<td class="col-nota">${n==null?'—':n.toFixed(1)}</td>`
+    ).join('');
+
+    const rfVal = recFinalMap[ai];
+    const podeRec = sit==='recuperacao' || sit==='aprovado' || sit==='reprovado';
+    const inputRec = (todasLancadas && (sit==='recuperacao' || (rfVal!=null && rfVal!=='')))
+      ? `<input type="number" min="0" max="10" step="0.1" class="nota-input"
+              value="${rfVal!=null?rfVal:''}"
+              style="width:60px;text-align:center;"
+              onchange="onChangeRecFinal('${turma.id}',${ai},this.value)">`
+      : (todasLancadas && sit!=='aprovado' && sit!=='reprovado' ? '—' : '—');
+
+    const corSit = {
+      'aprovado':'#2e7d32',
+      'reprovado':'#c62828',
+      'recuperacao':'#e65100',
+      'pendente':'#6c757d',
+      'sem_dados':'#6c757d'
+    }[sit] || '';
+    const labelSit = {
+      'aprovado':'Aprovado(a)',
+      'reprovado':'Reprovado(a)',
+      'recuperacao':'Recuperação Final',
+      'pendente':'Pendente',
+      'sem_dados':'—'
+    }[sit];
+
+    const notaFinalTxt = (sit==='aprovado'||sit==='reprovado') && rfVal!=null && rfVal!==''
+      ? notaFinal.toFixed(1)
+      : (todasLancadas ? mediaAnual.toFixed(1) : '—');
+
+    return `<tr>
+      <td class="col-aluno">${ai+1}. ${nome}</td>
+      ${tdsUnid}
+      <td class="col-nota"><strong>${todasLancadas||notasValidas.length?mediaAnual.toFixed(1):'—'}</strong></td>
+      <td class="col-nota">${inputRec}</td>
+      <td class="col-nota"><strong>${notaFinalTxt}</strong></td>
+      <td class="col-situacao" style="color:${corSit};font-weight:700;">${labelSit}</td>
+    </tr>`;
+  }).join('');
+
+  // Resumo
+  const totalAlunos = alunos.length;
+  let nAprov=0, nRec=0, nRep=0, nPend=0;
+  alunos.forEach((_,ai)=>{
+    const notasUnid = unidades.map(u=>calcularNotaUnidadeAluno(u.id, ai, regras));
+    const notasValidas = notasUnid.filter(n=>n!=null);
+    if(!notasUnid.length || notasValidas.length!==notasUnid.length){ nPend++; return; }
+    const res = calcularSituacaoFinal(notasValidas, recFinalMap[ai], regras);
+    if(res.situacao==='aprovado') nAprov++;
+    else if(res.situacao==='recuperacao') nRec++;
+    else if(res.situacao==='reprovado') nRep++;
+  });
+
+  const regraInfo = turma.escolaTipo==='estadual'
+    ? `Rede Estadual · aprovação ≥ ${regras.limiteAprovacao.toFixed(1)} · rec. final substitui a média se maior (aprovado se ≥ ${regras.limiteAprovacaoFinal.toFixed(1)}) · sem arredondamento da média anual`
+    : `Rede Municipal · aprovação direta ≥ ${regras.limiteAprovacao.toFixed(1)} · rec. final entre ${regras.limiteRecFinal.toFixed(1)} e ${regras.limiteAprovacao.toFixed(1)} (aprovado se ((média×2)+rec)/3 ≥ ${regras.limiteAprovacaoFinal.toFixed(1)})`;
+
+  el.innerHTML = `
+  <div class="medias-card" style="margin-bottom:14px;">
+    <h4>🏁 Consolidação Final da Turma</h4>
+    <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 12px;">${regraInfo}</p>
+    <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+      <div style="background:#e8f5e9;color:#2e7d32;padding:8px 14px;border-radius:8px;font-weight:700;">✅ Aprovados: ${nAprov}</div>
+      <div style="background:#fff3e0;color:#e65100;padding:8px 14px;border-radius:8px;font-weight:700;">🟠 Rec. Final: ${nRec}</div>
+      <div style="background:#ffebee;color:#c62828;padding:8px 14px;border-radius:8px;font-weight:700;">❌ Reprovados: ${nRep}</div>
+      <div style="background:#f1f3f5;color:#495057;padding:8px 14px;border-radius:8px;font-weight:700;">⏳ Pendentes: ${nPend}</div>
+      <div style="background:#e3f2fd;color:#0056b3;padding:8px 14px;border-radius:8px;font-weight:700;">👥 Total: ${totalAlunos}</div>
+    </div>
+  </div>
+  <div class="medias-card">
+    <h4>📋 Resultado por Aluno</h4>
+    <div style="overflow-x:auto;">
+      <table class="notas-table">
+        <thead><tr>
+          <th class="col-aluno">Aluno</th>
+          ${thsUnid}
+          <th class="col-nota">Média Anual</th>
+          <th class="col-nota">Rec. Final</th>
+          <th class="col-nota">Nota Final</th>
+          <th class="col-situacao">Situação</th>
+        </tr></thead>
+        <tbody>${linhas}</tbody>
+      </table>
+    </div>
+    <p style="color:var(--pe-muted);font-size:.78rem;margin-top:10px;">
+      O campo <strong>Rec. Final</strong> só aceita entrada para alunos em recuperação final.
+      Cada digitação salva automaticamente. Pendentes só aparecem após todas as unidades terem notas lançadas.
+    </p>
+  </div>`;
+}
+
+window.onChangeRecFinal = function(turmaId, ai, val){
+  salvarRecFinal(turmaId, ai, val).then(()=>{
+    // Re-renderiza a tela para refletir nova situação
+    if(_turmaAtual && _turmaAtual.id===turmaId){
+      const unidades = _unidades[turmaId]||[];
+      renderConsolidacao(_turmaAtual, unidades);
+    }
+  });
+};
 
 // ══════════════════════════════════════════════════════════
 // INTERAÇÕES DOS CARDS
