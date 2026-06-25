@@ -815,40 +815,87 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 .btn-add-visto{background:#e8f0fe;color:var(--pe-blue);}
 .btn-rem-visto{background:#fdecea;color:var(--pe-red);}
 
-/* ── Seção prova e extras ── */
-.prova-extras-row{
-  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;
-}
-.prova-extras-card{
+/* ── Seções colapsáveis (prova, extras, somatório) ── */
+.secao-colapsavel{
   background:#fff;border-radius:var(--radius-md);
-  border:1.5px solid var(--pe-border);padding:14px;box-shadow:var(--shadow-sm);
+  border:1.5px solid var(--pe-border);box-shadow:var(--shadow-sm);
+  margin-bottom:12px;overflow:hidden;
 }
-.prova-extras-card h4{
-  font-size:.82rem;font-weight:800;color:var(--pe-navy);margin-bottom:10px;
-  display:flex;align-items:center;gap:6px;
+.secao-header{
+  display:flex;align-items:center;gap:10px;padding:13px 16px;
+  background:#f8f9fa;border-bottom:1px solid transparent;
+  cursor:pointer;user-select:none;transition:var(--transition);
 }
-.prova-extras-field label{
-  display:block;font-size:.7rem;font-weight:700;color:var(--pe-muted);
-  text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;
+.secao-header:hover{background:#f1f3f5;}
+.secao-header.open{border-bottom-color:var(--pe-border);}
+.secao-header-icon{font-size:1rem;}
+.secao-header-title{flex:1;font-size:.88rem;font-weight:800;color:var(--pe-navy);}
+.secao-header-meta{
+  font-size:.72rem;color:var(--pe-muted);font-weight:600;
+  background:#f1f3f5;padding:2px 8px;border-radius:10px;
 }
-.prova-extras-field input{
-  width:100%;padding:7px 10px;border:1.5px solid var(--pe-border);
-  border-radius:6px;font-size:.88rem;outline:none;
+.secao-chevron{color:var(--pe-muted);font-size:.8rem;transition:transform .2s;}
+.secao-header.open .secao-chevron{transform:rotate(180deg);}
+.secao-body{display:none;padding:16px;}
+.secao-header.open + .secao-body{display:block;}
+
+/* ── Tabela de somatório ── */
+.soma-atv-table{
+  width:100%;border-collapse:collapse;font-size:.82rem;margin-top:4px;
 }
-.prova-extras-field input:focus{border-color:var(--pe-blue);}
+.soma-atv-table th{
+  background:#f1f3f5;padding:7px 10px;
+  font-size:.7rem;font-weight:700;color:var(--pe-muted);
+  text-transform:uppercase;letter-spacing:.03em;
+  border-bottom:2px solid var(--pe-border);text-align:center;
+  white-space:nowrap;
+}
+.soma-atv-table th.col-nome{text-align:left;}
+.soma-atv-table td{
+  padding:6px 10px;border-bottom:1px solid #f1f3f5;
+  vertical-align:middle;text-align:center;
+}
+.soma-atv-table td.col-nome{
+  text-align:left;font-weight:600;color:var(--pe-navy);
+}
+.soma-atv-table tr:last-child td{border-bottom:none;}
+.soma-atv-table tr:hover td{background:#f8f9fa;}
+.soma-cell{
+  font-weight:800;color:var(--pe-blue);
+}
+.soma-cell-warn{color:#e65100;}
+
+/* ── Campo dentro de seção ── */
+.secao-config-row{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;margin-bottom:12px;
+}
+.secao-config-field{display:flex;flex-direction:column;gap:3px;}
+.secao-config-field label{
+  font-size:.7rem;font-weight:700;color:var(--pe-muted);
+  text-transform:uppercase;letter-spacing:.04em;
+}
+.secao-config-field input{
+  padding:7px 10px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.88rem;outline:none;width:90px;
+}
+.secao-config-field input:focus{border-color:var(--pe-blue);}
+.secao-info-tip{
+  font-size:.7rem;color:var(--pe-muted);
+  background:#f8f9fa;border-radius:6px;padding:6px 10px;
+  margin-bottom:10px;border-left:3px solid var(--pe-blue);
+}
 
 /* ── Estado vazio ── */
 .unidade-empty{
-  text-align:center;padding:40px 20px;color:var(--pe-muted);
-  font-size:.88rem;
+  text-align:center;padding:40px 20px;color:var(--pe-muted);font-size:.88rem;
 }
 .unidade-empty span{font-size:2rem;display:block;margin-bottom:8px;}
 
 /* ── Responsive ── */
 @media(max-width:520px){
   .atv-config-row{grid-template-columns:1fr;}
-  .prova-extras-row{grid-template-columns:1fr;}
   .unidade-header{flex-direction:column;align-items:flex-start;}
+  .secao-config-row{flex-direction:column;align-items:flex-start;}
 }
 
 /* ── Tabelas de notas ── */
@@ -3890,8 +3937,10 @@ function renderUnidadeContent(unidade){
   const qtd    = cfg.qtdAtividades;
   const regras = getRegrasRede(_turmaAtual?.escolaTipo||'municipal');
   const alunos = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+  const uid    = unidade.id;
 
   el.innerHTML = `
+  <!-- Cabeçalho da unidade -->
   <div class="unidade-header">
     <div class="unidade-header-left">
       <h3>📋 ${unidade.label}</h3>
@@ -3900,55 +3949,162 @@ function renderUnidadeContent(unidade){
     <div class="unidade-qtd-ctrl">
       <label>Nº de atividades</label>
       <input type="number" class="unidade-qtd-input"
-        id="qtd-atv-${unidade.id}" value="${qtd}" min="0" max="20">
+        id="qtd-atv-${uid}" value="${qtd}" min="0" max="20">
       <button class="btn-aplicar-qtd"
-        onclick="aplicarQtdAtividades('${unidade.id}')">Aplicar</button>
+        onclick="aplicarQtdAtividades('${uid}')">Aplicar</button>
     </div>
   </div>
 
-  <div class="atividades-section" id="atividades-section-${unidade.id}">
+  <!-- Cards de atividade (colapsáveis) -->
+  <div class="atividades-section" id="atividades-section-${uid}">
     ${qtd===0
       ? `<div class="unidade-empty"><span>📝</span>Nenhuma atividade. Defina o número acima.</div>`
       : cfg.atividades.map((atv,i)=>renderAtvCard(unidade, i, atv, alunos)).join('')
     }
   </div>
 
-  <div class="prova-extras-row">
-    <div class="prova-extras-card">
-      <h4>📄 Prova</h4>
-      <div class="prova-extras-field">
-        <label>Teto</label>
-        <input type="number" id="teto-prova-${unidade.id}"
-          value="${regras.tetoProva}" min="0" max="10" step="0.5" style="width:90px;">
-      </div>
-      <div class="prova-extras-field" style="margin-top:10px;">
-        <label>Recuperação da unidade</label>
-        <div style="font-size:.68rem;color:var(--pe-muted);margin-bottom:4px;">
-          ${regras.rede==='municipal'
-            ? 'Substitui o menor componente se for maior'
-            : 'Substitui a nota da unidade inteira se for maior'}
+  <!-- Somatório de atividades (colapsável) -->
+  ${qtd>0 ? `
+  <div class="secao-colapsavel" id="secao-soma-${uid}">
+    <div class="secao-header open" onclick="toggleSecao('soma-${uid}')">
+      <span class="secao-header-icon">∑</span>
+      <span class="secao-header-title">Somatório de Atividades</span>
+      <span class="secao-header-meta">teto: ${regras.tetoAtividades}</span>
+      <span class="secao-chevron">▼</span>
+    </div>
+    <div class="secao-body">
+      ${renderTabelaSoma(unidade, alunos, regras)}
+    </div>
+  </div>` : ''}
+
+  <!-- Prova + Recuperação (colapsável) -->
+  <div class="secao-colapsavel" id="secao-prova-${uid}">
+    <div class="secao-header open" onclick="toggleSecao('prova-${uid}')">
+      <span class="secao-header-icon">📄</span>
+      <span class="secao-header-title">Prova da Unidade</span>
+      <span class="secao-header-meta">teto: ${regras.tetoProva}</span>
+      <span class="secao-chevron">▼</span>
+    </div>
+    <div class="secao-body">
+      <div class="secao-config-row">
+        <div class="secao-config-field">
+          <label>Teto da prova</label>
+          <input type="number" id="teto-prova-${uid}"
+            value="${regras.tetoProva}" min="0" max="10" step="0.5">
         </div>
+      </div>
+      <div class="secao-info-tip">
+        ${regras.rede==='municipal'
+          ? '🔄 Rec. da unidade substitui o <strong>menor componente</strong> (ativ. ou prova) se for maior'
+          : '🔄 Rec. da unidade substitui a <strong>nota da unidade inteira</strong> se for maior'}
       </div>
       ${renderTabelaProva(unidade, alunos, regras)}
     </div>
-    <div class="prova-extras-card">
-      <h4>⭐ Ponto Extra</h4>
-      <div class="prova-extras-field">
-        <label>Teto positivo</label>
-        <input type="number" id="teto-extra-pos-${unidade.id}"
-          value="${regras.tetoExtra}" min="0" max="10" step="0.5" style="width:80px;">
-      </div>
-      <div class="prova-extras-field" style="margin-top:8px;">
-        <label>Piso negativo</label>
-        <input type="number" id="teto-extra-neg-${unidade.id}"
-          value="${regras.pisoExtra}" min="-10" max="0" step="0.5" style="width:80px;">
+  </div>
+
+  <!-- Ponto Extra (colapsável) -->
+  <div class="secao-colapsavel" id="secao-extra-${uid}">
+    <div class="secao-header" onclick="toggleSecao('extra-${uid}')">
+      <span class="secao-header-icon">⭐</span>
+      <span class="secao-header-title">Ponto Extra</span>
+      <span class="secao-header-meta">opcional</span>
+      <span class="secao-chevron">▼</span>
+    </div>
+    <div class="secao-body">
+      <div class="secao-config-row">
+        <div class="secao-config-field">
+          <label>Teto positivo</label>
+          <input type="number" id="teto-extra-pos-${uid}"
+            value="${regras.tetoExtra}" min="0" max="10" step="0.5">
+        </div>
+        <div class="secao-config-field">
+          <label>Piso negativo</label>
+          <input type="number" id="teto-extra-neg-${uid}"
+            value="${regras.pisoExtra}" min="-10" max="0" step="0.5">
+        </div>
       </div>
       ${renderTabelaExtras(unidade, alunos)}
     </div>
   </div>
 
-  <div class="unidade-media-section" id="media-section-${unidade.id}">
-    ${renderTabelaMedias(unidade, alunos, regras)}
+  <!-- Prévia da unidade (colapsável) -->
+  <div class="secao-colapsavel" id="secao-media-${uid}">
+    <div class="secao-header open" onclick="toggleSecao('media-${uid}')">
+      <span class="secao-header-icon">📊</span>
+      <span class="secao-header-title">Prévia da Unidade</span>
+      <span class="secao-header-meta">tempo real</span>
+      <span class="secao-chevron">▼</span>
+    </div>
+    <div class="secao-body" style="overflow-x:auto;">
+      ${renderTabelaMedias(unidade, alunos, regras)}
+    </div>
+  </div>`;
+}
+
+// ── Toggle de seção colapsável ──────────────────────────────────────
+window.toggleSecao = function(id){
+  const secao = document.getElementById(`secao-${id}`);
+  if(!secao) return;
+  const header = secao.querySelector('.secao-header');
+  const body   = secao.querySelector('.secao-body');
+  if(!header||!body) return;
+  const isOpen = header.classList.contains('open');
+  header.classList.toggle('open', !isOpen);
+  body.style.display = isOpen ? 'none' : 'block';
+};
+
+// ── Tabela somatório de atividades ───────────────────────────────────
+function renderTabelaSoma(unidade, alunos, regras){
+  if(!alunos.length) return `<div class="unidade-empty" style="padding:12px 0;"><span>👤</span>Nenhum aluno ativo.</div>`;
+  const uid = unidade.id;
+  const cfg = _atvConfig[uid];
+  if(!cfg||!cfg.atividades.length) return '';
+
+  const colsHeader = cfg.atividades.map((atv,i)=>
+    `<th>${atv.nome||`A${i+1}`}<br><small style="font-weight:400;opacity:.7;">/${atv.teto??10}</small></th>`
+  ).join('');
+
+  const rows = alunos.map((a,ai)=>{
+    const nome = typeof a==='string'?a:a.nome;
+    const nc   = _notasCache[uid];
+    let soma   = 0;
+    const cols = cfg.atividades.map((atv,idx)=>{
+      let val = 0;
+      if(atv.tipo==='vistos'){
+        const marcados = nc?.atv[idx]?.[ai]||{};
+        val = parseFloat(calcNotaVistos(atv, marcados))||0;
+      } else {
+        val = parseFloat(nc?.atv[idx]?.[ai])||0;
+      }
+      soma += val;
+      const teto = atv.teto??10;
+      const warn = val > teto;
+      return `<td class="${warn?'soma-cell-warn':''}">${val>0?val.toFixed(1):'—'}</td>`;
+    }).join('');
+    const somaFinal = Math.min(soma, regras.tetoAtividades);
+    const warn      = soma > regras.tetoAtividades;
+    return `<tr>
+      <td class="col-nome">${ai+1}. ${nome}</td>
+      ${cols}
+      <td class="soma-cell${warn?' soma-cell-warn':''}"
+          id="soma-${uid}-${ai}" style="font-size:.9rem;">
+        ${soma>0?somaFinal.toFixed(1):'—'}${warn?` <small>(${soma.toFixed(1)})</small>`:''}
+      </td>
+    </tr>`;
+  }).join('');
+
+  return `
+  <div style="overflow-x:auto;">
+  <table class="soma-atv-table">
+    <thead><tr>
+      <th class="col-nome">Aluno</th>
+      ${colsHeader}
+      <th style="background:#e8f0fe;color:var(--pe-blue);">
+        Total<br><small style="font-weight:400;opacity:.8;">/${regras.tetoAtividades}</small>
+      </th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table>
   </div>`;
 }
 
@@ -4272,6 +4428,12 @@ function recalcularPrevia(uid, ai){
   const sitCor = {aprovado:'#2e7d32',recuperacao:'#e65100',reprovado:'#c62828'};
 
   const set = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
+  // Atualiza célula de somatório
+  const somaEl = document.getElementById(`soma-${uid}-${ai}`);
+  if(somaEl){
+    somaEl.textContent = somaAtv2 > 0 ? somaAtv2.toFixed(1) : '—';
+    somaEl.className   = somaAtv2 >= regras.tetoAtividades ? 'soma-cell' : 'soma-cell';
+  }
   set(`m-atv-${uid}-${ai}`,   somaAtv2.toFixed(1));
   set(`m-prova-${uid}-${ai}`, prova.toFixed(1));
   set(`m-extra-${uid}-${ai}`, extras.toFixed(1));
