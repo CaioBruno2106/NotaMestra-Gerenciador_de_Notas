@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Nota Mestra – Sistema de Gestão de Notas</title>
+<title>Nota Mestra v12 – Sistema de Gestão de Notas</title>
 <style>
 /* ═══════════════════════════════════════════════
    PALETA OFICIAL – GOVERNO DE PERNAMBUCO
@@ -1362,10 +1362,14 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
           <div class="add-escola-box">
             <label>Adicionar escola</label>
             <div class="add-escola-row">
-              <input type="text" id="add-escola-nome" placeholder="Nome da escola...">
+              <input type="text" id="add-escola-nome" placeholder="Nome da escola..." style="flex:2;">
               <select class="select-type" id="add-escola-tipo">
                 <option value="municipal">Municipal</option>
                 <option value="estadual">Estadual</option>
+              </select>
+              <select class="select-type" id="add-escola-sistema" title="Sistema de avaliação adotado pela escola">
+                <option value="bimestral">Bimestral (4 bim.)</option>
+                <option value="trimestral">Trimestral (3 trim.)</option>
               </select>
             </div>
             <button class="btn-add-escola" onclick="addEscola()">+ Adicionar escola</button>
@@ -1788,16 +1792,16 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
   </div>
 </div>
 
-<!-- ── Modal: alterar tipo da escola ── -->
+<!-- ── Modal: alterar tipo/sistema da escola ── -->
 <div id="escola-tipo-modal" style="
   display:none;position:fixed;inset:0;z-index:3001;
   background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
   align-items:center;justify-content:center;padding:20px;">
   <div style="
-    background:#fff;border-radius:var(--radius-lg);width:100%;max-width:400px;
+    background:#fff;border-radius:var(--radius-lg);width:100%;max-width:420px;
     box-shadow:var(--shadow-lg);overflow:hidden;animation:fadeUp .3s ease both;">
     <div style="background:var(--pe-navy);padding:18px 22px;position:relative;">
-      <h3 style="color:#fff;font-size:1rem;font-weight:800;">Alterar rede da escola</h3>
+      <h3 style="color:#fff;font-size:1rem;font-weight:800;">Configurar escola</h3>
       <p style="color:var(--pe-cyan);font-size:.75rem;margin-top:3px;" id="escola-tipo-modal-nome">—</p>
       <div class="brand-line" style="bottom:0;left:0;right:0;height:3px;display:flex;position:absolute;">
         <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
@@ -1806,15 +1810,25 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
     <div style="padding:22px;">
       <input type="hidden" id="escola-tipo-modal-id">
       <p style="font-size:.82rem;color:var(--pe-muted);margin-bottom:14px;line-height:1.45;">
-        Ao alterar o tipo de rede, <strong>todas as turmas</strong> vinculadas a esta escola serão atualizadas automaticamente.
+        Alterações de rede e sistema serão propagadas para <strong>todas as turmas</strong> vinculadas a esta escola.<br>
+        <span style="color:var(--pe-warn);font-size:.75rem;">⚠️ Mudar o sistema (bimestral/trimestral) não recria unidades já lançadas.</span>
       </p>
-      <div class="ob-field">
-        <label for="escola-tipo-modal-select" style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+      <div class="ob-field" style="margin-bottom:14px;">
+        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
           Tipo de rede *
         </label>
         <select id="escola-tipo-modal-select" style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;">
           <option value="municipal">Rede Municipal</option>
-          <option value="estadual">Rede Estadual</option>
+          <option value="estadual">Rede Estadual (SEE-PE)</option>
+        </select>
+      </div>
+      <div class="ob-field">
+        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+          Sistema de avaliação *
+        </label>
+        <select id="escola-sistema-modal-select" style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;">
+          <option value="bimestral">Bimestral (4 bimestres)</option>
+          <option value="trimestral">Trimestral (3 trimestres)</option>
         </select>
       </div>
       <div id="escola-tipo-modal-msg" class="auth-msg" style="margin-top:10px;"></div>
@@ -2269,8 +2283,9 @@ async function saveFullSetup(perfil, escolas, turmas){
     for(let i=0;i<escolas.length;i++){
       const e = escolas[i];
       const ref = await addDoc(collection(db,'users',_uid,'escolas'),{
-        nome: e.nome,
-        tipo: e.tipo,
+        nome:     e.nome,
+        tipo:     e.tipo,
+        sistema:  e.sistema || 'bimestral',
         criadoEm: serverTimestamp()
       });
       escolaIdMap[i] = ref.id;
@@ -2278,12 +2293,14 @@ async function saveFullSetup(perfil, escolas, turmas){
 
     // Salvar turmas
     for(const idxEscola in turmas){
-      const tList = turmas[idxEscola];
+      const tList   = turmas[idxEscola];
+      const escola  = escolas[idxEscola];
+      const sistema = escola.sistema || 'bimestral'; // herda da escola
       for(const t of tList){
         const turmaRef = await addDoc(collection(db,'users',_uid,'turmas'),{
           escolaId:   escolaIdMap[idxEscola],
-          escolaNome: escolas[idxEscola].nome,
-          escolaTipo: escolas[idxEscola].tipo,
+          escolaNome: escola.nome,
+          escolaTipo: escola.tipo,
           nome:       t.nome,
           anoLetivo:  t.anoLetivo || new Date().getFullYear(),
           nivel:      t.nivel,
@@ -2292,17 +2309,13 @@ async function saveFullSetup(perfil, escolas, turmas){
           turma:      t.turma,
           disciplina: t.disciplina||'',
           atividades: parseInt(t.atividades)||0,
-          sistema:    t.sistema||'bimestral',
+          sistema,               // herdado da escola
           alunos:     t.alunos,
           ativo:      true,
           criadoEm:   serverTimestamp()
         });
         // Criar subcoleção de unidades atomicamente
-        await inicializarUnidades(
-          turmaRef.id,
-          t.sistema||'bimestral',
-          parseInt(t.atividades)||0
-        );
+        await inicializarUnidades(turmaRef.id, sistema, parseInt(t.atividades)||0);
       }
     }
 
@@ -2701,13 +2714,14 @@ function validateStep(step){
 
 // ── STEP 2: Escolas ───────────────────────────────────────────────────
 window.addEscola = function(){
-  const nome = document.getElementById('add-escola-nome').value.trim();
-  const tipo = document.getElementById('add-escola-tipo').value;
+  const nome    = document.getElementById('add-escola-nome').value.trim();
+  const tipo    = document.getElementById('add-escola-tipo').value;
+  const sistema = document.getElementById('add-escola-sistema')?.value || 'bimestral';
   if(!nome){ showMsg('step2-msg','Informe o nome da escola.','error'); return; }
   if(_obEscolas.find(e=>e.nome.toLowerCase()===nome.toLowerCase())){
     showMsg('step2-msg','Essa escola já foi adicionada.','warn'); return;
   }
-  _obEscolas.push({nome, tipo});
+  _obEscolas.push({nome, tipo, sistema});
   document.getElementById('add-escola-nome').value='';
   clearMsg('step2-msg');
   renderEscolas();
@@ -2735,17 +2749,20 @@ function renderEscolas(){
     list.innerHTML=''; empty.style.display='block'; return;
   }
   empty.style.display='none';
-  list.innerHTML = _obEscolas.map((e,i)=>`
+  list.innerHTML = _obEscolas.map((e,i)=>{
+    const sisLabel = e.sistema==='trimestral' ? '3 Trim.' : '4 Bim.';
+    return `
     <div class="escola-chip">
       <div class="escola-chip-info">
         <div class="escola-chip-name">🏫 ${e.nome}</div>
-        <div class="escola-chip-type">${e.tipo==='municipal'?'Rede Municipal':'Rede Estadual'}</div>
+        <div class="escola-chip-type">${e.tipo==='municipal'?'Rede Municipal':'Rede Estadual'} · ${sisLabel}</div>
       </div>
       <span class="escola-chip-tag ${e.tipo==='municipal'?'tag-municipal':'tag-estadual'}">
         ${e.tipo==='municipal'?'Municipal':'Estadual'}
       </span>
       <button class="chip-del" onclick="removeEscola(${i})" title="Remover">✕</button>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 }
 
 // ── STEP 3: Turmas ────────────────────────────────────────────────────
@@ -2759,26 +2776,24 @@ function renderTurmasStep(){
     const turmas = _obTurmas[ei] || [];
     const tagClass = e.tipo==='municipal'?'tag-municipal':'tag-estadual';
     const tagLabel = e.tipo==='municipal'?'Municipal':'Estadual';
+    const sisLabel = e.sistema==='trimestral'?'Trimestral (3 trimestres)':'Bimestral (4 bimestres)';
     return `
     <div class="turma-escola-section">
       <div class="turma-escola-label">
         🏫 ${e.nome}
         <span class="escola-chip-tag ${tagClass}">${tagLabel}</span>
+        <span class="escola-chip-tag" style="background:#e8f0fe;color:var(--pe-blue);">📅 ${sisLabel}</span>
       </div>
 
       ${turmas.length===0
         ? `<div class="ob-empty" style="padding:12px;font-size:.8rem;">Nenhuma turma adicionada para esta escola.</div>`
-        : turmas.map((t,ti)=>renderTurmaCard(ei,ti,t)).join('')
+        : turmas.map((t,ti)=>renderTurmaCard(ei,ti,t,e)).join('')
       }
 
       <div class="add-turma-box">
         <div class="add-turma-title">+ Adicionar turma em ${e.nome}</div>
         <div class="add-turma-grid">
-          <input type="number" id="at-ano-${ei}" placeholder="Ano letivo * (ex.: 2025)" min="2020" max="2040" style="grid-column:span 1">
-          <select id="at-sistema-${ei}" style="grid-column:span 1">
-            <option value="bimestral">Bimestral (4 bimestres)</option>
-            <option value="trimestral">Trimestral (3 trimestres)</option>
-          </select>
+          <input type="number" id="at-ano-${ei}" placeholder="Ano letivo * (ex.: 2025)" min="2020" max="2040" style="grid-column:span 2">
           <select id="at-nivel-${ei}" style="grid-column:span 2">
             <option value="">Nível de ensino *</option>
             <option value="fund2">Fundamental II</option>
@@ -2802,13 +2817,14 @@ function renderTurmasStep(){
   }).join('<hr class="ob-sep">');
 }
 
-function renderTurmaCard(ei, ti, t){
+function renderTurmaCard(ei, ti, t, escola){
+  const sisLabel = (escola?.sistema||t.sistema||'bimestral')==='trimestral'?'Trimestral':'Bimestral';
   return `
   <div class="turma-card" id="tc-${ei}-${ti}">
     <div class="turma-card-header">
       <div>
         <div class="turma-card-title">${t.serie} ${t.turma} &mdash; ${nivelLabel(t.nivel)}</div>
-        <div class="turma-card-meta">${turnoLabel(t.turno)} &nbsp;·&nbsp; ${t.sistema==='trimestral'?'Trimestral':'Bimestral'} &nbsp;·&nbsp; ${t.atividades||0} ativ.${t.disciplina?' &nbsp;·&nbsp; '+t.disciplina:''}</div>
+        <div class="turma-card-meta">${turnoLabel(t.turno)} &nbsp;·&nbsp; ${sisLabel} &nbsp;·&nbsp; ${t.atividades||0} ativ.${t.disciplina?' &nbsp;·&nbsp; '+t.disciplina:''}</div>
       </div>
       <button class="btn-del-turma" onclick="removeTurma(${ei},${ti})">✕ Remover</button>
     </div>
@@ -2837,7 +2853,8 @@ function renderTurmaCard(ei, ti, t){
 
 window.addTurma = function(ei){
   const ano    = document.getElementById(`at-ano-${ei}`).value.trim();
-  const sistema = document.getElementById(`at-sistema-${ei}`)?.value||'bimestral';
+  // Sistema vem da escola, não da turma individual
+  const sistema = _obEscolas[ei]?.sistema || 'bimestral';
   const nivel = document.getElementById(`at-nivel-${ei}`).value;
   const turno = document.getElementById(`at-turno-${ei}`).value;
   const serie = document.getElementById(`at-serie-${ei}`).value.trim();
@@ -3446,8 +3463,9 @@ function renderProfileEscolas(){
   }
 
   const renderEscola = (e, isInativa) => {
-    const tagC = e.tipo==='municipal'?'tag-municipal':'tag-estadual';
-    const tagL = escolaTipoLabel(e.tipo);
+    const tagC      = e.tipo==='municipal'?'tag-municipal':'tag-estadual';
+    const tagL      = escolaTipoLabel(e.tipo);
+    const sisLabel  = (e.sistema||'bimestral')==='trimestral'?'Trimestral':'Bimestral';
     const turmasCount = _turmas.filter(t=>t.escolaId===e.id).length;
     return `
     <div class="profile-escola-item${isInativa?' inativa':''}">
@@ -3455,6 +3473,7 @@ function renderProfileEscolas(){
         <div class="profile-escola-name">${e.nome}${isInativa?' <span class="profile-inativa-tag">Inativa</span>':''}</div>
         <div class="profile-escola-tipo-row">
           <span class="escola-chip-tag ${tagC}" style="padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700;">${tagL}</span>
+          <span style="font-size:.65rem;font-weight:700;background:#e8f0fe;color:var(--pe-blue);padding:2px 8px;border-radius:10px;">📅 ${sisLabel}</span>
           <span style="font-size:.68rem;color:var(--pe-muted);">${turmasCount} turma(s)</span>
         </div>
       </div>
@@ -3462,7 +3481,7 @@ function renderProfileEscolas(){
         ${isInativa
           ? `<button class="pe-act-btn pe-act-react" onclick="reativarEscola('${e.id}')">▶️ Reativar</button>
              <button class="pe-act-btn pe-act-del"   onclick="excluirEscolaDefinitivo('${e.id}')">🗑 Excluir</button>`
-          : `<button class="pe-act-btn pe-act-edit" onclick="openEscolaTipoModal('${e.id}')" title="Alterar rede">✏️ Rede</button>
+          : `<button class="pe-act-btn pe-act-edit" onclick="openEscolaTipoModal('${e.id}')" title="Editar rede e sistema">✏️ Editar</button>
              <button class="pe-act-btn pe-act-deact" onclick="desativarEscola('${e.id}')">⏸ Desativar</button>`
         }
       </div>
@@ -3545,16 +3564,17 @@ window.saveEditAcesso = async function(){
   finally{ hideLoading(); }
 };
 
-// ── Alterar tipo de rede da escola ───────────────────────
+// ── Alterar tipo de rede e sistema da escola ─────────────
 window.openEscolaTipoModal = function(escolaId){
   const escola = _escolas.find(e=>e.id===escolaId);
   if(!escola || escola.ativo===false) return;
-  document.getElementById('escola-tipo-modal-id').value = escolaId;
-  document.getElementById('escola-tipo-modal-nome').textContent = escola.nome;
-  document.getElementById('escola-tipo-modal-select').value = escola.tipo || 'municipal';
-  document.getElementById('escola-tipo-modal-msg').textContent = '';
-  document.getElementById('escola-tipo-modal-msg').className = 'auth-msg';
-  document.getElementById('escola-tipo-modal').style.display = 'flex';
+  document.getElementById('escola-tipo-modal-id').value          = escolaId;
+  document.getElementById('escola-tipo-modal-nome').textContent  = escola.nome;
+  document.getElementById('escola-tipo-modal-select').value      = escola.tipo    || 'municipal';
+  document.getElementById('escola-sistema-modal-select').value   = escola.sistema || 'bimestral';
+  document.getElementById('escola-tipo-modal-msg').textContent   = '';
+  document.getElementById('escola-tipo-modal-msg').className     = 'auth-msg';
+  document.getElementById('escola-tipo-modal').style.display     = 'flex';
 };
 
 window.closeEscolaTipoModal = function(){
@@ -3562,14 +3582,17 @@ window.closeEscolaTipoModal = function(){
 };
 
 window.saveEscolaTipoModal = async function(){
-  const escolaId = document.getElementById('escola-tipo-modal-id').value;
-  const novoTipo = document.getElementById('escola-tipo-modal-select').value;
-  const escola = _escolas.find(e=>e.id===escolaId);
+  const escolaId  = document.getElementById('escola-tipo-modal-id').value;
+  const novoTipo  = document.getElementById('escola-tipo-modal-select').value;
+  const novoSist  = document.getElementById('escola-sistema-modal-select').value;
+  const escola    = _escolas.find(e=>e.id===escolaId);
   if(!escola) return;
 
-  if(escola.tipo === novoTipo){
+  const tipoIgual   = escola.tipo    === novoTipo;
+  const sistIgual   = (escola.sistema||'bimestral') === novoSist;
+  if(tipoIgual && sistIgual){
     closeEscolaTipoModal();
-    showToast('O tipo de rede já está definido assim.','info');
+    showToast('Nenhuma alteração detectada.','info');
     return;
   }
 
@@ -3577,13 +3600,21 @@ window.saveEscolaTipoModal = async function(){
   const msgEl = document.getElementById('escola-tipo-modal-msg');
   showLoading('Atualizando escola e turmas...');
   try {
-    await setDoc(doc(db,'users',_uid,'escolas',escolaId), { tipo: novoTipo }, { merge: true });
-    escola.tipo = novoTipo;
+    // Salva escola
+    await setDoc(doc(db,'users',_uid,'escolas',escolaId),
+      { tipo: novoTipo, sistema: novoSist }, { merge: true });
+    escola.tipo    = novoTipo;
+    escola.sistema = novoSist;
 
+    // Propaga para todas as turmas vinculadas
     await Promise.all(turmasAfetadas.map(t =>
-      setDoc(doc(db,'users',_uid,'turmas',t.id), { escolaTipo: novoTipo }, { merge: true })
+      setDoc(doc(db,'users',_uid,'turmas',t.id),
+        { escolaTipo: novoTipo, sistema: novoSist }, { merge: true })
     ));
-    turmasAfetadas.forEach(t => { t.escolaTipo = novoTipo; });
+    turmasAfetadas.forEach(t => {
+      t.escolaTipo = novoTipo;
+      t.sistema    = novoSist;
+    });
 
     closeEscolaTipoModal();
     // Re-renderiza a tela que estiver ativa
@@ -3593,13 +3624,16 @@ window.saveEscolaTipoModal = async function(){
     if(document.getElementById('dashboard-screen')?.classList.contains('active')){
       renderDashboard();
     }
+    const msg = [];
+    if(!tipoIgual) msg.push(`rede → ${escolaTipoLabel(novoTipo)}`);
+    if(!sistIgual) msg.push(`sistema → ${novoSist==='trimestral'?'Trimestral':'Bimestral'}`);
     showToast(
-      `Rede alterada para ${escolaTipoLabel(novoTipo)}. ${turmasAfetadas.length} turma(s) atualizada(s). ✅`,
+      `✅ Escola atualizada (${msg.join(', ')}). ${turmasAfetadas.length} turma(s) sincronizadas.`,
       'success'
     );
   } catch(e){
     msgEl.textContent = 'Erro ao salvar: ' + e.message;
-    msgEl.className = 'auth-msg error';
+    msgEl.className   = 'auth-msg error';
   } finally { hideLoading(); }
 };
 
@@ -4778,50 +4812,124 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
+// ── Helpers de vistos ──────────────────────────────────────
+function temMarcasNoVisto(uid, idx, vi){
+  // Verifica se algum aluno tem o visto 'vi' marcado
+  const atvNotas = _notasCache[uid]?.atv[idx] || {};
+  return Object.values(atvNotas).some(marcados => marcados?.[vi] === true);
+}
+
+function calcMinVistos(uid, idx, qtdAtual){
+  // Retorna quantos vistos no mínimo devem existir
+  // (não pode remover um visto que já tem marcações)
+  for(let vi = qtdAtual - 1; vi >= 0; vi--){
+    if(temMarcasNoVisto(uid, idx, vi)) return vi + 1;
+  }
+  return 1; // mínimo absoluto: 1 visto
+}
+
 function renderVistosConfig(uid, idx){
   const atv   = _atvConfig[uid]?.atividades[idx];
   const panel = document.getElementById(`vistos-panel-${uid}-${idx}`);
   if(!atv||!panel) return;
   if(!atv.vistos||!atv.vistos.length) atv.vistos=[{label:'Visto 1',data:''}];
 
+  const qtd = atv.vistos.length;
+  const min = calcMinVistos(uid, idx, qtd);
+  const podeRemover = qtd > min;
+
   panel.innerHTML = `
   <div class="vistos-config">
     <div class="vistos-config-title">✅ Atividades de Visto</div>
+
+    <!-- Controle de quantidade -->
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;background:#f8f9fa;border-radius:6px;flex-wrap:wrap;">
+      <span style="font-size:.78rem;font-weight:700;color:var(--pe-navy);">Qtd. de vistos:</span>
+      <button class="btn-visto-ctrl btn-rem-visto"
+        onclick="decrementarVistos('${uid}',${idx})"
+        ${!podeRemover?'disabled':''}
+        style="${!podeRemover?'opacity:.35;cursor:default;':''}"
+        title="${!podeRemover?'Não é possível remover: coluna tem marcações':'Remover último visto'}">
+        −
+      </button>
+      <span style="font-size:1.1rem;font-weight:800;min-width:28px;text-align:center;color:var(--pe-navy);">${qtd}</span>
+      <button class="btn-visto-ctrl btn-add-visto"
+        onclick="incrementarVistos('${uid}',${idx})"
+        title="Adicionar visto">
+        +
+      </button>
+      <span style="font-size:.72rem;color:var(--pe-muted);margin-left:6px;">ou definir:</span>
+      <input type="number" min="${min}" max="30" value="${qtd}"
+        style="width:60px;padding:5px 8px;border:1.5px solid var(--pe-border);border-radius:4px;font-size:.85rem;text-align:center;"
+        onchange="definirQtdVistos('${uid}',${idx},this.value,${min})"
+        title="Definir quantidade diretamente">
+      ${min > 1 ? `<span style="font-size:.7rem;color:var(--pe-warn);margin-left:4px;">⚠️ Mínimo: ${min}</span>` : ''}
+    </div>
+
+    <!-- Lista de vistos -->
     <div id="vistos-list-${uid}-${idx}">
-      ${atv.vistos.map((v,vi)=>`
-        <div class="vistos-row">
-          <span class="visto-num">${vi+1}.</span>
+      ${atv.vistos.map((v,vi)=>{
+        const temMarca = temMarcasNoVisto(uid, idx, vi);
+        return `
+        <div class="vistos-row" style="${temMarca?'background:#fff3e0;border-left:3px solid var(--pe-warn);':''}">
+          <span class="visto-num" title="${temMarca?'Este visto tem marcações':''}">
+            ${vi+1}${temMarca?' ✔':''}
+          </span>
           <input type="text" value="${v.label||''}" placeholder="Nome do visto ${vi+1}"
             onchange="onVistosChange('${uid}',${idx},${vi},'label',this.value)">
           <input type="date" value="${v.data||''}"
             onchange="onVistosChange('${uid}',${idx},${vi},'data',this.value)">
-          <button class="btn-visto-ctrl btn-rem-visto"
-            onclick="removeVisto('${uid}',${idx},${vi})">✕</button>
-        </div>`).join('')}
+        </div>`;
+      }).join('')}
     </div>
-    <button class="btn-visto-ctrl btn-add-visto" style="margin-top:8px;"
-      onclick="addVisto('${uid}',${idx})">+ Adicionar</button>
-    <div style="font-size:.7rem;color:var(--pe-muted);margin-top:6px;">
-      Nota = (vistos marcados ÷ total) × teto
+
+    <div style="font-size:.7rem;color:var(--pe-muted);margin-top:8px;">
+      Nota = (vistos marcados ÷ total) × teto da atividade
     </div>
   </div>`;
 }
 
-window.onVistosChange = function(uid,idx,vi,campo,val){
-  const atv=_atvConfig[uid]?.atividades[idx];
-  if(atv?.vistos?.[vi]) atv.vistos[vi][campo]=val;
-};
-window.addVisto = function(uid,idx){
-  const atv=_atvConfig[uid]?.atividades[idx];
+window.incrementarVistos = function(uid, idx){
+  const atv = _atvConfig[uid]?.atividades[idx];
   if(!atv) return;
-  atv.vistos.push({label:`Visto ${atv.vistos.length+1}`,data:''});
-  renderVistosConfig(uid,idx);
+  atv.vistos.push({label:`Visto ${atv.vistos.length+1}`, data:''});
+  renderVistosConfig(uid, idx);
+  // Atualiza tabela se estiver aberta
+  const tabela = document.querySelector(`[data-atv-uid="${uid}"][data-atv-idx="${idx}"]`);
+  if(tabela) atualizarUnidade(uid);
 };
-window.removeVisto = function(uid,idx,vi){
-  const atv=_atvConfig[uid]?.atividades[idx];
-  if(!atv||atv.vistos.length<=1) return;
-  atv.vistos.splice(vi,1);
-  renderVistosConfig(uid,idx);
+
+window.decrementarVistos = function(uid, idx){
+  const atv = _atvConfig[uid]?.atividades[idx];
+  if(!atv) return;
+  const qtd = atv.vistos.length;
+  const min = calcMinVistos(uid, idx, qtd);
+  if(qtd <= min){
+    showToast(min>1?`Não é possível remover: o visto ${qtd} já tem marcações.`:'Mínimo de 1 visto.','error');
+    return;
+  }
+  atv.vistos.pop();
+  renderVistosConfig(uid, idx);
+};
+
+window.definirQtdVistos = function(uid, idx, novaQtdStr, minAtual){
+  const atv = _atvConfig[uid]?.atividades[idx];
+  if(!atv) return;
+  const novaQtd = parseInt(novaQtdStr);
+  if(isNaN(novaQtd)||novaQtd < minAtual){
+    showToast(`Quantidade mínima: ${minAtual} (vistos com marcações).`,'error');
+    renderVistosConfig(uid, idx); // reset value
+    return;
+  }
+  if(novaQtd > 30){ showToast('Máximo de 30 vistos por atividade.','error'); return; }
+  // Adiciona ou remove até chegar na qtd desejada
+  while(atv.vistos.length < novaQtd){
+    atv.vistos.push({label:`Visto ${atv.vistos.length+1}`, data:''});
+  }
+  while(atv.vistos.length > novaQtd && atv.vistos.length > minAtual){
+    atv.vistos.pop();
+  }
+  renderVistosConfig(uid, idx);
 };
 
 
