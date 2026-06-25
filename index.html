@@ -6,10 +6,12 @@
 <title>Nota Mestra – Sistema de Gestão de Notas</title>
 <!--
   ============================================================
-  Nota Mestra — build interno: v28
+  Nota Mestra — build interno: v30
   (Versão registrada apenas no código; não exibida ao usuário)
   Etapa 7 incluída: Exportação e boletim (PDF via diálogo de impressão).
   Etapa 8 incluída: Trabalho Acadêmico (subtipos, critérios 0–5, cálculo automático).
+  Etapa 9 incluída: Grupos por seleção de integrantes — passo 3 refeito com criação
+                    individual de grupos (seletores por aluno, salvar/continuar, editar).
   ============================================================
 -->
 <style>
@@ -849,6 +851,70 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 .trab-grp-crit label{font-size:.7rem;color:var(--pe-navy);font-weight:600;}
 @media(max-width:640px){
   .trab-sub-grid,.trab-alunos-list{grid-template-columns:1fr;}
+}
+
+/* ── Passo 3 — criação de grupos por integrantes ── */
+.trab-grupos-criados{display:flex;flex-direction:column;gap:8px;margin-bottom:12px;}
+.trab-grupo-criado-item{
+  border:1.5px solid #ce93d8;border-radius:8px;padding:9px 12px;
+  background:#faf5fe;display:flex;align-items:flex-start;gap:8px;
+}
+.trab-grupo-criado-info{flex:1;min-width:0;}
+.trab-grupo-criado-nome{font-size:.82rem;font-weight:800;color:#6a1b9a;}
+.trab-grupo-criado-members{font-size:.73rem;color:var(--pe-muted);margin-top:3px;line-height:1.45;}
+.trab-grupo-criado-actions{display:flex;gap:5px;flex-shrink:0;}
+.trab-grp-btn-edit{
+  padding:4px 10px;border:none;border-radius:5px;
+  background:#ede7f6;color:#6a1b9a;font-size:.72rem;font-weight:700;cursor:pointer;
+}
+.trab-grp-btn-edit:hover{background:#d1c4e9;}
+.trab-grp-btn-del{
+  padding:4px 10px;border:none;border-radius:5px;
+  background:#fdecea;color:var(--pe-red);font-size:.72rem;font-weight:700;cursor:pointer;
+}
+.trab-grp-btn-del:hover{background:#fbc8c5;}
+
+.trab-novo-grupo-box{
+  border:1.5px dashed #ab47bc;border-radius:8px;
+  padding:12px 14px;background:#fff;margin-top:4px;
+}
+.trab-novo-grupo-title{
+  font-size:.78rem;font-weight:800;color:#6a1b9a;margin-bottom:10px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.trab-novo-grupo-title span{
+  background:#ede7f6;color:#6a1b9a;padding:2px 8px;border-radius:8px;font-size:.68rem;
+}
+.trab-qtd-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:10px;
+}
+.trab-qtd-row label{font-size:.75rem;font-weight:700;color:var(--pe-navy);}
+.trab-qtd-input{
+  width:60px;padding:6px 8px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.88rem;font-weight:700;text-align:center;outline:none;
+}
+.trab-qtd-input:focus{border-color:#8e24aa;}
+.trab-integrantes-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px;}
+@media(max-width:480px){.trab-integrantes-grid{grid-template-columns:1fr;}}
+.trab-integrante-row{display:flex;align-items:center;gap:6px;}
+.trab-integrante-row label{font-size:.73rem;font-weight:700;color:var(--pe-muted);min-width:22px;text-align:right;}
+.trab-integrante-row select{
+  flex:1;padding:5px 8px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.78rem;outline:none;background:#fafafa;
+}
+.trab-integrante-row select:focus{border-color:#8e24aa;background:#fff;}
+.trab-novo-grupo-footer{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;}
+.trab-btn-salvar-grupo{
+  padding:8px 16px;background:#8e24aa;color:#fff;border:none;
+  border-radius:7px;font-size:.82rem;font-weight:700;cursor:pointer;
+  display:flex;align-items:center;gap:6px;
+}
+.trab-btn-salvar-grupo:hover{background:#6a1b9a;}
+.trab-btn-salvar-grupo:disabled{background:#ccc;cursor:default;}
+.trab-sem-grupos-hint{
+  font-size:.73rem;color:var(--pe-muted);
+  padding:10px;text-align:center;
+  background:#f8f9fa;border-radius:6px;border:1px dashed var(--pe-border);
 }
 .atv-card-chevron{
   color:var(--pe-muted);font-size:.8rem;transition:transform .2s;
@@ -4948,31 +5014,94 @@ function _trabStep2(uid, idx, atv){
     <div class="trab-sub-grid">${cards}</div>`;
 }
 
-// Passo 3 — Grupos e integrantes
+// Passo 3 — Grupos por seleção de integrantes
 function _trabStep3(uid, idx, atv, alunos){
-  const nGrupos = atv.grupos.length;
-  const linhas = alunos.map((a,ai)=>{
-    const nome = typeof a==='string'?a:a.nome;
-    const g = atv.alunoGrupo?.[ai];
-    const opts = ['<option value="">— Sem grupo —</option>']
-      .concat(atv.grupos.map((gr,gi)=>`<option value="${gi}" ${g===gi?'selected':''}>${gr.nome||('Grupo '+(gi+1))}</option>`))
-      .join('');
-    return `
-      <div class="trab-aluno-row">
-        <span>${ai+1}. ${nome}</span>
-        <select onchange="onTrabAlunoGrupo('${uid}',${idx},${ai},this.value)">${opts}</select>
-      </div>`;
-  }).join('');
-  return `
-    <div class="trab-field" style="max-width:240px;">
-      <label>👥 Número de grupos</label>
-      <input type="number" min="0" max="${Math.max(alunos.length,1)}" value="${nGrupos}"
-        onchange="onTrabQtdGrupos('${uid}',${idx},this.value)">
-    </div>
-    ${nGrupos>0 ? `
-      <div class="trab-hint" style="margin-top:8px;">Defina o grupo de cada aluno. Trabalhos "em grupo" recebem a mesma nota para todos os integrantes.</div>
-      <div class="trab-alunos-list">${linhas}</div>
-    ` : `<div class="trab-hint" style="margin-top:8px;">Sem grupos definidos: todos os subtipos serão lançados <strong>individualmente</strong> por aluno.</div>`}`;
+  const grupos  = atv.grupos || [];
+  const nGrupos = grupos.length;
+
+  // ── Lista de grupos já criados ──────────────────────────────────────
+  let criadosHtml = '';
+  if(nGrupos > 0){
+    criadosHtml = `<div class="trab-grupos-criados" id="trab-grupos-criados-${uid}-${idx}">` +
+      grupos.map((gr, gi)=>{
+        const membros = alunos
+          .map((a,ai)=>({ai, nome: typeof a==='string'?a:a.nome}))
+          .filter(({ai})=> atv.alunoGrupo?.[ai] === gi);
+        const nomesStr = membros.length
+          ? membros.map(m=>m.nome).join(', ')
+          : '<em>Nenhum integrante</em>';
+        return `
+        <div class="trab-grupo-criado-item">
+          <div class="trab-grupo-criado-info">
+            <div class="trab-grupo-criado-nome">👥 ${gr.nome||('Grupo '+(gi+1))}</div>
+            <div class="trab-grupo-criado-members">${nomesStr}</div>
+          </div>
+          <div class="trab-grupo-criado-actions">
+            <button class="trab-grp-btn-edit" onclick="onTrabEditarGrupo('${uid}',${idx},${gi})">✏️ Editar</button>
+            <button class="trab-grp-btn-del"  onclick="onTrabExcluirGrupo('${uid}',${idx},${gi})">✕</button>
+          </div>
+        </div>`;
+      }).join('') +
+    '</div>';
+  } else {
+    criadosHtml = `<div class="trab-sem-grupos-hint" id="trab-grupos-criados-${uid}-${idx}">Nenhum grupo criado ainda. Sem grupos, os subtipos serão lançados <strong>individualmente</strong> por aluno.</div>`;
+  }
+
+  // ── Formulário para o próximo grupo ────────────────────────────────
+  const proxIdx   = nGrupos; // índice do novo grupo a criar
+  const proxNome  = 'Grupo ' + (proxIdx + 1);
+
+  // Alunos disponíveis = não alocados em nenhum grupo ainda
+  const alocados  = new Set(Object.values(atv.alunoGrupo||{}).map(Number));
+  const livres    = alunos.map((a,ai)=>({ai, nome: typeof a==='string'?a:a.nome}))
+                          .filter(({ai})=>!alocados.has(ai));
+  const semLivres = livres.length === 0;
+
+  // Seletores de integrante (qtd padrão = 2, ou o que restou)
+  const qtdPadrao = Math.min(2, livres.length);
+
+  const novoGrupoForm = semLivres ? '' : `
+    <div class="trab-novo-grupo-box" id="trab-novo-grupo-box-${uid}-${idx}">
+      <div class="trab-novo-grupo-title">
+        ➕ Configurar <span>${proxNome}</span>
+      </div>
+      <div class="trab-qtd-row">
+        <label>Integrantes:</label>
+        <input type="number" class="trab-qtd-input" id="trab-qtd-integ-${uid}-${idx}"
+          min="1" max="${livres.length}" value="${qtdPadrao}"
+          oninput="onTrabQtdIntegrantes('${uid}',${idx},this.value)">
+        <span style="font-size:.72rem;color:var(--pe-muted);">(${livres.length} disponíve${livres.length===1?'l':'is'})</span>
+      </div>
+      <div class="trab-integrantes-grid" id="trab-integrantes-grid-${uid}-${idx}">
+        ${_renderIntegrantesSelects(uid, idx, atv, alunos, qtdPadrao, proxIdx)}
+      </div>
+      <div class="trab-novo-grupo-footer">
+        <div style="font-size:.72rem;color:var(--pe-muted);">
+          💡 Depois de salvar este grupo, você poderá configurar o próximo.
+        </div>
+        <button class="trab-btn-salvar-grupo" onclick="onTrabSalvarNovoGrupo('${uid}',${idx})">
+          💾 Salvar grupo e continuar
+        </button>
+      </div>
+    </div>`;
+
+  return criadosHtml + novoGrupoForm;
+}
+
+// Renderiza os seletores de integrante para o formulário de novo grupo
+function _renderIntegrantesSelects(uid, idx, atv, alunos, qtd, gi){
+  // Alunos não alocados
+  const alocados = new Set(Object.values(atv.alunoGrupo||{}).map(Number));
+  const livres   = alunos.map((a,ai)=>({ai, nome: typeof a==='string'?a:a.nome}))
+                         .filter(({ai})=>!alocados.has(ai));
+  const optsBase = `<option value="">— Selecionar —</option>` +
+    livres.map(({ai, nome})=>`<option value="${ai}">${ai+1}. ${nome}</option>`).join('');
+
+  return Array.from({length: qtd}, (_,si)=>`
+    <div class="trab-integrante-row">
+      <label>${si+1}.</label>
+      <select id="trab-integ-sel-${uid}-${idx}-${si}">${optsBase}</select>
+    </div>`).join('');
 }
 
 // Célula de critério (escala 0–5 = select; caixa = input numérico)
@@ -5057,7 +5186,14 @@ function renderTabelaTrabalho(uid, idx, atv, alunos, notas){
     } else {
       indHtml = `<div class="trab-hint" style="margin:6px 0;">Nenhum aluno neste grupo ainda.</div>`;
     }
-    return `<div class="trab-grupo-card"><div class="trab-grupo-head">👥 ${gr.nome||('Grupo '+(gi+1))} <small>${nomes.length?nomes.join(' · '):'sem integrantes'}</small></div>${grpHtml}${indHtml}</div>`;
+    const injetarBtn = members.length && (subGrupo.length || colsInd.length) ? `
+      <div style="display:flex;justify-content:flex-end;margin-top:10px;">
+        <button onclick="onTrabInjetarGrupo('${uid}',${idx},${gi})"
+          style="padding:7px 14px;background:#8e24aa;color:#fff;border:none;border-radius:7px;font-size:.78rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;">
+          ✅ Injetar notas do grupo na planilha
+        </button>
+      </div>` : '';
+    return `<div class="trab-grupo-card"><div class="trab-grupo-head">👥 ${gr.nome||('Grupo '+(gi+1))} <small>${nomes.length?nomes.join(' · '):'sem integrantes'}</small></div>${grpHtml}${indHtml}${injetarBtn}</div>`;
   }).join('');
 
   const semG = [];
@@ -5132,14 +5268,134 @@ window.onTrabModalidade = function(uid, idx, sub, val){
   atv.modalidade[sub]=(val==='individual'?'individual':'grupo');
   renderTrabalhoConfig(uid,idx); rerenderTabelaAtvCard(uid,idx); agendarAutosave();
 };
-window.onTrabQtdGrupos = function(uid, idx, val){
-  const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return; _trabNormalizar(atv);
-  let n=parseInt(val)||0; if(n<0) n=0;
-  const old=atv.grupos;
-  atv.grupos=Array.from({length:n},(_,i)=> old[i] || {nome:'Grupo '+(i+1)});
-  Object.keys(atv.alunoGrupo).forEach(ai=>{ if(atv.alunoGrupo[ai]>=n) delete atv.alunoGrupo[ai]; });
-  renderTrabalhoConfig(uid,idx); rerenderTabelaAtvCard(uid,idx); agendarAutosave();
+// ─── onTrabQtdGrupos foi substituído pelo novo fluxo de integrantes ───
+
+// Atualiza a quantidade de seletores de integrante em tempo real
+window.onTrabQtdIntegrantes = function(uid, idx, val){
+  const atv = _atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  _trabNormalizar(atv);
+  const alunos = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+  const alocados = new Set(Object.values(atv.alunoGrupo||{}).map(Number));
+  const livres   = alunos.filter((_,ai)=>!alocados.has(ai));
+  let qtd = parseInt(val)||1;
+  if(qtd < 1) qtd = 1;
+  if(qtd > livres.length) qtd = livres.length;
+  const grid = document.getElementById(`trab-integrantes-grid-${uid}-${idx}`);
+  if(grid){
+    const gi = atv.grupos.length; // índice do grupo sendo criado
+    grid.innerHTML = _renderIntegrantesSelects(uid, idx, atv, alunos, qtd, gi);
+  }
 };
+
+// Salva o novo grupo com os integrantes selecionados
+window.onTrabSalvarNovoGrupo = function(uid, idx){
+  const atv = _atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  _trabNormalizar(atv);
+  const alunos = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+  const gi     = atv.grupos.length; // índice do novo grupo
+
+  // Lê os seletores
+  const qtdInput = document.getElementById(`trab-qtd-integ-${uid}-${idx}`);
+  const qtd      = parseInt(qtdInput?.value)||1;
+  const selecionados = [];
+  for(let si=0; si<qtd; si++){
+    const sel = document.getElementById(`trab-integ-sel-${uid}-${idx}-${si}`);
+    const val = sel?.value;
+    if(val === '' || val == null){
+      showToast && showToast(`Selecione o integrante ${si+1} antes de salvar.`, 'info');
+      return;
+    }
+    const ai = parseInt(val);
+    if(selecionados.includes(ai)){
+      showToast && showToast(`O mesmo aluno foi selecionado mais de uma vez.`, 'info');
+      return;
+    }
+    // Verificação extra: aluno já alocado em outro grupo?
+    if(atv.alunoGrupo?.[ai] !== undefined && atv.alunoGrupo[ai] !== gi){
+      const nome = typeof alunos[ai]==='string'?alunos[ai]:alunos[ai]?.nome;
+      showToast && showToast(`"${nome}" já está em outro grupo.`, 'info');
+      return;
+    }
+    selecionados.push(ai);
+  }
+
+  // Cria o grupo
+  atv.grupos.push({ nome: 'Grupo ' + (gi+1) });
+  selecionados.forEach(ai=>{ atv.alunoGrupo[ai] = gi; });
+
+  renderTrabalhoConfig(uid, idx);
+  rerenderTabelaAtvCard(uid, idx);
+  agendarAutosave();
+};
+
+// Editar grupo existente: desmarca integrantes e reabre o formulário
+window.onTrabEditarGrupo = function(uid, idx, gi){
+  const atv = _atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  _trabNormalizar(atv);
+
+  // Libera os alunos deste grupo para realocação
+  Object.keys(atv.alunoGrupo).forEach(ai=>{
+    if(atv.alunoGrupo[ai] === gi) delete atv.alunoGrupo[ai];
+  });
+  // Remove o grupo da lista (grupos posteriores são recriados com o mesmo índice)
+  atv.grupos.splice(gi, 1);
+  // Reajusta índices dos alunos que estavam em grupos posteriores
+  Object.keys(atv.alunoGrupo).forEach(ai=>{
+    if(atv.alunoGrupo[ai] > gi) atv.alunoGrupo[ai]--;
+  });
+
+  renderTrabalhoConfig(uid, idx);
+  rerenderTabelaAtvCard(uid, idx);
+  agendarAutosave();
+};
+
+// Excluir grupo definitivamente
+window.onTrabExcluirGrupo = function(uid, idx, gi){
+  const atv = _atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  _trabNormalizar(atv);
+  const nomeGrupo = atv.grupos[gi]?.nome || ('Grupo ' + (gi+1));
+  if(!confirm(`Excluir "${nomeGrupo}"? Os integrantes voltarão para disponíveis.`)) return;
+
+  // Libera alunos
+  Object.keys(atv.alunoGrupo).forEach(ai=>{
+    if(atv.alunoGrupo[ai] === gi) delete atv.alunoGrupo[ai];
+  });
+  atv.grupos.splice(gi, 1);
+  // Reajusta índices
+  Object.keys(atv.alunoGrupo).forEach(ai=>{
+    if(atv.alunoGrupo[ai] > gi) atv.alunoGrupo[ai]--;
+  });
+
+  renderTrabalhoConfig(uid, idx);
+  rerenderTabelaAtvCard(uid, idx);
+  agendarAutosave();
+};
+
+// Injetar notas de um grupo na planilha (dispara recálculo de prévia para cada integrante)
+window.onTrabInjetarGrupo = function(uid, idx, gi){
+  const atv    = _atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  const alunos = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+  const members = alunos.map((_,ai)=>ai).filter(ai=>atv.alunoGrupo?.[ai]===gi);
+  if(!members.length){ showToast && showToast('Nenhum integrante neste grupo.','info'); return; }
+
+  members.forEach(ai=>{
+    recalcularPrevia && recalcularPrevia(uid, ai);
+  });
+
+  // Feedback visual: destaca a linha de cada integrante brevemente
+  members.forEach(ai=>{
+    const cel = document.getElementById(`nota-trab-${uid}-${idx}-${ai}`);
+    if(cel){
+      cel.style.transition = 'background .2s';
+      cel.style.background = '#e8f5e9';
+      setTimeout(()=>{ cel.style.background=''; }, 1200);
+    }
+  });
+
+  showToast && showToast(`✅ Notas do ${atv.grupos[gi]?.nome||'Grupo '+(gi+1)} injetadas na planilha.`, 'success');
+  agendarAutosave();
+};
+
 window.onTrabAlunoGrupo = function(uid, idx, ai, val){
   const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return; _trabNormalizar(atv);
   if(val===''||val==null) delete atv.alunoGrupo[ai]; else atv.alunoGrupo[ai]=parseInt(val);
