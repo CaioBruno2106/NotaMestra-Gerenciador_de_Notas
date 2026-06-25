@@ -851,6 +851,55 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
   .unidade-header{flex-direction:column;align-items:flex-start;}
 }
 
+/* ── Tabelas de notas ── */
+.lancamento-tabela{margin-top:14px;}
+.lancamento-tabela-title{
+  font-size:.78rem;font-weight:700;color:var(--pe-navy);
+  margin-bottom:8px;padding-bottom:6px;
+  border-bottom:1px solid var(--pe-border);
+}
+.notas-table{
+  width:100%;border-collapse:collapse;font-size:.82rem;
+}
+.notas-table th{
+  background:#f1f3f5;padding:7px 10px;text-align:left;
+  font-size:.72rem;font-weight:700;color:var(--pe-muted);
+  text-transform:uppercase;letter-spacing:.03em;
+  border-bottom:2px solid var(--pe-border);
+  white-space:nowrap;
+}
+.notas-table td{
+  padding:6px 10px;border-bottom:1px solid #f1f3f5;
+  vertical-align:middle;
+}
+.notas-table tr:last-child td{border-bottom:none;}
+.notas-table tr:hover td{background:#f8f9fa;}
+.col-aluno{min-width:140px;font-weight:600;color:var(--pe-navy);}
+.col-nota{width:80px;text-align:center;}
+.col-visto{width:50px;text-align:center;}
+.col-preview{width:70px;text-align:center;color:var(--pe-blue);font-weight:700;}
+.col-situacao{width:110px;text-align:center;}
+.nota-input{
+  width:70px;padding:5px 7px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.85rem;font-weight:700;
+  text-align:center;outline:none;
+}
+.nota-input:focus{border-color:var(--pe-blue);}
+.nota-input-rec  {border-color:#fff3e0;background:#fffdf7;}
+.nota-input-extra{border-color:#f3e5f5;background:#fdf7ff;}
+.visto-check{width:18px;height:18px;cursor:pointer;accent-color:var(--pe-blue);}
+
+/* ── Card de médias ── */
+.medias-card{
+  background:#fff;border-radius:var(--radius-md);
+  border:1.5px solid var(--pe-blue);box-shadow:var(--shadow-sm);
+  padding:16px;margin-top:16px;overflow-x:auto;
+}
+.medias-card h4{
+  font-size:.88rem;font-weight:800;color:var(--pe-navy);
+  margin-bottom:12px;
+}
+
 /* ─── TOAST ─── */
 #toast{
   position:fixed;top:74px;left:50%;transform:translateX(-50%) translateY(-12px);
@@ -3717,27 +3766,24 @@ function labelSituacao(situacao){
 }
 
 // ══════════════════════════════════════════════════════════════════════
-// ETAPA 3 — TELA DE TURMA: ABAS DE UNIDADE + CONFIGURAÇÃO DE ATIVIDADES
+// ETAPA 3 — TELA DE TURMA: ABAS + CONFIGURAÇÃO + LANÇAMENTO DE NOTAS
 // ══════════════════════════════════════════════════════════════════════
 
-let _turmaAtual   = null;  // objeto da turma aberta
-let _unidadeAtiva = null;  // { id, label, ordem, qtdAtividades, ... }
-// Config local de atividades por unidade (antes de salvar):
-// { [unidadeId]: { qtdAtividades, atividades:[{tipo,teto,vistosConfig}] } }
-let _atvConfig = {};
+let _turmaAtual   = null;
+let _unidadeAtiva = null;
+let _atvConfig    = {};  // { [unidadeId]: { qtdAtividades, atividades:[...] } }
+let _notasCache   = {};  // { [unidadeId]: { atv:{[atvIdx]:{[alunoIdx]:val}}, prova:{}, extras:{}, rec:{} } }
 
-// ── Abrir tela da turma ─────────────────────────────────
+// ── Abrir tela da turma ─────────────────────────────────────────────
 window.openTurmaScreen = async function(turmaId){
   const turma = _turmas.find(t=>t.id===turmaId);
   if(!turma || turma.ativo===false) return;
-  _turmaAtual = turma;
-  _atvConfig  = {};
+  _turmaAtual   = turma;
+  _atvConfig    = {};
+  _notasCache   = {};
 
-  // Preenche cabeçalho
-  document.getElementById('turma-screen-title').textContent =
-    `${turma.serie} ${turma.turma}`;
-  document.getElementById('turma-screen-subtitle').textContent =
-    turma.disciplina || nivelLabel(turma.nivel);
+  // Monta header imediatamente (sem Firestore)
+  const alunosAtivos = (turma.alunos||[]).filter(a=>a.ativo!==false);
   document.getElementById('ts-titulo').textContent =
     `${turma.serie} ${turma.turma} — ${nivelLabel(turma.nivel)}`;
   document.getElementById('ts-escola').textContent =
@@ -3746,20 +3792,41 @@ window.openTurmaScreen = async function(turmaId){
     turma.escolaTipo==='municipal' ? 'Rede Municipal' : 'Rede Estadual';
   document.getElementById('ts-sistema').textContent =
     turma.sistema==='trimestral' ? 'Trimestral' : 'Bimestral';
-  const alunosAtivos = (turma.alunos||[]).filter(a=>a.ativo!==false).length;
   document.getElementById('ts-alunos').textContent =
-    `👤 ${alunosAtivos} alunos`;
+    `👤 ${alunosAtivos.length} alunos`;
 
+  // Mostra a tela ANTES de ir ao Firestore — evita branco
   showScreen('turma-screen');
-  showLoading('Carregando unidades...');
+
+  // Monta unidades localmente com fallback (não depende do Firestore para exibir)
+  const sistemaLocal = turma.sistema||'bimestral';
+  const unidadesLocais = getUnidadesConfig(sistemaLocal).map((u,i)=>({
+    id: `local-${i}`,
+    label: u.label,
+    ordem: u.ordem,
+    sistema: sistemaLocal,
+    qtdAtividades: turma.atividades||0,
+    prova:  {notas:{}},
+    extras: {notas:{}},
+    _isLocal: true
+  }));
+
+  // Renderiza com dados locais imediatamente
+  renderUnidadesTabs(unidadesLocais);
+  abrirUnidade(unidadesLocais[0]);
+
+  // Agora tenta buscar do Firestore em background
   try {
-    const unidades = await garantirUnidades(turma);
-    hideLoading();
-    renderUnidadesTabs(unidades);
-    abrirUnidade(unidades[0]);
+    const unidadesFS = await garantirUnidades(turma);
+    // Substitui tabs e conteúdo com dados reais se bem-sucedido
+    renderUnidadesTabs(unidadesFS);
+    // Mantém a aba na mesma posição (mesma ordem)
+    const ordemAtual = _unidadeAtiva?.ordem || 1;
+    const uReal = unidadesFS.find(u=>u.ordem===ordemAtual) || unidadesFS[0];
+    abrirUnidade(uReal);
   } catch(e){
-    hideLoading();
-    showToast('Erro ao carregar unidades: '+e.message, 'error');
+    console.warn('Firestore indisponível, usando dados locais:', e.message);
+    showToast('Modo offline — algumas funções limitadas','info');
   }
 };
 
@@ -3767,341 +3834,573 @@ window.closeTurmaScreen = function(){
   _turmaAtual   = null;
   _unidadeAtiva = null;
   _atvConfig    = {};
+  _notasCache   = {};
   showScreen('dashboard-screen');
 };
 
-// ── Renderizar abas ─────────────────────────────────────
+// ── Abas ────────────────────────────────────────────────────────────
 function renderUnidadesTabs(unidades){
-  // Guarda no cache indexado por id para o onclick usar
-  unidades.forEach(u=>{ _unidades[_turmaAtual.id] = _unidades[_turmaAtual.id] || []; });
+  // Atualiza cache por id
+  if(_turmaAtual){
+    _unidades[_turmaAtual.id] = unidades;
+  }
   const bar = document.getElementById('unidades-tabs-bar');
-  bar.innerHTML = unidades.map(u=>`
-    <button class="unidade-tab" id="tab-btn-${u.id}"
-      onclick="abrirUnidadePorId('${u.id}')">
-      ${u.label}
-    </button>`
+  if(!bar) return;
+  bar.innerHTML = unidades.map(u=>
+    `<button class="unidade-tab" id="tab-btn-${u.id}"
+       onclick="abrirUnidadePorId('${u.id}')">${u.label}</button>`
   ).join('');
 }
 
-window.abrirUnidadePorId = function(unidadeId){
-  const unidades = _unidades[_turmaAtual?.id] || [];
-  const u = unidades.find(u=>u.id===unidadeId);
+window.abrirUnidadePorId = function(id){
+  const lista = _unidades[_turmaAtual?.id]||[];
+  const u = lista.find(x=>x.id===id);
   if(u) abrirUnidade(u);
 };
 
-// ── Abrir unidade ───────────────────────────────────────
+// ── Abrir unidade ────────────────────────────────────────────────────
 function abrirUnidade(unidade){
   _unidadeAtiva = unidade;
-
-  // Atualiza aba ativa
   document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
-  const tabBtn = document.getElementById(`tab-btn-${unidade.id}`);
-  if(tabBtn) tabBtn.classList.add('active');
+  const tb = document.getElementById(`tab-btn-${unidade.id}`);
+  if(tb) tb.classList.add('active');
 
-  // Inicializa config local se não existir
   if(!_atvConfig[unidade.id]){
+    const qtd = unidade.qtdAtividades ?? _turmaAtual?.atividades ?? 0;
     _atvConfig[unidade.id] = {
-      qtdAtividades: unidade.qtdAtividades || _turmaAtual?.atividades || 0,
-      atividades: []
+      qtdAtividades: qtd,
+      atividades: Array.from({length:qtd},(_,i)=>defaultAtv(i))
     };
-    // Popula com defaults (tipo=direto, teto=10)
-    const qtd = _atvConfig[unidade.id].qtdAtividades;
-    for(let i=0;i<qtd;i++){
-      _atvConfig[unidade.id].atividades.push(defaultAtv(i));
-    }
   }
-
+  if(!_notasCache[unidade.id]){
+    _notasCache[unidade.id] = { atv:{}, prova:{}, extras:{}, rec:{} };
+  }
   renderUnidadeContent(unidade);
 }
 
 function defaultAtv(idx){
-  return {
-    tipo: 'direto',
-    teto: 10.0,
-    nome: '',
-    vistos: []  // [{label:'', data:''}]
-  };
+  return { tipo:'direto', teto:10.0, nome:'', vistos:[] };
 }
 
-// ── Renderizar conteúdo da unidade ─────────────────────
+// ── Renderizar conteúdo da unidade ───────────────────────────────────
 function renderUnidadeContent(unidade){
-  const cfg  = _atvConfig[unidade.id];
-  const qtd  = cfg.qtdAtividades;
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  const cfg    = _atvConfig[unidade.id];
+  const qtd    = cfg.qtdAtividades;
   const regras = getRegrasRede(_turmaAtual?.escolaTipo||'municipal');
+  const alunos = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
 
-  let html = `
-  <!-- Cabeçalho da unidade -->
+  el.innerHTML = `
   <div class="unidade-header">
     <div class="unidade-header-left">
       <h3>📋 ${unidade.label}</h3>
-      <p>Configure as atividades e lance as notas desta unidade</p>
+      <p>Configure os tipos de atividade e lance as notas</p>
     </div>
     <div class="unidade-qtd-ctrl">
       <label>Nº de atividades</label>
       <input type="number" class="unidade-qtd-input"
-        id="qtd-atv-${unidade.id}"
-        value="${qtd}" min="0" max="20">
+        id="qtd-atv-${unidade.id}" value="${qtd}" min="0" max="20">
       <button class="btn-aplicar-qtd"
-        onclick="aplicarQtdAtividades('${unidade.id}')">
-        Aplicar
-      </button>
+        onclick="aplicarQtdAtividades('${unidade.id}')">Aplicar</button>
     </div>
   </div>
 
-  <!-- Cards de atividade -->
   <div class="atividades-section" id="atividades-section-${unidade.id}">
     ${qtd===0
-      ? `<div class="unidade-empty"><span>📝</span>Nenhuma atividade configurada. Defina o número acima.</div>`
-      : cfg.atividades.map((atv,i)=>renderAtvCard(unidade.id, i, atv)).join('')
+      ? `<div class="unidade-empty"><span>📝</span>Nenhuma atividade. Defina o número acima.</div>`
+      : cfg.atividades.map((atv,i)=>renderAtvCard(unidade, i, atv, alunos)).join('')
     }
   </div>
 
-  <!-- Prova e Extras -->
   <div class="prova-extras-row">
     <div class="prova-extras-card">
-      <h4>📄 Prova da Unidade</h4>
+      <h4>📄 Prova</h4>
       <div class="prova-extras-field">
-        <label>Teto da prova</label>
+        <label>Teto</label>
         <input type="number" id="teto-prova-${unidade.id}"
-          value="${unidade.prova?.teto ?? regras.tetoProva}"
-          min="0" max="10" step="0.5"
-          style="width:100px;">
+          value="${regras.tetoProva}" min="0" max="10" step="0.5" style="width:90px;">
       </div>
-      ${regras.rede==='estadual'
-        ? `<div class="prova-extras-field" style="margin-top:8px;">
-             <label>Campo de substituição (Rec. unidade)</label>
-             <input type="number" id="rec-unidade-${unidade.id}"
-               placeholder="—" min="0" max="10" step="0.5"
-               style="width:100px;">
-           </div>`
-        : `<div class="prova-extras-field" style="margin-top:8px;">
-             <label>Recuperação da unidade</label>
-             <input type="number" id="rec-unidade-${unidade.id}"
-               placeholder="—" min="0" max="10" step="0.5"
-               style="width:100px;">
-             <div style="font-size:.68rem;color:var(--pe-muted);margin-top:3px;">
-               Substitui o menor componente (atv ou prova) se for maior
-             </div>
-           </div>`
-      }
+      <div class="prova-extras-field" style="margin-top:10px;">
+        <label>Recuperação da unidade</label>
+        <div style="font-size:.68rem;color:var(--pe-muted);margin-bottom:4px;">
+          ${regras.rede==='municipal'
+            ? 'Substitui o menor componente se for maior'
+            : 'Substitui a nota da unidade inteira se for maior'}
+        </div>
+      </div>
+      ${renderTabelaProva(unidade, alunos, regras)}
     </div>
     <div class="prova-extras-card">
       <h4>⭐ Ponto Extra</h4>
       <div class="prova-extras-field">
-        <label>Teto (positivo)</label>
+        <label>Teto positivo</label>
         <input type="number" id="teto-extra-pos-${unidade.id}"
-          value="${regras.tetoExtra}" min="0" max="10" step="0.5"
-          style="width:80px;">
+          value="${regras.tetoExtra}" min="0" max="10" step="0.5" style="width:80px;">
       </div>
       <div class="prova-extras-field" style="margin-top:8px;">
-        <label>Piso (negativo)</label>
+        <label>Piso negativo</label>
         <input type="number" id="teto-extra-neg-${unidade.id}"
-          value="${regras.pisoExtra}" min="-10" max="0" step="0.5"
-          style="width:80px;">
+          value="${regras.pisoExtra}" min="-10" max="0" step="0.5" style="width:80px;">
       </div>
+      ${renderTabelaExtras(unidade, alunos)}
     </div>
+  </div>
+
+  <div class="unidade-media-section" id="media-section-${unidade.id}">
+    ${renderTabelaMedias(unidade, alunos, regras)}
   </div>`;
-
-  document.getElementById('unidade-content').innerHTML = html;
-
-  // Reabilita toggles dos cards abertos
-  cfg.atividades.forEach((_,i)=>{
-    const card = document.getElementById(`atv-card-${unidade.id}-${i}`);
-    if(card && card.classList.contains('open')){
-      renderVistosConfig(unidade.id, i);
-    }
-  });
 }
 
-// ── Renderizar card de atividade ────────────────────────
-function renderAtvCard(unidadeId, idx, atv){
-  const tipoBadge = {
-    direto:   ['tipo-badge-direto',   '📝 Lançamento direto'],
-    vistos:   ['tipo-badge-vistos',   '✅ Vistos'],
-    trabalho: ['tipo-badge-trabalho', '📁 Trabalho'],
-  }[atv.tipo] || ['tipo-badge-direto','📝 Lançamento direto'];
+// ── Card de atividade ────────────────────────────────────────────────
+function renderAtvCard(unidade, idx, atv, alunos){
+  const tipoMap = {
+    direto:   ['tipo-badge-direto',  '📝 Lançamento direto'],
+    vistos:   ['tipo-badge-vistos',  '✅ Vistos'],
+    trabalho: ['tipo-badge-trabalho','📁 Trabalho'],
+  };
+  const [badgeCls, badgeTxt] = tipoMap[atv.tipo]||tipoMap.direto;
+  const uid = unidade.id;
 
-  const nomePlaceholder = `Atividade ${idx+1}`;
   return `
-  <div class="atv-card" id="atv-card-${unidadeId}-${idx}">
-    <div class="atv-card-header" onclick="toggleAtvCard('${unidadeId}',${idx})">
+  <div class="atv-card" id="atv-card-${uid}-${idx}">
+    <div class="atv-card-header" onclick="toggleAtvCard('${uid}',${idx})">
       <div class="atv-card-num">${idx+1}</div>
-      <div class="atv-card-title">${atv.nome||nomePlaceholder}</div>
-      <span class="atv-card-tipo-badge ${tipoBadge[0]}">${tipoBadge[1]}</span>
+      <div class="atv-card-title">${atv.nome||`Atividade ${idx+1}`}</div>
+      <span class="atv-card-tipo-badge ${badgeCls}">${badgeTxt}</span>
       <span class="atv-card-chevron">▼</span>
     </div>
     <div class="atv-card-body">
       <div class="atv-config-row">
         <div class="atv-config-field">
-          <label>Tipo de lançamento</label>
-          <select id="tipo-atv-${unidadeId}-${idx}"
-            onchange="onTipoAtvChange('${unidadeId}',${idx})">
+          <label>Tipo</label>
+          <select id="tipo-atv-${uid}-${idx}"
+            onchange="onTipoAtvChange('${uid}',${idx})">
             <option value="direto"   ${atv.tipo==='direto'  ?'selected':''}>📝 Lançamento direto</option>
-            <option value="vistos"   ${atv.tipo==='vistos'  ?'selected':''}>✅ Controle de vistos</option>
-            <option value="trabalho" ${atv.tipo==='trabalho'?'selected':''}>📁 Trabalho acadêmico</option>
+            <option value="vistos"   ${atv.tipo==='vistos'  ?'selected':''}>✅ Vistos</option>
+            <option value="trabalho" ${atv.tipo==='trabalho'?'selected':''}>📁 Trabalho</option>
           </select>
         </div>
         <div class="atv-config-field">
-          <label>Teto desta atividade</label>
-          <input type="number" id="teto-atv-${unidadeId}-${idx}"
+          <label>Teto</label>
+          <input type="number" id="teto-atv-${uid}-${idx}"
             value="${atv.teto??10}" min="0" max="10" step="0.5"
-            onchange="onTetoAtvChange('${unidadeId}',${idx},this.value)">
+            onchange="onTetoAtvChange('${uid}',${idx},this.value)">
         </div>
       </div>
       <div class="atv-config-field" style="margin-bottom:12px;">
-        <label>Nome / descrição (opcional)</label>
-        <input type="text" id="nome-atv-${unidadeId}-${idx}"
-          value="${atv.nome||''}"
-          placeholder="${nomePlaceholder}"
-          onchange="onNomeAtvChange('${unidadeId}',${idx},this.value)">
+        <label>Nome (opcional)</label>
+        <input type="text" id="nome-atv-${uid}-${idx}"
+          value="${atv.nome||''}" placeholder="Atividade ${idx+1}"
+          onchange="onNomeAtvChange('${uid}',${idx},this.value)">
       </div>
-      <!-- Painel de vistos (só aparece se tipo=vistos) -->
-      <div id="vistos-panel-${unidadeId}-${idx}"
-        style="${atv.tipo==='vistos'?'':'display:none'}">
-      </div>
-      <!-- Painel de trabalho (em breve) -->
-      <div id="trabalho-panel-${unidadeId}-${idx}"
-        style="${atv.tipo==='trabalho'?'':'display:none'}">
-        <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:8px;padding:12px;font-size:.8rem;color:#6a1b9a;font-weight:600;">
-          📁 Configuração de Trabalho Acadêmico — disponível na próxima etapa
+      <div id="vistos-panel-${uid}-${idx}" style="${atv.tipo==='vistos'?'':'display:none'}"></div>
+      <div id="trabalho-panel-${uid}-${idx}" style="${atv.tipo==='trabalho'?'':'display:none'}">
+        <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:8px;padding:12px;
+                    font-size:.8rem;color:#6a1b9a;font-weight:600;">
+          📁 Trabalho Acadêmico — disponível na próxima parte
         </div>
       </div>
+      ${renderTabelaAtv(unidade, idx, atv, alunos)}
     </div>
   </div>`;
 }
 
-// ── Interações dos cards ────────────────────────────────
-window.toggleAtvCard = function(unidadeId, idx){
-  const card = document.getElementById(`atv-card-${unidadeId}-${idx}`);
+// ══════════════════════════════════════════════════════════
+// TABELAS DE LANÇAMENTO
+// ══════════════════════════════════════════════════════════
+
+function renderTabelaAtv(unidade, idx, atv, alunos){
+  if(!alunos.length) return `<div class="unidade-empty" style="padding:12px 0;"><span>👤</span>Nenhum aluno ativo nesta turma.</div>`;
+  const uid   = unidade.id;
+  const notas = _notasCache[uid]?.atv[idx] || {};
+
+  if(atv.tipo==='vistos'){
+    return renderTabelaVistos(uid, idx, atv, alunos, notas);
+  }
+
+  // direto ou trabalho → campo numérico
+  return `
+  <div class="lancamento-tabela">
+    <div class="lancamento-tabela-title">📋 Notas — ${atv.nome||`Atividade ${idx+1}`} (teto: ${atv.teto??10})</div>
+    <table class="notas-table">
+      <thead><tr>
+        <th class="col-aluno">Aluno</th>
+        <th class="col-nota">Nota</th>
+        <th class="col-preview">Prévia</th>
+      </tr></thead>
+      <tbody>
+        ${alunos.map((a,ai)=>{
+          const nome = typeof a==='string'?a:a.nome;
+          const val  = notas[ai]??'';
+          return `<tr>
+            <td class="col-aluno">${ai+1}. ${nome}</td>
+            <td class="col-nota">
+              <input type="number" class="nota-input"
+                value="${val}" min="0" max="${atv.teto??10}" step="0.5"
+                onchange="setNotaAtv('${uid}',${idx},${ai},this.value)"
+                oninput="setNotaAtv('${uid}',${idx},${ai},this.value)">
+            </td>
+            <td class="col-preview" id="prev-atv-${uid}-${idx}-${ai}">—</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+function renderTabelaVistos(uid, idx, atv, alunos, notas){
+  if(!atv.vistos||atv.vistos.length===0){
+    atv.vistos = [{label:'Visto 1', data:''}];
+  }
+  const vCols = atv.vistos.map((v,vi)=>
+    `<th class="col-visto" title="${v.data||''}">${v.label||`V${vi+1}`}</th>`
+  ).join('');
+
+  return `
+  <div class="lancamento-tabela">
+    <div class="lancamento-tabela-title">✅ Vistos — ${atv.nome||`Atividade ${idx+1}`} (${atv.vistos.length} vistos · teto: ${atv.teto??10})</div>
+    <div style="overflow-x:auto;">
+    <table class="notas-table">
+      <thead><tr>
+        <th class="col-aluno">Aluno</th>
+        ${vCols}
+        <th class="col-nota">Nota</th>
+      </tr></thead>
+      <tbody>
+        ${alunos.map((a,ai)=>{
+          const nome    = typeof a==='string'?a:a.nome;
+          const marcados = notas[ai] || {};
+          const notaCalc = calcNotaVistos(atv, marcados);
+          return `<tr>
+            <td class="col-aluno">${ai+1}. ${nome}</td>
+            ${atv.vistos.map((_,vi)=>`
+              <td class="col-visto" style="text-align:center;">
+                <input type="checkbox" class="visto-check"
+                  ${marcados[vi]?'checked':''}
+                  onchange="setVisto('${uid}',${idx},${ai},${vi},this.checked)">
+              </td>`).join('')}
+            <td class="col-nota" id="nota-visto-${uid}-${idx}-${ai}">
+              <strong>${notaCalc}</strong>
+            </td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    </div>
+  </div>`;
+}
+
+function calcNotaVistos(atv, marcados){
+  const total   = atv.vistos?.length||0;
+  if(!total) return '—';
+  const feitos  = Object.values(marcados).filter(Boolean).length;
+  const nota    = (feitos/total)*(atv.teto??10);
+  return arredondarPE(nota).toFixed(1);
+}
+
+function renderTabelaProva(unidade, alunos, regras){
+  if(!alunos.length) return '';
+  const uid   = unidade.id;
+  const notas = _notasCache[uid]?.prova || {};
+  const recs  = _notasCache[uid]?.rec   || {};
+
+  return `
+  <table class="notas-table" style="margin-top:10px;">
+    <thead><tr>
+      <th class="col-aluno">Aluno</th>
+      <th class="col-nota">Prova</th>
+      <th class="col-nota">Rec. Unid.</th>
+    </tr></thead>
+    <tbody>
+      ${alunos.map((a,ai)=>{
+        const nome = typeof a==='string'?a:a.nome;
+        return `<tr>
+          <td class="col-aluno">${ai+1}. ${nome}</td>
+          <td class="col-nota">
+            <input type="number" class="nota-input"
+              value="${notas[ai]??''}" min="0" max="${regras.tetoProva}" step="0.5"
+              onchange="setNotaProva('${uid}',${ai},this.value)"
+              oninput="setNotaProva('${uid}',${ai},this.value)">
+          </td>
+          <td class="col-nota">
+            <input type="number" class="nota-input nota-input-rec"
+              value="${recs[ai]??''}" min="0" max="10" step="0.5"
+              onchange="setNotaRec('${uid}',${ai},this.value)"
+              oninput="setNotaRec('${uid}',${ai},this.value)">
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function renderTabelaExtras(unidade, alunos){
+  if(!alunos.length) return '';
+  const uid   = unidade.id;
+  const notas = _notasCache[uid]?.extras || {};
+
+  return `
+  <table class="notas-table" style="margin-top:10px;">
+    <thead><tr>
+      <th class="col-aluno">Aluno</th>
+      <th class="col-nota">Extra</th>
+    </tr></thead>
+    <tbody>
+      ${alunos.map((a,ai)=>{
+        const nome = typeof a==='string'?a:a.nome;
+        return `<tr>
+          <td class="col-aluno">${ai+1}. ${nome}</td>
+          <td class="col-nota">
+            <input type="number" class="nota-input nota-input-extra"
+              value="${notas[ai]??''}" min="-2" max="2" step="0.5"
+              onchange="setNotaExtra('${uid}',${ai},this.value)"
+              oninput="setNotaExtra('${uid}',${ai},this.value)">
+          </td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table>`;
+}
+
+function renderTabelaMedias(unidade, alunos, regras){
+  if(!alunos.length) return '';
+  return `
+  <div class="medias-card">
+    <h4>📊 Prévia da Unidade</h4>
+    <table class="notas-table">
+      <thead><tr>
+        <th class="col-aluno">Aluno</th>
+        <th class="col-nota">Atividades</th>
+        <th class="col-nota">Prova</th>
+        <th class="col-nota">Extra</th>
+        <th class="col-nota">Média</th>
+        <th class="col-nota">C/ Rec.</th>
+        <th class="col-situacao">Situação</th>
+      </tr></thead>
+      <tbody id="tbody-medias-${unidade.id}">
+        ${alunos.map((_,ai)=>`
+          <tr id="media-row-${unidade.id}-${ai}">
+            <td class="col-aluno">${ai+1}. ${typeof alunos[ai]==='string'?alunos[ai]:alunos[ai].nome}</td>
+            <td class="col-nota" id="m-atv-${unidade.id}-${ai}">—</td>
+            <td class="col-nota" id="m-prova-${unidade.id}-${ai}">—</td>
+            <td class="col-nota" id="m-extra-${unidade.id}-${ai}">—</td>
+            <td class="col-nota" id="m-media-${unidade.id}-${ai}">—</td>
+            <td class="col-nota" id="m-rec-${unidade.id}-${ai}">—</td>
+            <td class="col-situacao" id="m-sit-${unidade.id}-${ai}">—</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════════════════
+// SETTERS DE NOTAS — atualizam cache e recalculam prévia
+// ══════════════════════════════════════════════════════════
+
+window.setNotaAtv = function(uid, idx, ai, val){
+  if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
+  if(!_notasCache[uid].atv[idx]) _notasCache[uid].atv[idx]={};
+  _notasCache[uid].atv[idx][ai] = val===''?null:parseFloat(val);
+  recalcularPrevia(uid, ai);
+};
+
+window.setVisto = function(uid, idx, ai, vi, checked){
+  if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
+  if(!_notasCache[uid].atv[idx]) _notasCache[uid].atv[idx]={};
+  if(!_notasCache[uid].atv[idx][ai]) _notasCache[uid].atv[idx][ai]={};
+  _notasCache[uid].atv[idx][ai][vi] = checked;
+
+  // Recalcula nota do visto e mostra na célula
+  const atv    = _atvConfig[uid]?.atividades[idx];
+  const marcados = _notasCache[uid].atv[idx][ai];
+  const nota   = calcNotaVistos(atv, marcados);
+  const cel    = document.getElementById(`nota-visto-${uid}-${idx}-${ai}`);
+  if(cel) cel.innerHTML = `<strong>${nota}</strong>`;
+  recalcularPrevia(uid, ai);
+};
+
+window.setNotaProva = function(uid, ai, val){
+  if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
+  _notasCache[uid].prova[ai] = val===''?null:parseFloat(val);
+  recalcularPrevia(uid, ai);
+};
+
+window.setNotaExtra = function(uid, ai, val){
+  if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
+  _notasCache[uid].extras[ai] = val===''?null:parseFloat(val);
+  recalcularPrevia(uid, ai);
+};
+
+window.setNotaRec = function(uid, ai, val){
+  if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
+  _notasCache[uid].rec[ai] = val===''?null:parseFloat(val);
+  recalcularPrevia(uid, ai);
+};
+
+// ── Recalcular prévia da unidade para um aluno ───────────
+function recalcularPrevia(uid, ai){
+  const nc     = _notasCache[uid];
+  const cfg    = _atvConfig[uid];
+  const regras = getRegrasRede(_turmaAtual?.escolaTipo||'municipal');
+  if(!nc||!cfg) return;
+
+  // Soma atividades
+  let somaAtv = 0;
+  cfg.atividades.forEach((atv,idx)=>{
+    const notaAtvRaw = nc.atv[idx]?.[ai];
+    if(atv.tipo==='vistos'){
+      const marcados = typeof notaAtvRaw==='object' ? notaAtvRaw : {};
+      somaAtv += parseFloat(calcNotaVistos(atv, marcados))||0;
+    } else {
+      somaAtv += parseFloat(notaAtvRaw)||0;
+    }
+  });
+
+  const prova  = parseFloat(nc.prova[ai])||0;
+  const extras = parseFloat(nc.extras[ai])||0;
+  const rec    = nc.rec[ai]!=null ? parseFloat(nc.rec[ai]) : null;
+
+  const { somaAtv:somaAtv2, notaBase, notaUnidade, usouRec } =
+    calcularUnidade(somaAtv, prova, extras, rec, regras);
+
+  // Situação da unidade (para prévia — sem nota final)
+  const limAprov = regras.limiteAprovacao;
+  const sit = notaUnidade >= limAprov ? 'aprovado'
+            : notaUnidade < regras.limiteRecFinal ? 'reprovado'
+            : 'recuperacao';
+  const sitCor = {aprovado:'#2e7d32',recuperacao:'#e65100',reprovado:'#c62828'};
+
+  const set = (id, txt) => { const el=document.getElementById(id); if(el) el.textContent=txt; };
+  set(`m-atv-${uid}-${ai}`,   somaAtv2.toFixed(1));
+  set(`m-prova-${uid}-${ai}`, prova.toFixed(1));
+  set(`m-extra-${uid}-${ai}`, extras.toFixed(1));
+  set(`m-media-${uid}-${ai}`, notaBase.toFixed(1));
+  set(`m-rec-${uid}-${ai}`,   usouRec ? notaUnidade.toFixed(1) : '—');
+
+  const sitEl = document.getElementById(`m-sit-${uid}-${ai}`);
+  if(sitEl){
+    sitEl.textContent = {aprovado:'Aprovado',recuperacao:'Rec. Final',reprovado:'Reprovado'}[sit]||'—';
+    sitEl.style.color = sitCor[sit]||'';
+    sitEl.style.fontWeight = '700';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// INTERAÇÕES DOS CARDS
+// ══════════════════════════════════════════════════════════
+
+window.toggleAtvCard = function(uid, idx){
+  const card = document.getElementById(`atv-card-${uid}-${idx}`);
   if(!card) return;
   card.classList.toggle('open');
   if(card.classList.contains('open')){
-    const atv = _atvConfig[unidadeId]?.atividades[idx];
-    if(atv?.tipo==='vistos') renderVistosConfig(unidadeId, idx);
+    const atv = _atvConfig[uid]?.atividades[idx];
+    if(atv?.tipo==='vistos') renderVistosConfig(uid, idx);
   }
 };
 
-window.onTipoAtvChange = function(unidadeId, idx, ){
-  const sel = document.getElementById(`tipo-atv-${unidadeId}-${idx}`);
+window.onTipoAtvChange = function(uid, idx){
+  const sel  = document.getElementById(`tipo-atv-${uid}-${idx}`);
   if(!sel) return;
   const tipo = sel.value;
-  _atvConfig[unidadeId].atividades[idx].tipo = tipo;
+  if(_atvConfig[uid]?.atividades[idx]) _atvConfig[uid].atividades[idx].tipo = tipo;
 
-  // Atualiza badge no header
-  const badge = document.querySelector(`#atv-card-${unidadeId}-${idx} .atv-card-tipo-badge`);
   const map = {
     direto:   ['tipo-badge-direto',  '📝 Lançamento direto'],
     vistos:   ['tipo-badge-vistos',  '✅ Vistos'],
     trabalho: ['tipo-badge-trabalho','📁 Trabalho'],
   };
-  if(badge){
-    badge.className = `atv-card-tipo-badge ${map[tipo][0]}`;
-    badge.textContent = map[tipo][1];
-  }
+  const badge = document.querySelector(`#atv-card-${uid}-${idx} .atv-card-tipo-badge`);
+  if(badge){ badge.className=`atv-card-tipo-badge ${map[tipo][0]}`; badge.textContent=map[tipo][1]; }
 
-  // Mostra/oculta painéis
-  const vPanel = document.getElementById(`vistos-panel-${unidadeId}-${idx}`);
-  const tPanel = document.getElementById(`trabalho-panel-${unidadeId}-${idx}`);
-  if(vPanel) vPanel.style.display = tipo==='vistos'   ? '' : 'none';
-  if(tPanel) tPanel.style.display = tipo==='trabalho' ? '' : 'none';
-  if(tipo==='vistos') renderVistosConfig(unidadeId, idx);
+  const vP = document.getElementById(`vistos-panel-${uid}-${idx}`);
+  const tP = document.getElementById(`trabalho-panel-${uid}-${idx}`);
+  if(vP) vP.style.display = tipo==='vistos'   ? '' : 'none';
+  if(tP) tP.style.display = tipo==='trabalho' ? '' : 'none';
+  if(tipo==='vistos') renderVistosConfig(uid, idx);
 };
 
-window.onTetoAtvChange = function(unidadeId, idx, val){
-  if(_atvConfig[unidadeId]?.atividades[idx])
-    _atvConfig[unidadeId].atividades[idx].teto = parseFloat(val)||10;
+window.onTetoAtvChange = function(uid, idx, val){
+  if(_atvConfig[uid]?.atividades[idx])
+    _atvConfig[uid].atividades[idx].teto = parseFloat(val)||10;
 };
 
-window.onNomeAtvChange = function(unidadeId, idx, val){
-  if(_atvConfig[unidadeId]?.atividades[idx]){
-    _atvConfig[unidadeId].atividades[idx].nome = val;
-    const titleEl = document.querySelector(`#atv-card-${unidadeId}-${idx} .atv-card-title`);
-    if(titleEl) titleEl.textContent = val || `Atividade ${idx+1}`;
+window.onNomeAtvChange = function(uid, idx, val){
+  if(_atvConfig[uid]?.atividades[idx]){
+    _atvConfig[uid].atividades[idx].nome = val;
+    const t = document.querySelector(`#atv-card-${uid}-${idx} .atv-card-title`);
+    if(t) t.textContent = val||`Atividade ${idx+1}`;
   }
 };
 
-// ── Alterar quantidade de atividades ───────────────────
-window.aplicarQtdAtividades = async function(unidadeId){
-  const input = document.getElementById(`qtd-atv-${unidadeId}`);
+window.aplicarQtdAtividades = async function(uid){
+  const input  = document.getElementById(`qtd-atv-${uid}`);
   const novaQtd = parseInt(input?.value)||0;
-  const cfg = _atvConfig[unidadeId];
+  const cfg    = _atvConfig[uid];
   if(!cfg) return;
-
   const qtdAtual = cfg.atividades.length;
-  if(novaQtd === qtdAtual) return;
-
-  if(novaQtd < qtdAtual){
-    if(!confirm(`Reduzir de ${qtdAtual} para ${novaQtd} atividades? Os dados das atividades removidas serão perdidos.`)) {
-      input.value = qtdAtual; return;
+  if(novaQtd===qtdAtual) return;
+  if(novaQtd<qtdAtual){
+    if(!confirm(`Reduzir de ${qtdAtual} para ${novaQtd} atividades?`)){
+      input.value=qtdAtual; return;
     }
-    cfg.atividades = cfg.atividades.slice(0, novaQtd);
+    cfg.atividades = cfg.atividades.slice(0,novaQtd);
   } else {
-    for(let i=qtdAtual; i<novaQtd; i++) cfg.atividades.push(defaultAtv(i));
+    for(let i=qtdAtual;i<novaQtd;i++) cfg.atividades.push(defaultAtv(i));
   }
   cfg.qtdAtividades = novaQtd;
-
-  // Persiste a nova qtd na unidade (override)
-  try {
-    await setQtdAtividadesUnidade(_turmaAtual.id, unidadeId, novaQtd);
-  } catch(e){
-    console.warn('Erro ao salvar qtdAtividades:', e);
-  }
-
+  try { await setQtdAtividadesUnidade(_turmaAtual.id, uid, novaQtd); } catch(e){}
   renderUnidadeContent(_unidadeAtiva);
 };
 
-// ── Configuração de Vistos ──────────────────────────────
-function renderVistosConfig(unidadeId, idx){
-  const atv   = _atvConfig[unidadeId]?.atividades[idx];
-  const panel = document.getElementById(`vistos-panel-${unidadeId}-${idx}`);
-  if(!atv || !panel) return;
-
-  if(!atv.vistos || atv.vistos.length===0){
-    atv.vistos = [{label:'Atividade 1', data:''}];
-  }
+// ── Vistos ───────────────────────────────────────────────
+function renderVistosConfig(uid, idx){
+  const atv   = _atvConfig[uid]?.atividades[idx];
+  const panel = document.getElementById(`vistos-panel-${uid}-${idx}`);
+  if(!atv||!panel) return;
+  if(!atv.vistos||!atv.vistos.length) atv.vistos=[{label:'Visto 1',data:''}];
 
   panel.innerHTML = `
   <div class="vistos-config">
-    <div class="vistos-config-title">✅ Atividades de Visto — defina nome e data de cada uma</div>
-    <div id="vistos-list-${unidadeId}-${idx}">
+    <div class="vistos-config-title">✅ Atividades de Visto</div>
+    <div id="vistos-list-${uid}-${idx}">
       ${atv.vistos.map((v,vi)=>`
-        <div class="vistos-row" id="visto-row-${unidadeId}-${idx}-${vi}">
+        <div class="vistos-row">
           <span class="visto-num">${vi+1}.</span>
-          <input type="text" value="${v.label||''}"
-            placeholder="Nome do visto ${vi+1}"
-            onchange="onVistosChange('${unidadeId}',${idx},${vi},'label',this.value)">
+          <input type="text" value="${v.label||''}" placeholder="Nome do visto ${vi+1}"
+            onchange="onVistosChange('${uid}',${idx},${vi},'label',this.value)">
           <input type="date" value="${v.data||''}"
-            onchange="onVistosChange('${unidadeId}',${idx},${vi},'data',this.value)">
+            onchange="onVistosChange('${uid}',${idx},${vi},'data',this.value)">
           <button class="btn-visto-ctrl btn-rem-visto"
-            onclick="removeVisto('${unidadeId}',${idx},${vi})">✕</button>
+            onclick="removeVisto('${uid}',${idx},${vi})">✕</button>
         </div>`).join('')}
     </div>
     <button class="btn-visto-ctrl btn-add-visto" style="margin-top:8px;"
-      onclick="addVisto('${unidadeId}',${idx})">+ Adicionar visto</button>
+      onclick="addVisto('${uid}',${idx})">+ Adicionar</button>
     <div style="font-size:.7rem;color:var(--pe-muted);margin-top:6px;">
-      A nota da atividade = (vistos marcados ÷ total de vistos) × teto
+      Nota = (vistos marcados ÷ total) × teto
     </div>
   </div>`;
 }
 
-window.onVistosChange = function(unidadeId, idx, vi, campo, val){
-  const atv = _atvConfig[unidadeId]?.atividades[idx];
-  if(atv?.vistos?.[vi]) atv.vistos[vi][campo] = val;
+window.onVistosChange = function(uid,idx,vi,campo,val){
+  const atv=_atvConfig[uid]?.atividades[idx];
+  if(atv?.vistos?.[vi]) atv.vistos[vi][campo]=val;
 };
-
-window.addVisto = function(unidadeId, idx){
-  const atv = _atvConfig[unidadeId]?.atividades[idx];
+window.addVisto = function(uid,idx){
+  const atv=_atvConfig[uid]?.atividades[idx];
   if(!atv) return;
-  atv.vistos.push({label:`Atividade ${atv.vistos.length+1}`, data:''});
-  renderVistosConfig(unidadeId, idx);
+  atv.vistos.push({label:`Visto ${atv.vistos.length+1}`,data:''});
+  renderVistosConfig(uid,idx);
+};
+window.removeVisto = function(uid,idx,vi){
+  const atv=_atvConfig[uid]?.atividades[idx];
+  if(!atv||atv.vistos.length<=1) return;
+  atv.vistos.splice(vi,1);
+  renderVistosConfig(uid,idx);
 };
 
-window.removeVisto = function(unidadeId, idx, vi){
-  const atv = _atvConfig[unidadeId]?.atividades[idx];
-  if(!atv || atv.vistos.length<=1) return;
-  atv.vistos.splice(vi,1);
-  renderVistosConfig(unidadeId, idx);
-};
 
 window.showConfirmLogout = function(){
   document.getElementById('confirm-modal').classList.add('active');
