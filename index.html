@@ -6,7 +6,7 @@
 <title>Nota Mestra – Sistema de Gestão de Notas</title>
 <!--
   ============================================================
-  Nota Mestra — build interno: v26
+  Nota Mestra — build interno: v27
   (Versão registrada apenas no código; não exibida ao usuário)
   Etapa 7 incluída: Exportação e boletim (PDF via diálogo de impressão).
   ============================================================
@@ -227,8 +227,9 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
   padding:3px 9px;border-radius:20px;font-size:.68rem;font-weight:700;
   white-space:nowrap;flex-shrink:0;
 }
-.tag-municipal{background:#e8f0fe;color:var(--pe-blue);}
-.tag-estadual{background:#e8f5e9;color:#2e7d32;}
+/* v27: cores invertidas — Municipal=verde, Estadual=azul */
+.tag-municipal{background:#e8f5e9;color:#2e7d32;}
+.tag-estadual{background:#e8f0fe;color:var(--pe-blue);}
 .chip-del{
   background:none;border:none;color:var(--pe-red);cursor:pointer;
   font-size:1rem;padding:2px 6px;border-radius:4px;flex-shrink:0;
@@ -482,6 +483,24 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 }
 .ano-chip.active{background:var(--pe-blue);color:#fff;border-color:var(--pe-blue);}
 .ano-chip:hover:not(.active){border-color:var(--pe-blue);color:var(--pe-blue);}
+
+/* ── Filtro de escolas (dashboard) ── */
+.escola-filter-row{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px;
+}
+.escola-chip-filter{
+  display:inline-flex;align-items:center;gap:6px;
+  padding:5px 12px;border-radius:16px;border:1.5px solid var(--pe-border);
+  background:#fff;font-size:.78rem;font-weight:700;cursor:pointer;
+  transition:var(--transition);color:var(--pe-muted);
+}
+.escola-chip-filter.active{background:var(--pe-navy);color:#fff;border-color:var(--pe-navy);}
+.escola-chip-filter:hover:not(.active){border-color:var(--pe-navy);color:var(--pe-navy);}
+.escola-chip-filter .ecf-edit{
+  background:transparent;border:none;cursor:pointer;font-size:.78rem;
+  color:inherit;opacity:.7;padding:0;line-height:1;
+}
+.escola-chip-filter .ecf-edit:hover{opacity:1;}
 
 /* ── Modal de Edição de Turma ── */
 #turma-modal-overlay{
@@ -1509,6 +1528,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
     <div class="section-title">
       Minhas turmas
     </div>
+    <div class="escola-filter-row" id="escola-filter-row"></div>
     <div class="ano-filter-row" id="ano-filter-row"></div>
     <div class="turmas-grid" id="dash-turmas-grid">
       <div class="ob-empty">Carregando turmas...</div>
@@ -1968,7 +1988,7 @@ const gProvider = new GoogleAuthProvider();
 // ── ESTADO DA APLICAÇÃO ───────────────────────────────────────────────
 // Versão interna do app — NÃO exibir na UI nem no <title>.
 // Atualizar a cada release para conferência no código-fonte.
-const APP_VERSION = 'v26';
+const APP_VERSION = 'v27';
 let _uid    = null;
 let _email  = null;
 let _perfil = null;   // dados do Firestore: users/{uid}/perfil/dados
@@ -3161,6 +3181,27 @@ window.finishSetup = async function(){
 // DASHBOARD
 // ══════════════════════════════════════════════
 let _anoFiltro = null; // null = todos
+let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
+
+// v27: ordenadores
+const _nivelOrder = { fund2: 0, medio: 1 };
+const _turnoOrder = { manha: 0, tarde: 1, turno1: 2, turno2: 3, noite: 4 };
+function _serieNum(t){
+  const n = parseInt(String(t.serie||'').replace(/\D+/g,''),10);
+  return isNaN(n) ? 99 : n;
+}
+function sortTurmas(arr){
+  return arr.slice().sort((a,b)=>{
+    const na = _nivelOrder[a.nivel] ?? 9, nb = _nivelOrder[b.nivel] ?? 9;
+    if(na!==nb) return na-nb;
+    const sa = _serieNum(a), sb = _serieNum(b);
+    if(sa!==sb) return sa-sb;
+    const ta = String(a.turma||'').toUpperCase(), tb = String(b.turma||'').toUpperCase();
+    if(ta!==tb) return ta.localeCompare(tb);
+    const ua = _turnoOrder[a.turno] ?? 9, ub = _turnoOrder[b.turno] ?? 9;
+    return ua-ub;
+  });
+}
 
 function showDashboard(){
   showScreen('dashboard-screen');
@@ -3204,16 +3245,38 @@ function renderDashboard(){
       anos.map(a=>`<button class="ano-chip${_anoFiltro===a?' active':''}" onclick="setAnoFiltro(${a})">${a}</button>`).join('');
   }
 
+  // Filtro de escolas (v27)
+  if(_escolaFiltro && !_escolas.some(e=>e.id===_escolaFiltro)) _escolaFiltro = null;
+  const escolaRow = document.getElementById('escola-filter-row');
+  if(escolaRow){
+    if(_escolas.length<=1){
+      escolaRow.innerHTML = '';
+    } else {
+      escolaRow.innerHTML =
+        `<span style="font-size:.78rem;font-weight:700;color:var(--pe-muted);">Escola:</span>` +
+        `<button class="escola-chip-filter${_escolaFiltro===null?' active':''}" onclick="setEscolaFiltro(null)">Todas</button>` +
+        _escolas.map(e=>{
+          const ativa = _escolaFiltro===e.id;
+          const nomeEsc = (e.nome||'Escola').replace(/"/g,'&quot;');
+          return `<span class="escola-chip-filter${ativa?' active':''}">
+            <span onclick="setEscolaFiltro('${e.id}')" style="cursor:pointer;">${nomeEsc}</span>
+            <button class="ecf-edit" title="Renomear escola" onclick="event.stopPropagation();renomearEscola('${e.id}')">✏️</button>
+          </span>`;
+        }).join('');
+    }
+  }
+
   const grid = document.getElementById('dash-turmas-grid');
   if(_turmas.length===0){
     grid.innerHTML='<div class="ob-empty" style="grid-column:1/-1;">Nenhuma turma cadastrada ainda.</div>';
     return;
   }
 
-  // Filtrar por ano
+  // Filtrar por ano e escola
   let turmasFiltradas = _anoFiltro!==null ? _turmas.filter(t=>(t.anoLetivo||new Date().getFullYear())===_anoFiltro) : _turmas;
-  const ativasFilt   = turmasFiltradas.filter(t=>t.ativo!==false);
-  const inativasFilt = turmasFiltradas.filter(t=>t.ativo===false);
+  if(_escolaFiltro) turmasFiltradas = turmasFiltradas.filter(t=>t.escolaId===_escolaFiltro);
+  const ativasFilt   = sortTurmas(turmasFiltradas.filter(t=>t.ativo!==false));
+  const inativasFilt = sortTurmas(turmasFiltradas.filter(t=>t.ativo===false));
 
   const renderCard = (t, isInativa)=>{
     const tagC = t.escolaTipo==='municipal'?'tag-municipal':'tag-estadual';
@@ -3260,6 +3323,39 @@ function renderDashboard(){
 window.setAnoFiltro = function(ano){
   _anoFiltro = ano;
   renderDashboard();
+};
+
+window.setEscolaFiltro = function(id){
+  _escolaFiltro = id;
+  renderDashboard();
+};
+
+window.renomearEscola = async function(id){
+  const escola = _escolas.find(e=>e.id===id);
+  if(!escola) return;
+  const novo = prompt('Novo nome da escola:', escola.nome||'');
+  if(novo===null) return;
+  const nome = novo.trim();
+  if(!nome){ showToast('Nome não pode ficar vazio.', 'error'); return; }
+  if(nome===escola.nome) return;
+  showLoading('Renomeando escola...');
+  try{
+    await setDoc(doc(db,'users',_uid,'escolas',id), { nome }, { merge:true });
+    escola.nome = nome;
+    // Propagar para turmas vinculadas
+    const turmasAfet = _turmas.filter(t=>t.escolaId===id);
+    await Promise.all(turmasAfet.map(t=>
+      setDoc(doc(db,'users',_uid,'turmas',t.id), { escolaNome: nome }, { merge:true })
+    ));
+    turmasAfet.forEach(t=>{ t.escolaNome = nome; });
+    renderDashboard();
+    if(document.getElementById('profile-screen')?.classList.contains('active')){
+      renderProfileEscolas();
+    }
+    showToast('✅ Escola renomeada.', 'success');
+  } catch(e){
+    showToast('Erro ao renomear: '+e.message, 'error');
+  } finally { hideLoading(); }
 };
 
 // ── DESATIVAR / REATIVAR turma ──────────────────────────────
