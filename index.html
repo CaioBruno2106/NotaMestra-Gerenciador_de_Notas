@@ -3605,7 +3605,7 @@ window.excluirTurmaDefinitivo = async function(id){
   finally{ hideLoading(); }
 };
 
-// ── MODAL DE EDIÇÃO ────   ────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────     ────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -4739,7 +4739,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ──────────────────────────────────────
+// ── Toggle de seção colapsável ─────────────   ────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -5433,21 +5433,20 @@ function renderTabelaTrabalho(uid, idx, atv, alunos, notas){
   if(!alunos.length)
     return `<div class="lancamento-tabela">${titulo}<div class="unidade-empty" style="padding:12px 0;"><span>👤</span>Nenhum aluno ativo.</div></div>`;
 
-  // ── Sem grupos → tabela individual única (todos os subtipos por aluno) ──
+  // ── Sem grupos → tabela simples: Aluno | Nota (sem colunas de criterios) ──
   if(!grupos.length){
-    const cols = [];
-    subs.forEach(s=>{ const sub=TRABALHO_SUBTIPOS[s]; if(sub) sub.criterios.forEach(c=>cols.push({s,c})); });
-    const ths = cols.map(col=>`<th class="col-visto" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${col.c.label}</th>`).join('');
-    const rows = alunos.map((a,ai)=>{
-      const nome  = typeof a==='string'?a:a.nome;
-      const crits = (notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
-      const tds = cols.map(col=>{
-        const v = trabCritVal(crits, col.s, col.c.id);
-        return `<td class="col-visto" style="text-align:center;" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${_trabCell(uid,idx,{kind:'ind',ai},col.s,col.c.id,col.c,v,formato)}</td>`;
-      }).join('');
-      return `<tr><td class="col-aluno">${ai+1}. ${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td></tr>`;
+    const ordenadosSG = alunos
+      .map((a, ai) => ({ ai, nome: typeof a==='string'?a:a.nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
+    const rows = ordenadosSG.map(({ai, nome}) => {
+      const crits  = (notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
+      const temNota = Object.keys(crits).length > 0;
+      const notaExib = temNota
+        ? `<strong>${calcNotaTrabalho(atv,crits)}</strong>`
+        : `<span style="color:var(--pe-muted);">—</span>`;
+      return `<tr><td class="col-aluno">${nome}</td><td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}">${notaExib}</td></tr>`;
     }).join('');
-    return `<div class="lancamento-tabela">${titulo}<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Aluno</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+    return `<div class="lancamento-tabela">${titulo}<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Aluno</th><th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
 
   // ── Com grupos → tabela alfabetica simples: Aluno | Nota ─────────────
