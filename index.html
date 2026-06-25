@@ -3605,7 +3605,7 @@ window.excluirTurmaDefinitivo = async function(id){
   finally{ hideLoading(); }
 };
 
-// ── MODAL DE EDIÇÃO ─────────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────   ────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -3964,7 +3964,7 @@ window.saveEscolaTipoModal = async function(){
     if(!sistIgual){
       for(const turma of turmasAfetadas){
         await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
-        // Limpa cache para forçar releitura na próxima abertura
+        // Limpa cache para for  ar releitura na próxima abertura
         delete _unidades[turma.id];
       }
     }
@@ -4198,7 +4198,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a média se for maior. Sem arredondamento.
+      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -5450,31 +5450,29 @@ function renderTabelaTrabalho(uid, idx, atv, alunos, notas){
     return `<div class="lancamento-tabela">${titulo}<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Aluno</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
 
-  // ── Com grupos → tabela geral unica em ordem alfabetica ─────────────
-  // Monta lista de todos os alunos alocados, ordenada alfabeticamente
-  const alocados = alunos
-    .map((a, ai) => ({ ai, nome: typeof a==='string'?a:a.nome, gi: atv.alunoGrupo?.[ai] }))
-    .filter(({gi}) => gi !== undefined);
+  // ── Com grupos → tabela alfabetica simples: Aluno | Nota ─────────────
+  // Inclui todos os alunos; os ainda sem grupo aparecem com nota pendente
+  const ordenados = alunos
+    .map((a, ai) => ({ ai, nome: typeof a==='string'?a:a.nome }))
+    .sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
 
-  alocados.sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
-
-  if(!alocados.length){
-    return `<div class="lancamento-tabela">${titulo}<div class="trab-hint" style="padding:10px 0;">Nenhum aluno alocado em grupos ainda.</div></div>`;
-  }
-
-  const rows = alocados.map(({ai, nome, gi}) => {
+  const rows = ordenados.map(({ai, nome}) => {
+    const gi    = atv.alunoGrupo?.[ai];
     const crits = (notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
-    const nomeGrupo = grupos[gi]?.nome || ('Grupo '+(gi+1));
+    const temNota = gi !== undefined && Object.keys(crits).length > 0;
+    const notaExib = temNota
+      ? `<strong>${calcNotaTrabalho(atv,crits)}</strong>`
+      : `<span style="color:var(--pe-muted);">—</span>`;
     return `<tr>
       <td class="col-aluno">${nome}</td>
-      <td style="font-size:.72rem;color:var(--pe-muted);white-space:nowrap;">${nomeGrupo}</td>
-      <td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td>
+      <td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}">${notaExib}</td>
     </tr>`;
   }).join('');
 
-  const tabela = `<div class="grp-tabela-geral"><div class="grp-tabela-geral-titulo">Notas — ${alocados.length} aluno${alocados.length!==1?'s':''}</div>
+  const tabela = `<div class="grp-tabela-geral">
+    <div class="grp-tabela-geral-titulo">Notas — ${alunos.length} aluno${alunos.length!==1?'s':''}</div>
     <div style="overflow-x:auto;"><table class="notas-table">
-      <thead><tr><th class="col-aluno">Aluno</th><th class="col-visto">Grupo</th><th class="col-nota">Nota</th></tr></thead>
+      <thead><tr><th class="col-aluno">Aluno</th><th class="col-nota">Nota</th></tr></thead>
       <tbody>${rows}</tbody>
     </table></div></div>`;
 
@@ -5625,7 +5623,11 @@ window.grpInjetarNotas = function(uid, idx, gi){
   const members = alunos.map((_,ai)=>ai).filter(ai=>atv.alunoGrupo?.[ai]===gi);
   if(!members.length){ showToast && showToast('Nenhum integrante neste grupo.','info'); return; }
 
-  members.forEach(ai=>{ recalcularPrevia && recalcularPrevia(uid, ai); });
+  members.forEach(ai=>{
+    recalcularPrevia && recalcularPrevia(uid, ai);
+    // Atualiza a célula de nota na tabela alfabética diretamente no DOM
+    _trabUpdNotaCell && _trabUpdNotaCell(uid, idx, ai);
+  });
 
   // Feedback visual
   members.forEach(ai=>{
