@@ -1732,6 +1732,16 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 
     <div class="section-title">
       Minhas turmas
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="btn-sm btn-sm-primary" onclick="openNovaEscolaModal()"
+          style="background:var(--pe-navy);display:flex;align-items:center;gap:5px;">
+          + Nova Escola
+        </button>
+        <button class="btn-sm btn-sm-primary" onclick="openNovaTurmaModal()"
+          style="display:flex;align-items:center;gap:5px;">
+          + Nova Turma
+        </button>
+      </div>
     </div>
     <div class="escola-filter-row" id="escola-filter-row"></div>
     <div class="ano-filter-row" id="ano-filter-row"></div>
@@ -2012,6 +2022,192 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
   </div>
 </div>
 
+<!-- ── Modal: Nova Escola ── -->
+<div id="nova-escola-modal" style="
+  display:none;position:fixed;inset:0;z-index:3100;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px;">
+  <div style="
+    background:#fff;border-radius:var(--radius-lg);width:100%;max-width:440px;
+    box-shadow:var(--shadow-lg);overflow:hidden;animation:fadeUp .3s ease both;">
+    <div style="background:var(--pe-navy);padding:18px 22px;position:relative;">
+      <h3 style="color:#fff;font-size:1rem;font-weight:800;">Adicionar nova escola</h3>
+      <p style="color:var(--pe-cyan);font-size:.75rem;margin-top:3px;">
+        A escola ficará disponível para vincular novas turmas.
+      </p>
+      <div class="brand-line" style="bottom:0;left:0;right:0;height:3px;display:flex;position:absolute;">
+        <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
+      </div>
+    </div>
+    <div style="padding:22px;">
+      <div class="ob-field" style="margin-bottom:14px;">
+        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+          Nome da escola *
+        </label>
+        <input type="text" id="ne-nome" placeholder="Ex.: E.M. Vereador José Pereira"
+          style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;"
+          onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'"
+          onkeydown="if(event.key==='Enter') saveNovaEscola()">
+      </div>
+      <div class="ob-field" style="margin-bottom:14px;">
+        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+          Tipo de rede *
+        </label>
+        <select id="ne-tipo" style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;background:#fafafa;">
+          <option value="municipal">Rede Municipal</option>
+          <option value="estadual">Rede Estadual (SEE-PE)</option>
+        </select>
+      </div>
+      <div class="ob-field">
+        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+          Sistema de avaliação *
+        </label>
+        <select id="ne-sistema" style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;background:#fafafa;">
+          <option value="bimestral">Bimestral (4 bimestres)</option>
+          <option value="trimestral">Trimestral (3 trimestres)</option>
+        </select>
+      </div>
+      <div id="ne-msg" class="auth-msg" style="margin-top:12px;"></div>
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button type="button" onclick="closeNovaEscolaModal()"
+          style="flex:1;padding:11px;background:transparent;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.88rem;font-weight:600;color:var(--pe-muted);cursor:pointer;">
+          Cancelar
+        </button>
+        <button type="button" onclick="saveNovaEscola()"
+          style="flex:2;padding:11px;background:var(--pe-navy);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.88rem;font-weight:700;cursor:pointer;">
+          Salvar escola
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Nova Turma ── -->
+<div id="nova-turma-modal" style="
+  display:none;position:fixed;inset:0;z-index:3100;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px;overflow-y:auto;">
+  <div style="
+    background:#fff;border-radius:var(--radius-lg);width:100%;max-width:520px;
+    box-shadow:var(--shadow-lg);overflow:hidden;animation:fadeUp .3s ease both;margin:auto;">
+    <div style="background:var(--pe-navy);padding:18px 22px;position:relative;">
+      <h3 style="color:#fff;font-size:1rem;font-weight:800;">Adicionar nova turma</h3>
+      <p style="color:var(--pe-cyan);font-size:.75rem;margin-top:3px;">
+        A turma será criada e vinculada à escola selecionada.
+      </p>
+      <div class="brand-line" style="bottom:0;left:0;right:0;height:3px;display:flex;position:absolute;">
+        <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
+      </div>
+    </div>
+    <div style="padding:22px;">
+
+      <!-- Escola vinculada -->
+      <div class="ob-field" style="margin-bottom:14px;">
+        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+          Escola vinculada *
+        </label>
+        <select id="nt-escola" style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;background:#fafafa;">
+          <!-- populado dinamicamente por openNovaTurmaModal() -->
+        </select>
+      </div>
+
+      <!-- Grid de campos -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div class="ob-field" style="grid-column:span 2;">
+          <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+            Ano letivo *
+          </label>
+          <input type="number" id="nt-ano" placeholder="Ex.: 2025" min="2020" max="2040"
+            style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;"
+            onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
+        </div>
+        <div class="ob-field" style="grid-column:span 2;">
+          <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+            Nível de ensino *
+          </label>
+          <select id="nt-nivel"
+            style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;background:#fafafa;">
+            <option value="">Selecione...</option>
+            <option value="fund2">Fundamental II</option>
+            <option value="medio">Ensino Médio</option>
+          </select>
+        </div>
+        <div class="ob-field">
+          <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+            Turno *
+          </label>
+          <select id="nt-turno"
+            style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;background:#fafafa;">
+            <option value="">Selecione...</option>
+            <option value="manha">Manhã</option>
+            <option value="tarde">Tarde</option>
+            <option value="turno1">Turno 1</option>
+            <option value="turno2">Turno 2</option>
+          </select>
+        </div>
+        <div class="ob-field">
+          <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+            Série *
+          </label>
+          <input type="text" id="nt-serie" placeholder="Ex.: 6º, 1ª"
+            style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;"
+            onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
+        </div>
+        <div class="ob-field">
+          <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+            Turma *
+          </label>
+          <input type="text" id="nt-turma" placeholder="Ex.: A, B, C"
+            style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;"
+            onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
+        </div>
+        <div class="ob-field">
+          <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+            N° de atividades
+          </label>
+          <input type="number" id="nt-atividades" placeholder="Ex.: 6" min="0" max="99" value="0"
+            style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;"
+            onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
+        </div>
+        <div class="ob-field" style="grid-column:span 2;">
+          <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+            Disciplina(s)
+          </label>
+          <input type="text" id="nt-disciplina" placeholder="Ex.: Matemática, Física"
+            style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;"
+            onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
+        </div>
+      </div>
+
+      <!-- Alunos -->
+      <div style="background:#f8f9fa;border:1px solid var(--pe-border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
+        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:6px;">
+          Alunos <span style="color:var(--pe-muted);font-weight:400;">(opcional — cole 1 por linha ou do Excel)</span>
+        </label>
+        <textarea id="nt-alunos" rows="5"
+          placeholder="Cole ou digite os nomes aqui, um por linha..."
+          oninput="document.getElementById('nt-aluno-count').textContent=countStudents(this.value)"
+          style="width:100%;padding:9px 11px;border:1px solid var(--pe-border);border-radius:5px;font-size:.82rem;resize:vertical;outline:none;background:#fff;font-family:inherit;line-height:1.5;"></textarea>
+        <div style="font-size:.72rem;color:var(--pe-muted);margin-top:5px;">
+          <span id="nt-aluno-count">0</span> estudante(s) detectado(s)
+        </div>
+      </div>
+
+      <div id="nt-msg" class="auth-msg" style="margin-bottom:12px;"></div>
+      <div style="display:flex;gap:10px;">
+        <button type="button" onclick="closeNovaTurmaModal()"
+          style="flex:1;padding:11px;background:transparent;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.88rem;font-weight:600;color:var(--pe-muted);cursor:pointer;">
+          Cancelar
+        </button>
+        <button type="button" onclick="saveNovaTurma()"
+          style="flex:2;padding:11px;background:var(--pe-blue);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.88rem;font-weight:700;cursor:pointer;">
+          Criar turma
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Confirm modal (logout) ── -->
 <div id="confirm-modal">
   <div class="confirm-box">
@@ -2256,6 +2452,10 @@ function showScreen(name){
   if(pm) pm.style.display = 'none';
   const etm = document.getElementById('escola-tipo-modal');
   if(etm) etm.style.display = 'none';
+  const nem = document.getElementById('nova-escola-modal');
+  if(nem) nem.style.display = 'none';
+  const ntm = document.getElementById('nova-turma-modal');
+  if(ntm) ntm.style.display = 'none';
 }
 
 window.showLogin = function(){
@@ -3605,7 +3805,7 @@ window.excluirTurmaDefinitivo = async function(id){
   finally{ hideLoading(); }
 };
 
-// ── MODAL DE EDIÇÃO ────     ────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -4094,7 +4294,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas já desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -6752,7 +6952,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ──────────────────────────────────────
+// ── Helpers de vistos ─────────────  ────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
@@ -7725,6 +7925,188 @@ window.confirmarImportacaoBKP = function(){
   _bkpDados = null;
   const btnEl = document.getElementById('bkp-import-btn');
   if(btnEl) btnEl.style.display='none';
+};
+
+// ══════════════════════════════════════════════════════════════════════
+// NOVA ESCOLA — modal do dashboard
+// ══════════════════════════════════════════════════════════════════════
+window.openNovaEscolaModal = function(){
+  const modal = document.getElementById('nova-escola-modal');
+  if(!modal) return;
+  document.getElementById('ne-nome').value = '';
+  document.getElementById('ne-tipo').value = 'municipal';
+  document.getElementById('ne-sistema').value = 'bimestral';
+  const msg = document.getElementById('ne-msg');
+  msg.textContent = ''; msg.className = 'auth-msg';
+  modal.style.display = 'flex';
+  setTimeout(()=> document.getElementById('ne-nome').focus(), 120);
+};
+
+window.closeNovaEscolaModal = function(){
+  document.getElementById('nova-escola-modal').style.display = 'none';
+};
+
+window.saveNovaEscola = async function(){
+  const nome    = document.getElementById('ne-nome').value.trim();
+  const tipo    = document.getElementById('ne-tipo').value;
+  const sistema = document.getElementById('ne-sistema').value;
+  const msgEl   = document.getElementById('ne-msg');
+
+  if(!nome){
+    msgEl.textContent = 'Informe o nome da escola.';
+    msgEl.className   = 'auth-msg error';
+    document.getElementById('ne-nome').focus();
+    return;
+  }
+
+  const btn = document.querySelector('#nova-escola-modal button:last-child');
+  if(btn){ btn.disabled = true; btn.textContent = 'Salvando...'; }
+
+  try {
+    showLoading('Criando escola...');
+    const ref = await addDoc(collection(db,'users',_uid,'escolas'),{
+      nome,
+      tipo,
+      sistema,
+      ativo:    true,
+      criadoEm: serverTimestamp()
+    });
+    _escolas.push({ id: ref.id, nome, tipo, sistema, ativo: true });
+    closeNovaEscolaModal();
+    renderDashboard();
+    if(document.getElementById('profile-screen')?.classList.contains('active')) renderProfileEscolas();
+    showToast(`Escola "${nome}" criada com sucesso! `, 'success');
+  } catch(e){
+    msgEl.textContent = 'Erro ao salvar: ' + e.message;
+    msgEl.className   = 'auth-msg error';
+  } finally {
+    hideLoading();
+    if(btn){ btn.disabled = false; btn.textContent = 'Salvar escola'; }
+  }
+};
+
+// ══════════════════════════════════════════════════════════════════════
+// NOVA TURMA — modal do dashboard
+// ══════════════════════════════════════════════════════════════════════
+window.openNovaTurmaModal = function(){
+  const escolasAtivas = _escolas.filter(e=>e.ativo!==false);
+  if(escolasAtivas.length === 0){
+    showToast('Cadastre uma escola primeiro antes de adicionar turmas.', 'error');
+    return;
+  }
+
+  const modal = document.getElementById('nova-turma-modal');
+  if(!modal) return;
+
+  // Preenche select de escolas
+  const sel = document.getElementById('nt-escola');
+  sel.innerHTML = escolasAtivas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+
+  // Preenche ano letivo padrão
+  document.getElementById('nt-ano').value         = new Date().getFullYear();
+  document.getElementById('nt-nivel').value       = '';
+  document.getElementById('nt-turno').value       = '';
+  document.getElementById('nt-serie').value       = '';
+  document.getElementById('nt-turma').value       = '';
+  document.getElementById('nt-atividades').value  = '0';
+  document.getElementById('nt-disciplina').value  = '';
+  document.getElementById('nt-alunos').value      = '';
+  document.getElementById('nt-aluno-count').textContent = '0';
+
+  const msg = document.getElementById('nt-msg');
+  msg.textContent = ''; msg.className = 'auth-msg';
+
+  modal.style.display = 'flex';
+  setTimeout(()=> document.getElementById('nt-serie').focus(), 120);
+};
+
+window.closeNovaTurmaModal = function(){
+  document.getElementById('nova-turma-modal').style.display = 'none';
+};
+
+window.saveNovaTurma = async function(){
+  const escolaId  = document.getElementById('nt-escola').value;
+  const ano       = parseInt(document.getElementById('nt-ano').value);
+  const nivel     = document.getElementById('nt-nivel').value;
+  const turno     = document.getElementById('nt-turno').value;
+  const serieVal  = document.getElementById('nt-serie').value.trim();
+  const turmaVal  = document.getElementById('nt-turma').value.trim();
+  const atividades= parseInt(document.getElementById('nt-atividades').value)||0;
+  const disciplina= document.getElementById('nt-disciplina').value.trim();
+  const alunosRaw = document.getElementById('nt-alunos').value;
+  const msgEl     = document.getElementById('nt-msg');
+
+  if(!escolaId||!ano||!nivel||!turno||!serieVal||!turmaVal){
+    msgEl.textContent = 'Preencha os campos obrigatórios: escola, ano, nível, turno, série e turma.';
+    msgEl.className   = 'auth-msg error';
+    return;
+  }
+
+  const escola = _escolas.find(e=>e.id===escolaId);
+  if(!escola){
+    msgEl.textContent = 'Escola não encontrada. Recarregue a página.';
+    msgEl.className   = 'auth-msg error';
+    return;
+  }
+
+  const alunos = parseStudents(alunosRaw);
+
+  const btn = document.querySelector('#nova-turma-modal button:last-child');
+  if(btn){ btn.disabled = true; btn.textContent = 'Criando...'; }
+
+  try {
+    showLoading('Criando turma...');
+    const turmaRef = await addDoc(collection(db,'users',_uid,'turmas'),{
+      escolaId,
+      escolaNome: escola.nome,
+      escolaTipo: escola.tipo,
+      nome:       `${serieVal} ${turmaVal}`,
+      anoLetivo:  ano,
+      nivel,
+      turno,
+      serie:      serieVal,
+      turma:      turmaVal,
+      disciplina,
+      atividades,
+      sistema:    escola.sistema || 'bimestral',
+      alunos,
+      ativo:      true,
+      criadoEm:   serverTimestamp()
+    });
+
+    // Inicializa as unidades (bimestres/trimestres) automaticamente
+    await inicializarUnidades(turmaRef.id, escola.sistema || 'bimestral', atividades);
+
+    // Adiciona ao cache local
+    _turmas.push({
+      id:         turmaRef.id,
+      escolaId,
+      escolaNome: escola.nome,
+      escolaTipo: escola.tipo,
+      nome:       `${serieVal} ${turmaVal}`,
+      anoLetivo:  ano,
+      nivel,
+      turno,
+      serie:      serieVal,
+      turma:      turmaVal,
+      disciplina,
+      atividades,
+      sistema:    escola.sistema || 'bimestral',
+      alunos,
+      ativo:      true
+    });
+
+    closeNovaTurmaModal();
+    _anoFiltro = ano; // filtra pelo ano da turma criada
+    renderDashboard();
+    showToast(`Turma "${serieVal} ${turmaVal}" criada com sucesso! `, 'success');
+  } catch(e){
+    msgEl.textContent = 'Erro ao criar turma: ' + e.message;
+    msgEl.className   = 'auth-msg error';
+  } finally {
+    hideLoading();
+    if(btn){ btn.disabled = false; btn.textContent = 'Criar turma'; }
+  }
 };
 
 window.showConfirmLogout = function(){
