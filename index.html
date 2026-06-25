@@ -3,7 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Nota Mestra v12 – Sistema de Gestão de Notas</title>
+<title>Nota Mestra – Sistema de Gestão de Notas</title>
+<!--
+  ============================================================
+  Nota Mestra — build interno: v26
+  (Versão registrada apenas no código; não exibida ao usuário)
+  Etapa 7 incluída: Exportação e boletim (PDF via diálogo de impressão).
+  ============================================================
+-->
 <style>
 /* ═══════════════════════════════════════════════
    PALETA OFICIAL – GOVERNO DE PERNAMBUCO
@@ -1110,7 +1117,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
       </div>
     </div>
 
-    <div class="auth-footer">Nota Mestra v12.0</div>
+    <div class="auth-footer">Nota Mestra</div>
   </div>
 </div>
 
@@ -1175,7 +1182,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
       </div>
     </div>
 
-    <div class="auth-footer">Nota Mestra v12.0</div>
+    <div class="auth-footer">Nota Mestra</div>
   </div>
 </div>
 
@@ -1263,7 +1270,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
         <button type="button" class="forgot-link-btn" onclick="showLogin()">← Voltar ao login</button>
       </div>
     </div>
-    <div class="auth-footer">Nota Mestra v12.0</div>
+    <div class="auth-footer">Nota Mestra</div>
   </div>
 </div>
 
@@ -1959,6 +1966,9 @@ const db   = getFirestore(app);
 const gProvider = new GoogleAuthProvider();
 
 // ── ESTADO DA APLICAÇÃO ───────────────────────────────────────────────
+// Versão interna do app — NÃO exibir na UI nem no <title>.
+// Atualizar a cada release para conferência no código-fonte.
+const APP_VERSION = 'v26';
 let _uid    = null;
 let _email  = null;
 let _perfil = null;   // dados do Firestore: users/{uid}/perfil/dados
@@ -4093,7 +4103,10 @@ function renderUnidadesTabs(unidades){
        onclick="abrirConsolidacao()">🏁 Consolidação</button>
     <button class="unidade-tab" id="tab-btn-diagnostico"
        style="background:rgba(0,150,255,.18);"
-       onclick="abrirDiagnostico()">📊 Diagnóstico</button>`;
+       onclick="abrirDiagnostico()">📊 Diagnóstico</button>
+    <button class="unidade-tab" id="tab-btn-exportacao"
+       style="background:rgba(40,167,69,.18);"
+       onclick="abrirExportacao()">📤 Exportação</button>`;
 }
 
 window.abrirUnidadePorId = function(id){
@@ -5482,6 +5495,499 @@ window.definirQtdVistos = function(uid, idx, novaQtdStr, minAtual){
     atv.vistos.pop();
   }
   renderVistosConfig(uid, idx);
+};
+
+
+// ══════════════════════════════════════════════════════════════════════
+// ETAPA 7 — EXPORTAÇÃO E BOLETIM (PDF via diálogo de impressão)
+// ══════════════════════════════════════════════════════════════════════
+// Gera três relatórios reaproveitando o motor de cálculo da turma:
+//   1) Boletim individual (1 aluno · todas as unidades + situação)
+//   2) Planilha por unidade (turma · atividades + prova + extras + média)
+//   3) Planilha final da turma (todas as unidades + média final + situação)
+// Nenhuma dependência externa — o usuário escolhe "Salvar como PDF" no
+// diálogo nativo do navegador. Mesma abordagem da v05.
+// ----------------------------------------------------------------------
+
+function _exp_nomeAluno(al){ return typeof al==='string' ? al : (al?.nome||'—'); }
+
+function _exp_dataHoje(){
+  const d = new Date();
+  return d.toLocaleDateString('pt-BR');
+}
+
+function _exp_cabecalhoTurma(turma){
+  const escola = turma.escolaNome || 'Escola';
+  const rede   = turma.escolaTipo==='estadual' ? 'Rede Estadual' : 'Rede Municipal';
+  const ano    = turma.anoLetivo || '—';
+  const sis    = turma.sistema==='trimestral' ? 'Trimestral' : 'Bimestral';
+  const disc   = turma.disciplina ? ` · ${turma.disciplina}` : '';
+  const tname  = `${turma.serie||''} ${turma.turma||''}`.trim() || (turma.nome||'Turma');
+  return { escola, rede, ano, sis, disc, tname };
+}
+
+function _exp_estiloBase(){
+  return `
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+    html,body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;color:#212529;background:#fff;}
+    body{padding:18mm 14mm;font-size:11pt;}
+    .pe-faixa{background:#002b5c;color:#fff;padding:14px 18px;border-radius:6px;position:relative;}
+    .pe-faixa h1{font-size:1.15rem;font-weight:800;letter-spacing:-.2px;}
+    .pe-faixa h1 span{color:#fdb913;}
+    .pe-faixa p{font-size:.78rem;color:#9fd3ef;margin-top:2px;}
+    .pe-tricolor{display:flex;height:4px;border-radius:0 0 6px 6px;overflow:hidden;}
+    .pe-tricolor>span{flex:1;}
+    .pe-tricolor .y{background:#fdb913;}
+    .pe-tricolor .r{background:#e31b23;}
+    .pe-tricolor .c{background:#00a8e8;}
+
+    .meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 14px;margin:14px 0 10px;}
+    .meta-grid div{font-size:.78rem;}
+    .meta-grid strong{display:block;font-size:.65rem;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;}
+    h2.sec{font-size:.95rem;color:#002b5c;margin:14px 0 6px;border-bottom:2px solid #00a8e8;padding-bottom:3px;}
+
+    table{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:4px;}
+    th,td{border:1px solid #cfd4da;padding:4px 6px;vertical-align:middle;}
+    th{background:#002b5c;color:#fff;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;}
+    td.num,th.num{text-align:center;}
+    td.aluno{text-align:left;}
+    tr.aprov td{background:#eaf7ee;}
+    tr.rec td{background:#fff4e3;}
+    tr.rep td{background:#fdecec;}
+    tr.pend td{background:#f4f6f9;color:#6c757d;}
+
+    .resumo{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0 4px;}
+    .resumo span{font-size:.75rem;font-weight:700;padding:5px 10px;border-radius:4px;}
+    .resumo .a{background:#e8f5e9;color:#2e7d32;}
+    .resumo .r{background:#fff3e0;color:#e65100;}
+    .resumo .p{background:#ffebee;color:#c62828;}
+    .resumo .n{background:#f1f3f5;color:#495057;}
+    .resumo .t{background:#e3f2fd;color:#0056b3;}
+
+    .rodape{display:flex;justify-content:space-between;align-items:flex-end;margin-top:24px;font-size:.72rem;color:#6c757d;}
+    .ass{margin-top:42px;border-top:1px solid #495057;width:55%;text-align:center;padding-top:3px;color:#212529;}
+    .quebra{page-break-after:always;}
+    .sit-aprov{color:#2e7d32;font-weight:700;}
+    .sit-rec{color:#e65100;font-weight:700;}
+    .sit-rep{color:#c62828;font-weight:700;}
+    .sit-pend{color:#6c757d;font-weight:700;}
+
+    @page { size: A4 portrait; margin: 10mm; }
+    .landscape body, body.landscape { font-size: 10pt; }
+    @media print { .no-print{display:none!important;} }
+    .barra-acoes{position:fixed;top:8px;right:8px;display:flex;gap:6px;}
+    .barra-acoes button{background:#0056b3;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.85rem;}
+    .barra-acoes button.cinza{background:#6c757d;}
+  </style>`;
+}
+
+function _exp_cabHTML(turma, subtitulo){
+  const c = _exp_cabecalhoTurma(turma);
+  return `
+  <div class="pe-faixa">
+    <h1>Nota <span>Mestra</span></h1>
+    <p>${subtitulo}</p>
+  </div>
+  <div class="pe-tricolor"><span class="y"></span><span class="r"></span><span class="c"></span></div>
+  <div class="meta-grid">
+    <div><strong>Escola</strong>${c.escola}</div>
+    <div><strong>Rede</strong>${c.rede}</div>
+    <div><strong>Turma</strong>${c.tname}${c.disc}</div>
+    <div><strong>Ano letivo</strong>${c.ano} · ${c.sis}</div>
+  </div>`;
+}
+
+function _exp_rodape(){
+  return `<div class="rodape">
+    <div>Emitido em ${_exp_dataHoje()} · Nota Mestra</div>
+    <div class="ass">Assinatura do(a) professor(a)</div>
+  </div>`;
+}
+
+// Abre nova janela com HTML e dispara o diálogo de impressão.
+function abrirJanelaImpressao(html, orientacao){
+  const o = orientacao==='landscape' ? 'landscape' : 'portrait';
+  const full = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+    <title>Nota Mestra — Exportação</title>
+    ${_exp_estiloBase()}
+    <style>@page { size: A4 ${o}; margin: 10mm; }</style>
+  </head>
+  <body class="${o}">
+    <div class="barra-acoes no-print">
+      <button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
+      <button class="cinza" onclick="window.close()">Fechar</button>
+    </div>
+    ${html}
+  </body></html>`;
+  const w = window.open('', '_blank');
+  if(!w){ showToast('Permita pop-ups para gerar o PDF.','error'); return; }
+  w.document.open(); w.document.write(full); w.document.close();
+  // Pequeno delay para garantir layout antes do print
+  setTimeout(()=>{ try { w.focus(); w.print(); } catch(e){} }, 350);
+}
+
+// ── Aba "Exportação" ────────────────────────────────────────────────
+window.abrirExportacao = async function(){
+  const turma = _turmaAtual;
+  if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
+
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-btn-exportacao')?.classList.add('active');
+
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  el.innerHTML = `<div class="unidade-empty"><span>⏳</span>Carregando dados para exportação...</div>`;
+
+  try {
+    const [unidades] = await Promise.all([
+      carregarTodasUnidadesNotas(turma),
+      carregarConsolidacao(turma.id),
+    ]);
+    _renderTelaExportacao(turma, unidades);
+  } catch(e){
+    console.error(e);
+    el.innerHTML = `<div class="unidade-empty"><span>⚠️</span>Erro ao carregar dados.</div>`;
+  }
+};
+
+function _renderTelaExportacao(turma, unidades){
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+
+  const optAlunos = alunos.map((a,ai)=>
+    `<option value="${ai}">${ai+1}. ${_exp_nomeAluno(a)}</option>`
+  ).join('');
+  const optUnid = unidades.map(u=>
+    `<option value="${u.id}">${u.label}</option>`
+  ).join('');
+
+  el.innerHTML = `
+  <div class="medias-card" style="margin-bottom:14px;">
+    <h4>📤 Exportação e Boletim</h4>
+    <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 12px;">
+      Cada opção abre uma nova janela com o documento pronto. Use o diálogo
+      <strong>Imprimir → Salvar como PDF</strong> do seu navegador.
+    </p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;">
+
+    <!-- 1. Boletim individual -->
+    <div class="medias-card">
+      <h4>📄 Boletim Individual</h4>
+      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
+        PDF por aluno · todas as unidades + situação final.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <select id="exp-aluno-sel" class="nota-input" style="width:100%;">
+          ${optAlunos}
+        </select>
+        <button class="btn-aplicar-qtd" onclick="gerarBoletimAluno(document.getElementById('exp-aluno-sel').value)">
+          📄 Gerar boletim do aluno
+        </button>
+        <button class="btn-aplicar-qtd" style="background:#002b5c;"
+          onclick="gerarBoletimTurmaCompleta()">
+          📚 Gerar boletins de toda a turma
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. Planilha por unidade -->
+    <div class="medias-card">
+      <h4>📋 Planilha por Unidade</h4>
+      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
+        PDF da turma · atividades, prova, extras, média e situação.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <select id="exp-unid-sel" class="nota-input" style="width:100%;">
+          ${optUnid}
+        </select>
+        <button class="btn-aplicar-qtd" onclick="gerarPlanilhaUnidade(document.getElementById('exp-unid-sel').value)">
+          📋 Gerar planilha da unidade
+        </button>
+      </div>
+    </div>
+
+    <!-- 3. Planilha final -->
+    <div class="medias-card">
+      <h4>🏁 Planilha Final da Turma</h4>
+      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
+        PDF · todos os alunos, médias de cada unidade, média final e situação.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <button class="btn-aplicar-qtd" onclick="gerarPlanilhaFinal()">
+          🏁 Gerar planilha final
+        </button>
+      </div>
+    </div>
+
+  </div>`;
+}
+
+// ── 1) Boletim individual ──────────────────────────────────────────
+function _exp_boletimHTMLAluno(turma, unidades, regras, alunoIdx){
+  const al   = (turma.alunos||[]).filter(a=>a.ativo!==false)[alunoIdx];
+  if(!al) return '';
+  const nome = _exp_nomeAluno(al);
+  const recFinalMap = _recFinalCache[turma.id] || {};
+
+  // Linhas por unidade
+  const linhasUnid = unidades.map(u=>{
+    const nota = calcularNotaUnidadeAluno(u.id, alunoIdx, regras);
+    const nc   = _notasCache[u.id];
+    const cfg  = _atvConfig[u.id];
+    let somaAtv = 0;
+    cfg?.atividades.forEach((atv,idx)=>{
+      const raw = nc?.atv[idx]?.[alunoIdx];
+      if(atv.tipo==='vistos'){
+        const marc = typeof raw==='object' ? raw : {};
+        somaAtv += parseFloat(calcNotaVistos(atv, marc))||0;
+      } else somaAtv += parseFloat(raw)||0;
+    });
+    somaAtv = Math.min(somaAtv, regras.tetoAtividades);
+    const prova  = parseFloat(nc?.prova[alunoIdx])||0;
+    const extras = parseFloat(nc?.extras[alunoIdx])||0;
+    const rec    = nc?.rec[alunoIdx];
+    const recTxt = (rec==null||rec==='') ? '—' : (parseFloat(rec)||0).toFixed(1);
+    let sitU = '—', cls='';
+    if(nota!=null){
+      if(nota>=regras.limiteAprovacao){ sitU='Aprovado'; cls='sit-aprov'; }
+      else if(rec!=null && rec!==''){   sitU='Não recuperado'; cls='sit-rep'; }
+      else { sitU='Em recuperação'; cls='sit-rec'; }
+    }
+    return `<tr>
+      <td class="aluno"><strong>${u.label}</strong></td>
+      <td class="num">${somaAtv.toFixed(1)}</td>
+      <td class="num">${prova.toFixed(1)}</td>
+      <td class="num">${extras.toFixed(1)}</td>
+      <td class="num">${recTxt}</td>
+      <td class="num"><strong>${nota==null?'—':nota.toFixed(1)}</strong></td>
+      <td class="num ${cls}">${sitU}</td>
+    </tr>`;
+  }).join('');
+
+  // Situação final
+  const notasUnid = unidades.map(u=>calcularNotaUnidadeAluno(u.id, alunoIdx, regras));
+  const notasValidas = notasUnid.filter(n=>n!=null);
+  const todasLancadas = notasUnid.length>0 && notasValidas.length===notasUnid.length;
+  let blocoFinal;
+  if(todasLancadas){
+    const rf = recFinalMap[alunoIdx];
+    const { mediaAnual, notaFinal, situacao } = calcularSituacaoFinal(notasValidas, rf, regras);
+    const lbl = labelSituacao(situacao);
+    const cls = situacao==='aprovado'?'sit-aprov':situacao==='reprovado'?'sit-rep':'sit-rec';
+    const recTxt = (rf==null||rf==='') ? '—' : (parseFloat(rf)||0).toFixed(1);
+    blocoFinal = `
+      <h2 class="sec">Situação Final</h2>
+      <table>
+        <tr>
+          <th class="num">Média Anual</th>
+          <th class="num">Rec. Final</th>
+          <th class="num">Nota Final</th>
+          <th class="num">Situação</th>
+        </tr>
+        <tr>
+          <td class="num"><strong>${mediaAnual.toFixed(1)}</strong></td>
+          <td class="num">${recTxt}</td>
+          <td class="num"><strong>${notaFinal.toFixed(1)}</strong></td>
+          <td class="num ${cls}">${lbl}</td>
+        </tr>
+      </table>`;
+  } else {
+    blocoFinal = `<h2 class="sec">Situação Final</h2>
+      <p style="font-size:.82rem;color:#6c757d;">Pendente — há unidades sem todas as notas lançadas.</p>`;
+  }
+
+  return `
+    ${_exp_cabHTML(turma, 'Boletim Individual')}
+    <div class="meta-grid" style="grid-template-columns:1fr 1fr;">
+      <div><strong>Aluno(a)</strong>${nome}</div>
+      <div><strong>Matrícula</strong>${(al?.id??alunoIdx)+1}</div>
+    </div>
+    <h2 class="sec">Desempenho por Unidade</h2>
+    <table>
+      <thead><tr>
+        <th class="aluno">Unidade</th>
+        <th class="num">Σ Atv. (teto ${regras.tetoAtividades})</th>
+        <th class="num">Prova</th>
+        <th class="num">Extras</th>
+        <th class="num">Rec. Unid.</th>
+        <th class="num">Média</th>
+        <th class="num">Situação</th>
+      </tr></thead>
+      <tbody>${linhasUnid}</tbody>
+    </table>
+    ${blocoFinal}
+    ${_exp_rodape()}
+  `;
+}
+
+window.gerarBoletimAluno = function(alunoIdxStr){
+  const turma = _turmaAtual; if(!turma) return;
+  const ai = parseInt(alunoIdxStr); if(isNaN(ai)) return;
+  const unidades = _unidades[turma.id] || [];
+  const regras = getRegrasRede(turma.escolaTipo||'municipal');
+  const html = `<div>${_exp_boletimHTMLAluno(turma, unidades, regras, ai)}</div>`;
+  abrirJanelaImpressao(html, 'portrait');
+};
+
+window.gerarBoletimTurmaCompleta = function(){
+  const turma = _turmaAtual; if(!turma) return;
+  const unidades = _unidades[turma.id] || [];
+  const regras = getRegrasRede(turma.escolaTipo||'municipal');
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  const partes = alunos.map((_,ai)=>{
+    const isLast = ai===alunos.length-1;
+    return `<div class="${isLast?'':'quebra'}">${_exp_boletimHTMLAluno(turma, unidades, regras, ai)}</div>`;
+  }).join('');
+  abrirJanelaImpressao(partes, 'portrait');
+};
+
+// ── 2) Planilha por unidade ────────────────────────────────────────
+window.gerarPlanilhaUnidade = function(uidStr){
+  const turma = _turmaAtual; if(!turma) return;
+  const unidades = _unidades[turma.id] || [];
+  const u = unidades.find(x=>x.id===uidStr); if(!u) return;
+  const regras = getRegrasRede(turma.escolaTipo||'municipal');
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  const cfg = _atvConfig[u.id] || { atividades: [] };
+  const nc  = _notasCache[u.id] || { atv:{}, prova:{}, extras:{}, rec:{} };
+
+  const thsAtv = cfg.atividades.map((atv,i)=>
+    `<th class="num" title="teto ${atv.teto}">${(atv.nome||('Atv.'+(i+1)))}<br><span style="font-weight:400;font-size:.6rem;opacity:.8;">teto ${atv.teto}</span></th>`
+  ).join('');
+
+  let nA=0,nR=0,nN=0,nS=0;
+  const linhas = alunos.map((al,ai)=>{
+    const tdsAtv = cfg.atividades.map((atv,idx)=>{
+      const raw = nc.atv[idx]?.[ai];
+      let val;
+      if(atv.tipo==='vistos'){
+        const marc = typeof raw==='object' ? raw : {};
+        val = parseFloat(calcNotaVistos(atv, marc))||0;
+      } else val = parseFloat(raw)||0;
+      return `<td class="num">${val ? val.toFixed(1) : '—'}</td>`;
+    }).join('');
+    const prova  = parseFloat(nc.prova[ai])||0;
+    const extras = parseFloat(nc.extras[ai])||0;
+    const rec    = nc.rec[ai];
+    const recTxt = (rec==null||rec==='') ? '—' : (parseFloat(rec)||0).toFixed(1);
+    const nota   = calcularNotaUnidadeAluno(u.id, ai, regras);
+    let sit='—', cls='pend';
+    if(nota==null){ nS++; }
+    else if(nota>=regras.limiteAprovacao){ sit='Aprovado'; cls='aprov'; nA++; }
+    else if(rec!=null && rec!==''){ sit='Não recuperado'; cls='rep'; nN++; }
+    else { sit='Em recuperação'; cls='rec'; nR++; }
+    return `<tr class="${cls}">
+      <td class="num">${ai+1}</td>
+      <td class="aluno">${_exp_nomeAluno(al)}</td>
+      ${tdsAtv}
+      <td class="num">${prova ? prova.toFixed(1) : '—'}</td>
+      <td class="num">${extras ? extras.toFixed(1) : '—'}</td>
+      <td class="num">${recTxt}</td>
+      <td class="num"><strong>${nota==null?'—':nota.toFixed(1)}</strong></td>
+      <td class="num">${sit}</td>
+    </tr>`;
+  }).join('');
+
+  const html = `
+    ${_exp_cabHTML(turma, `Planilha por Unidade — ${u.label}`)}
+    <div class="resumo">
+      <span class="a">✅ Aprovados: ${nA}</span>
+      <span class="r">🟠 Em recuperação: ${nR}</span>
+      <span class="p">❌ Não recuperados: ${nN}</span>
+      <span class="n">⏳ Sem nota: ${nS}</span>
+      <span class="t">👥 Total: ${alunos.length}</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th class="num">Nº</th>
+        <th class="aluno">Aluno(a)</th>
+        ${thsAtv}
+        <th class="num">Prova</th>
+        <th class="num">Extras</th>
+        <th class="num">Rec.</th>
+        <th class="num">Média</th>
+        <th class="num">Situação</th>
+      </tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+    ${_exp_rodape()}
+  `;
+  abrirJanelaImpressao(html, 'landscape');
+};
+
+// ── 3) Planilha final da turma ─────────────────────────────────────
+window.gerarPlanilhaFinal = function(){
+  const turma = _turmaAtual; if(!turma) return;
+  const unidades = _unidades[turma.id] || [];
+  const regras = getRegrasRede(turma.escolaTipo||'municipal');
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  const recFinalMap = _recFinalCache[turma.id] || {};
+
+  const thsUnid = unidades.map(u=>`<th class="num">${u.label}</th>`).join('');
+
+  let nA=0,nR=0,nP=0,nPend=0;
+  const linhas = alunos.map((al,ai)=>{
+    const notasUnid = unidades.map(u=>calcularNotaUnidadeAluno(u.id, ai, regras));
+    const notasValidas = notasUnid.filter(n=>n!=null);
+    const todasLancadas = notasUnid.length>0 && notasValidas.length===notasUnid.length;
+    const tdsUnid = notasUnid.map(n=>`<td class="num">${n==null?'—':n.toFixed(1)}</td>`).join('');
+    let mediaAnual='—', notaFinal='—', recTxt='—', sit='Pendente', cls='pend';
+    if(todasLancadas){
+      const rf = recFinalMap[ai];
+      const r = calcularSituacaoFinal(notasValidas, rf, regras);
+      mediaAnual = r.mediaAnual.toFixed(1);
+      notaFinal  = r.notaFinal.toFixed(1);
+      recTxt = (rf==null||rf==='') ? '—' : (parseFloat(rf)||0).toFixed(1);
+      if(r.situacao==='aprovado'){ sit='Aprovado(a)'; cls='aprov'; nA++; }
+      else if(r.situacao==='reprovado'){ sit='Reprovado(a)'; cls='rep'; nP++; }
+      else { sit='Recuperação Final'; cls='rec'; nR++; }
+    } else {
+      nPend++;
+      if(notasValidas.length){
+        const mc = notasValidas.reduce((a,b)=>a+b,0)/notasValidas.length;
+        mediaAnual = (regras.arredondaMedia===false ? mc : arredondarPE(mc)).toFixed(1);
+      }
+    }
+    return `<tr class="${cls}">
+      <td class="num">${ai+1}</td>
+      <td class="aluno">${_exp_nomeAluno(al)}</td>
+      ${tdsUnid}
+      <td class="num"><strong>${mediaAnual}</strong></td>
+      <td class="num">${recTxt}</td>
+      <td class="num"><strong>${notaFinal}</strong></td>
+      <td class="num">${sit}</td>
+    </tr>`;
+  }).join('');
+
+  const orient = unidades.length >= 4 ? 'landscape' : 'portrait';
+  const html = `
+    ${_exp_cabHTML(turma, 'Planilha Final da Turma')}
+    <div class="resumo">
+      <span class="a">✅ Aprovados: ${nA}</span>
+      <span class="r">🟠 Rec. Final: ${nR}</span>
+      <span class="p">❌ Reprovados: ${nP}</span>
+      <span class="n">⏳ Pendentes: ${nPend}</span>
+      <span class="t">👥 Total: ${alunos.length}</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th class="num">Nº</th>
+        <th class="aluno">Aluno(a)</th>
+        ${thsUnid}
+        <th class="num">Méd. Anual</th>
+        <th class="num">Rec. Final</th>
+        <th class="num">Nota Final</th>
+        <th class="num">Situação</th>
+      </tr></thead>
+      <tbody>${linhas}</tbody>
+    </table>
+    ${_exp_rodape()}
+  `;
+  abrirJanelaImpressao(html, orient);
 };
 
 
