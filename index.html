@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Nota Mestra v12 – Sistema de Gestão de Notas</title>
+<title>Nota Mestra – Sistema de Gestão de Notas</title>
 <style>
 /* ═══════════════════════════════════════════════
    PALETA OFICIAL – GOVERNO DE PERNAMBUCO
@@ -898,6 +898,34 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
   .secao-config-row{flex-direction:column;align-items:flex-start;}
 }
 
+/* ── Indicador de salvamento ── */
+#save-status{
+  display:flex;align-items:center;gap:6px;
+  font-size:.75rem;font-weight:700;padding:5px 11px;
+  border-radius:14px;transition:all .3s;white-space:nowrap;
+  border:none;cursor:pointer;
+}
+#save-status.idle   {background:rgba(255,255,255,.12);color:rgba(255,255,255,.7);}
+#save-status.saving {background:rgba(255,200,0,.2);color:var(--pe-yellow);}
+#save-status.saved  {background:rgba(80,200,120,.2);color:#81c784;}
+#save-status.error  {background:rgba(220,80,80,.25);color:#ef9a9a;}
+#save-status.offline{background:rgba(255,255,255,.1);color:rgba(255,255,255,.5);}
+.save-dot{
+  width:7px;height:7px;border-radius:50%;flex-shrink:0;
+}
+.save-dot.idle   {background:rgba(255,255,255,.4);}
+.save-dot.saving {background:var(--pe-yellow);animation:pulse-dot .8s infinite;}
+.save-dot.saved  {background:#81c784;}
+.save-dot.error  {background:#ef9a9a;}
+.save-dot.offline{background:rgba(255,255,255,.3);}
+@keyframes pulse-dot{0%,100%{opacity:1;}50%{opacity:.3;}}
+
+/* ── Fila offline badge ── */
+.offline-queue-badge{
+  background:#e65100;color:#fff;font-size:.65rem;font-weight:900;
+  padding:2px 6px;border-radius:8px;margin-left:4px;
+}
+
 /* ── Tabelas de notas ── */
 .lancamento-tabela{margin-top:14px;}
 .lancamento-tabela-title{
@@ -1647,7 +1675,12 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
       <div class="navbar-title" id="turma-screen-title">Turma</div>
       <div class="navbar-subtitle" id="turma-screen-subtitle"></div>
     </div>
-    <div class="navbar-actions">
+    <div class="navbar-actions" style="gap:6px;">
+      <button id="save-status" class="idle" onclick="salvarUnidadeManual()"
+        title="Salvar notas agora">
+        <span class="save-dot idle" id="save-dot"></span>
+        <span id="save-status-txt">Salvo</span>
+      </button>
       <button onclick="showProfile()"
         style="background:rgba(255,255,255,.12);border:none;color:#fff;
                padding:6px 12px;border-radius:16px;font-size:.78rem;font-weight:600;cursor:pointer;">
@@ -2054,6 +2087,7 @@ onAuthStateChanged(auth, async (user) => {
   } else {
     _uid = null; _email = null; _perfil = null;
     _escolas = []; _turmas = []; _unidades = {};
+    _offlineQueue = [];
     hideLoading();
     showLogin();
   }
@@ -3923,6 +3957,18 @@ function abrirUnidade(unidade){
     _notasCache[unidade.id] = { atv:{}, prova:{}, extras:{}, rec:{} };
   }
   renderUnidadeContent(unidade);
+
+  // Carrega notas salvas do Firestore em background
+  if(_turmaAtual && !unidade.id.startsWith('local-')){
+    carregarNotasUnidade(_turmaAtual.id, unidade).then(()=>{
+      // Re-renderiza com notas carregadas
+      renderUnidadeContent(unidade);
+      // Recalcula prévia para todos os alunos
+      const alunos = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+      alunos.forEach((_,ai)=>recalcularPrevia(unidade.id, ai));
+      setSaveStatus('idle','Salvo');
+    }).catch(()=>{});
+  }
 }
 
 function defaultAtv(idx){
@@ -4354,11 +4400,222 @@ function renderTabelaMedias(unidade, alunos, regras){
 // SETTERS DE NOTAS — atualizam cache e recalculam prévia
 // ══════════════════════════════════════════════════════════
 
+// ══════════════════════════════════════════════════════════════════════
+// SALVAMENTO DE NOTAS — autosave + manual + fila offline
+// ══════════════════════════════════════════════════════════════════════
+
+let _saveTimer   = null;   // debounce handle
+let _offlineQueue = [];    // [{turmaId, unidadeId, dados}] para sync posterior
+let _isSaving    = false;
+
+// ── Status visual ────────────────────────────────────────
+function setSaveStatus(estado, txt){
+  const btn  = document.getElementById('save-status');
+  const dot  = document.getElementById('save-dot');
+  const label= document.getElementById('save-status-txt');
+  if(!btn) return;
+  btn.className  = `${estado}`;
+  dot.className  = `save-dot ${estado}`;
+  if(label) label.textContent = txt;
+}
+
+function atualizarOfflineBadge(){
+  const label = document.getElementById('save-status-txt');
+  if(!label) return;
+  if(_offlineQueue.length>0){
+    setSaveStatus('offline', `Offline (${_offlineQueue.length})`);
+  }
+}
+
+// ── Dispara autosave com debounce de 2s ─────────────────
+function agendarAutosave(){
+  setSaveStatus('saving','Salvando...');
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(()=>{
+    salvarUnidadeAtual();
+  }, 2000);
+}
+
+// ── Salvar manualmente (botão) ───────────────────────────
+window.salvarUnidadeManual = async function(){
+  clearTimeout(_saveTimer);
+  await salvarUnidadeAtual(true);
+};
+
+// ── Core: monta payload e salva no Firestore ─────────────
+async function salvarUnidadeAtual(manual=false){
+  if(!_turmaAtual || !_unidadeAtiva) return;
+  if(_isSaving){ agendarAutosave(); return; }
+
+  const uid      = _unidadeAtiva.id;
+  const nc       = _notasCache[uid];
+  const cfg      = _atvConfig[uid];
+  if(!nc || !cfg) return;
+
+  // Monta payload serializado
+  const payload = montarPayload(uid, nc, cfg);
+  _isSaving = true;
+  setSaveStatus('saving','Salvando...');
+
+  try {
+    await salvarPayloadFirestore(_turmaAtual.id, uid, payload);
+    _isSaving = false;
+    setSaveStatus('saved','Salvo ✓');
+    // Volta para idle após 3s
+    setTimeout(()=>setSaveStatus('idle','Salvo'), 3000);
+    // Remove da fila offline se estava lá
+    _offlineQueue = _offlineQueue.filter(
+      q=>!(q.turmaId===_turmaAtual.id && q.unidadeId===uid)
+    );
+  } catch(e){
+    _isSaving = false;
+    const offline = !navigator.onLine || e.code==='unavailable';
+    if(offline){
+      // Guarda na fila offline (localStorage como backup)
+      const item = { turmaId:_turmaAtual.id, unidadeId:uid, payload, ts:Date.now() };
+      // Substitui entrada anterior da mesma unidade
+      _offlineQueue = _offlineQueue.filter(
+        q=>!(q.turmaId===item.turmaId && q.unidadeId===item.unidadeId)
+      );
+      _offlineQueue.push(item);
+      salvarFilaLocalStorage();
+      atualizarOfflineBadge();
+      if(manual) showToast('Sem conexão — notas salvas localmente e serão sincronizadas.','info');
+    } else {
+      setSaveStatus('error','Erro ao salvar');
+      if(manual) showToast('Erro ao salvar: '+e.message,'error');
+      setTimeout(()=>setSaveStatus('idle','Salvo'), 4000);
+    }
+  }
+}
+
+// ── Monta o objeto a salvar ──────────────────────────────
+function montarPayload(uid, nc, cfg){
+  // Atividades: { [idx]: { tipo, teto, nome, notas:{[ai]:val}, vistos:[...] } }
+  const atividades = {};
+  cfg.atividades.forEach((atv, idx)=>{
+    atividades[idx] = {
+      tipo:  atv.tipo,
+      teto:  atv.teto??10,
+      nome:  atv.nome||'',
+      notas: nc.atv[idx] || {},
+      ...(atv.tipo==='vistos' ? {vistosConfig: atv.vistos||[]} : {})
+    };
+  });
+  return {
+    qtdAtividades: cfg.qtdAtividades,
+    atividades,
+    prova:    nc.prova  || {},
+    extras:   nc.extras || {},
+    rec:      nc.rec    || {},
+    updatedAt: new Date().toISOString()
+  };
+}
+
+// ── Salva no Firestore ───────────────────────────────────
+async function salvarPayloadFirestore(turmaId, unidadeId, payload){
+  if(unidadeId.startsWith('local-')){
+    // Unidade local (Firestore ainda não criou) — adia até ter ID real
+    throw {code:'unavailable', message:'Unidade local sem ID Firestore ainda'};
+  }
+  await setDoc(
+    doc(db,'users',_uid,'turmas',turmaId,'unidades',unidadeId),
+    { notasLancadas: payload },
+    { merge: true }
+  );
+}
+
+// ── Fila offline: persiste no localStorage ───────────────
+function salvarFilaLocalStorage(){
+  try {
+    localStorage.setItem(
+      `nm_offline_queue_${_uid}`,
+      JSON.stringify(_offlineQueue)
+    );
+  } catch(e){}
+}
+
+function carregarFilaLocalStorage(){
+  try {
+    const raw = localStorage.getItem(`nm_offline_queue_${_uid}`);
+    if(raw) _offlineQueue = JSON.parse(raw)||[];
+  } catch(e){ _offlineQueue=[]; }
+}
+
+// ── Sincronizar fila offline quando voltar a conectar ────
+async function sincronizarFilaOffline(){
+  if(!_offlineQueue.length || !_uid) return;
+  const fila = [..._offlineQueue];
+  let sincronizados = 0;
+  for(const item of fila){
+    try {
+      await salvarPayloadFirestore(item.turmaId, item.unidadeId, item.payload);
+      _offlineQueue = _offlineQueue.filter(
+        q=>!(q.turmaId===item.turmaId && q.unidadeId===item.unidadeId)
+      );
+      sincronizados++;
+    } catch(e){ break; } // Para se ainda offline
+  }
+  salvarFilaLocalStorage();
+  if(sincronizados>0){
+    showToast(`${sincronizados} unidade(s) sincronizadas com sucesso ✅`,'success');
+    setSaveStatus('saved','Salvo ✓');
+    setTimeout(()=>setSaveStatus('idle','Salvo'),3000);
+  }
+}
+
+// Escuta reconexão
+window.addEventListener('online', ()=>{
+  sincronizarFilaOffline();
+});
+
+// ── Carregar notas salvas ao abrir unidade ───────────────
+async function carregarNotasUnidade(turmaId, unidade){
+  if(unidade.id.startsWith('local-')) return; // sem ID real ainda
+  try {
+    const snap = await getDoc(
+      doc(db,'users',_uid,'turmas',turmaId,'unidades',unidade.id)
+    );
+    if(!snap.exists()) return;
+    const dados = snap.data()?.notasLancadas;
+    if(!dados) return;
+
+    const uid = unidade.id;
+    // Restaura notas no cache
+    if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
+    if(dados.prova)  _notasCache[uid].prova  = dados.prova;
+    if(dados.extras) _notasCache[uid].extras  = dados.extras;
+    if(dados.rec)    _notasCache[uid].rec     = dados.rec;
+
+    // Restaura atividades
+    if(dados.atividades){
+      Object.entries(dados.atividades).forEach(([idxStr, atv])=>{
+        const idx = parseInt(idxStr);
+        _notasCache[uid].atv[idx] = atv.notas||{};
+        // Restaura config da atividade (tipo, teto, nome, vistos)
+        if(_atvConfig[uid]?.atividades[idx]){
+          _atvConfig[uid].atividades[idx].tipo  = atv.tipo  || 'direto';
+          _atvConfig[uid].atividades[idx].teto  = atv.teto  ?? 10;
+          _atvConfig[uid].atividades[idx].nome  = atv.nome  || '';
+          if(atv.vistosConfig)
+            _atvConfig[uid].atividades[idx].vistos = atv.vistosConfig;
+        }
+      });
+      if(dados.qtdAtividades !== undefined && _atvConfig[uid]){
+        _atvConfig[uid].qtdAtividades = dados.qtdAtividades;
+      }
+    }
+  } catch(e){
+    console.warn('Erro ao carregar notas:', e.message);
+  }
+}
+
 window.setNotaAtv = function(uid, idx, ai, val){
   if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
   if(!_notasCache[uid].atv[idx]) _notasCache[uid].atv[idx]={};
   _notasCache[uid].atv[idx][ai] = val===''?null:parseFloat(val);
   recalcularPrevia(uid, ai);
+  agendarAutosave();
 };
 
 window.setVisto = function(uid, idx, ai, vi, checked){
@@ -4374,24 +4631,28 @@ window.setVisto = function(uid, idx, ai, vi, checked){
   const cel    = document.getElementById(`nota-visto-${uid}-${idx}-${ai}`);
   if(cel) cel.innerHTML = `<strong>${nota}</strong>`;
   recalcularPrevia(uid, ai);
+  agendarAutosave();
 };
 
 window.setNotaProva = function(uid, ai, val){
   if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
   _notasCache[uid].prova[ai] = val===''?null:parseFloat(val);
   recalcularPrevia(uid, ai);
+  agendarAutosave();
 };
 
 window.setNotaExtra = function(uid, ai, val){
   if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
   _notasCache[uid].extras[ai] = val===''?null:parseFloat(val);
   recalcularPrevia(uid, ai);
+  agendarAutosave();
 };
 
 window.setNotaRec = function(uid, ai, val){
   if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
   _notasCache[uid].rec[ai] = val===''?null:parseFloat(val);
   recalcularPrevia(uid, ai);
+  agendarAutosave();
 };
 
 // ── Recalcular prévia da unidade para um aluno ───────────
