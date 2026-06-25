@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>Nota Mestra – Sistema de Gestão de Notas</title>
+<title>Nota Mestra v12 – Sistema de Gestão de Notas</title>
 <style>
 /* ═══════════════════════════════════════════════
    PALETA OFICIAL – GOVERNO DE PERNAMBUCO
@@ -4090,7 +4090,10 @@ function renderUnidadesTabs(unidades){
   ).join('') + `
     <button class="unidade-tab" id="tab-btn-consolidacao"
        style="margin-left:auto;background:rgba(253,185,19,.18);"
-       onclick="abrirConsolidacao()">🏁 Consolidação</button>`;
+       onclick="abrirConsolidacao()">🏁 Consolidação</button>
+    <button class="unidade-tab" id="tab-btn-diagnostico"
+       style="background:rgba(0,150,255,.18);"
+       onclick="abrirDiagnostico()">📊 Diagnóstico</button>`;
 }
 
 window.abrirUnidadePorId = function(id){
@@ -5113,6 +5116,184 @@ window.onChangeRecFinal = function(turmaId, ai, val){
     }
   });
 };
+
+// ══════════════════════════════════════════════════════════════════════
+// ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
+// ══════════════════════════════════════════════════════════════════════
+
+// Classifica situação da unidade para um aluno:
+//   'aprovado'      → nota ≥ 6
+//   'recuperacao'   → nota < 6 e rec NÃO lançada
+//   'nao_recuperado'→ nota < 6 e rec lançada
+//   null            → sem dados
+function classificarUnidadeAluno(uid, ai, regras){
+  const nota = calcularNotaUnidadeAluno(uid, ai, regras);
+  if(nota==null) return null;
+  if(nota >= regras.limiteAprovacao) return 'aprovado';
+  const temRec = _notasCache[uid]?.rec?.[ai] != null;
+  return temRec ? 'nao_recuperado' : 'recuperacao';
+}
+
+// Gera SVG de pizza com fatias [{valor,cor,label}]
+function svgPizza(fatias, size=160){
+  const total = fatias.reduce((a,b)=>a+b.valor,0);
+  if(total<=0){
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+      <circle cx="${size/2}" cy="${size/2}" r="${size/2-4}" fill="#f1f3f5" stroke="#dee2e6"/>
+      <text x="50%" y="52%" text-anchor="middle" fill="#888" font-size="11">sem dados</text>
+    </svg>`;
+  }
+  const cx=size/2, cy=size/2, r=size/2-4;
+  let ang=-Math.PI/2;
+  const paths = fatias.filter(f=>f.valor>0).map(f=>{
+    const frac = f.valor/total;
+    const a2 = ang + frac*2*Math.PI;
+    const x1 = cx + r*Math.cos(ang), y1 = cy + r*Math.sin(ang);
+    const x2 = cx + r*Math.cos(a2),  y2 = cy + r*Math.sin(a2);
+    const large = frac>0.5?1:0;
+    // 100% → círculo completo
+    const d = frac>=1
+      ? `M ${cx-r} ${cy} A ${r} ${r} 0 1 1 ${cx+r} ${cy} A ${r} ${r} 0 1 1 ${cx-r} ${cy} Z`
+      : `M ${cx} ${cy} L ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} Z`;
+    ang = a2;
+    return `<path d="${d}" fill="${f.cor}" stroke="#fff" stroke-width="1.5"/>`;
+  }).join('');
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}</svg>`;
+}
+
+const COR_APROV = '#2e7d32';
+const COR_REC   = '#e65100';
+const COR_NREC  = '#c62828';
+
+window.abrirDiagnostico = async function(){
+  const turma = _turmaAtual;
+  if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
+
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-btn-diagnostico')?.classList.add('active');
+
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  el.innerHTML = `<div class="unidade-empty"><span>⏳</span>Carregando diagnóstico...</div>`;
+
+  try {
+    const unidades = await carregarTodasUnidadesNotas(turma);
+    renderDiagnostico(turma, unidades);
+  } catch(e){
+    console.error(e);
+    el.innerHTML = `<div class="unidade-empty"><span>⚠️</span>Erro ao carregar diagnóstico.</div>`;
+  }
+};
+
+function renderDiagnostico(turma, unidades){
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  const regras = getRegrasRede(turma.escolaTipo||'municipal');
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+
+  // ── 1) Pizza por unidade ───────────────────────────────────────
+  const pizzas = unidades.map(u=>{
+    let nA=0,nR=0,nN=0,nS=0;
+    alunos.forEach((_,ai)=>{
+      const c = classificarUnidadeAluno(u.id, ai, regras);
+      if(c==='aprovado') nA++;
+      else if(c==='recuperacao') nR++;
+      else if(c==='nao_recuperado') nN++;
+      else nS++;
+    });
+    const total = nA+nR+nN;
+    const pct = v => total>0 ? ((v/total)*100).toFixed(1)+'%' : '—';
+    const svg = svgPizza([
+      {valor:nA,cor:COR_APROV,label:'Aprovados'},
+      {valor:nR,cor:COR_REC,  label:'Em recuperação'},
+      {valor:nN,cor:COR_NREC, label:'Não recuperados'},
+    ], 150);
+    return `
+      <div style="background:#fff;border:1px solid #e9ecef;border-radius:10px;padding:12px;min-width:220px;flex:1;">
+        <div style="font-weight:700;color:var(--pe-blue);margin-bottom:8px;text-align:center;">${u.label}</div>
+        <div style="display:flex;justify-content:center;margin-bottom:8px;">${svg}</div>
+        <div style="font-size:.78rem;line-height:1.6;">
+          <div><span style="display:inline-block;width:10px;height:10px;background:${COR_APROV};border-radius:2px;margin-right:6px;"></span>Aprovados: <strong>${nA}</strong> (${pct(nA)})</div>
+          <div><span style="display:inline-block;width:10px;height:10px;background:${COR_REC};border-radius:2px;margin-right:6px;"></span>Em recuperação: <strong>${nR}</strong> (${pct(nR)})</div>
+          <div><span style="display:inline-block;width:10px;height:10px;background:${COR_NREC};border-radius:2px;margin-right:6px;"></span>Não recuperados: <strong>${nN}</strong> (${pct(nN)})</div>
+          ${nS?`<div style="color:#888;">Sem nota: ${nS}</div>`:''}
+        </div>
+      </div>`;
+  }).join('');
+
+  // ── 2) Barras por aluno comparando unidades ────────────────────
+  const coresUnid = ['#0056b3','#e65100','#2e7d32','#7b1fa2','#00838f','#c62828'];
+  const legenda = unidades.map((u,i)=>
+    `<span style="display:inline-flex;align-items:center;margin-right:14px;font-size:.78rem;">
+      <span style="display:inline-block;width:12px;height:12px;background:${coresUnid[i%coresUnid.length]};border-radius:2px;margin-right:5px;"></span>${u.label}
+    </span>`).join('');
+
+  const barW = 14, gap = 3, grpGap = 14;
+  const grpW = unidades.length*(barW+gap) + grpGap;
+  const chartH = 180, padTop=10, padBot=70, padLeft=30;
+  const chartW = padLeft + alunos.length*grpW + 20;
+
+  const yScale = v => padTop + (1 - v/10) * (chartH - padTop - padBot);
+
+  // Linha de 6 (aprovação)
+  const y6 = yScale(6);
+  let svg = `<svg width="${chartW}" height="${chartH}" viewBox="0 0 ${chartW} ${chartH}" style="background:#fafafa;border:1px solid #e9ecef;border-radius:8px;">`;
+
+  // Grade horizontal
+  for(let v=0;v<=10;v+=2){
+    const y = yScale(v);
+    svg += `<line x1="${padLeft}" y1="${y}" x2="${chartW-5}" y2="${y}" stroke="#e9ecef"/>`;
+    svg += `<text x="${padLeft-4}" y="${y+3}" text-anchor="end" font-size="9" fill="#888">${v}</text>`;
+  }
+  // Linha de aprovação
+  svg += `<line x1="${padLeft}" y1="${y6}" x2="${chartW-5}" y2="${y6}" stroke="${COR_APROV}" stroke-dasharray="4 3"/>`;
+  svg += `<text x="${chartW-8}" y="${y6-3}" text-anchor="end" font-size="9" fill="${COR_APROV}">aprovação ≥ 6</text>`;
+
+  // Barras
+  alunos.forEach((al,ai)=>{
+    const nome = typeof al==='string' ? al : al.nome;
+    const x0 = padLeft + ai*grpW + grpGap/2;
+    unidades.forEach((u,ui)=>{
+      const nota = calcularNotaUnidadeAluno(u.id, ai, regras);
+      const x = x0 + ui*(barW+gap);
+      if(nota==null){
+        svg += `<rect x="${x}" y="${yScale(0)-2}" width="${barW}" height="2" fill="#ccc"/>`;
+      } else {
+        const y = yScale(nota);
+        const h = yScale(0) - y;
+        svg += `<rect x="${x}" y="${y}" width="${barW}" height="${h}" fill="${coresUnid[ui%coresUnid.length]}" rx="2"><title>${u.label}: ${nota.toFixed(1)}</title></rect>`;
+      }
+    });
+    // Rótulo do aluno (rotacionado)
+    const cx = x0 + (unidades.length*(barW+gap)-gap)/2;
+    const ylab = chartH - padBot + 14;
+    const nomeCurto = nome.length>18 ? nome.slice(0,16)+'…' : nome;
+    svg += `<text x="${cx}" y="${ylab}" text-anchor="end" font-size="9" fill="#444" transform="rotate(-45 ${cx} ${ylab})">${ai+1}. ${nomeCurto}</text>`;
+  });
+
+  svg += `</svg>`;
+
+  el.innerHTML = `
+  <div class="medias-card" style="margin-bottom:14px;">
+    <h4>📊 Diagnóstico por Unidade</h4>
+    <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 12px;">
+      Distribuição dos alunos em cada unidade.
+      <strong>Aprovado</strong> = nota ≥ 6.
+      <strong>Em recuperação</strong> = nota &lt; 6 sem rec. lançada.
+      <strong>Não recuperado</strong> = nota &lt; 6 com rec. já lançada.
+    </p>
+    <div style="display:flex;flex-wrap:wrap;gap:12px;">${pizzas}</div>
+  </div>
+  <div class="medias-card">
+    <h4>📈 Comparativo por Aluno</h4>
+    <div style="margin:8px 0 10px;">${legenda}</div>
+    <div style="overflow-x:auto;">${svg}</div>
+    <p style="color:var(--pe-muted);font-size:.78rem;margin-top:8px;">
+      Cada grupo de barras representa um aluno; cada barra é a nota final da unidade (após recuperação, se houver).
+      Linha tracejada indica o limite de aprovação (6,0).
+    </p>
+  </div>`;
+}
 
 // ══════════════════════════════════════════════════════════
 // INTERAÇÕES DOS CARDS
