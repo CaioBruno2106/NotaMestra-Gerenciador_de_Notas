@@ -786,6 +786,12 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 .tipo-badge-direto  {background:#e8f0fe;color:var(--pe-blue);}
 .tipo-badge-vistos  {background:#fff3e0;color:#e65100;}
 .tipo-badge-trabalho{background:#f3e5f5;color:#6a1b9a;}
+.atv-card-limpar-btn{
+  padding:3px 10px;border:1.5px solid #fbc4c4;border-radius:5px;
+  background:#fff5f5;color:#c62828;font-size:.68rem;font-weight:700;
+  cursor:pointer;flex-shrink:0;white-space:nowrap;
+}
+.atv-card-limpar-btn:hover{background:#fdecea;border-color:#e57373;}
 
 /* ── Trabalho acadêmico: wizard de configuração ── */
 .trab-config{background:#fcfaff;}
@@ -946,6 +952,11 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
   background:#ede7f6;color:#6a1b9a;font-size:.7rem;font-weight:700;cursor:pointer;flex-shrink:0;
 }
 .grp-feito-reabrir:hover{background:#d1c4e9;}
+.grp-feito-excluir{
+  padding:3px 9px;border:none;border-radius:5px;
+  background:#fdecea;color:#c62828;font-size:.7rem;font-weight:700;cursor:pointer;flex-shrink:0;
+}
+.grp-feito-excluir:hover{background:#fbc8c5;}
 
 /* Hint sem grupos */
 .grp-sem-grupos-hint{
@@ -4793,6 +4804,8 @@ function renderAtvCard(unidade, idx, atv, alunos){
       <div class="atv-card-num">${idx+1}</div>
       <div class="atv-card-title">${atv.nome||`Atividade ${idx+1}`}</div>
       <span class="atv-card-tipo-badge ${badgeCls}">${badgeTxt}</span>
+      <button class="atv-card-limpar-btn" title="Limpar todas as notas desta atividade"
+        onclick="event.stopPropagation();onLimparNotasAtv('${uid}',${idx})">Limpar notas</button>
       <span class="atv-card-chevron">▼</span>
     </div>
     <div class="atv-card-body">
@@ -5100,6 +5113,7 @@ function _trabStep3(uid, idx, atv, alunos){
         <button class="grp-feito-reabrir" onclick="grpReabrirGrupo('${uid}',${idx},${gi})">
           ${ativo ? 'atual' : 'reabrir'}
         </button>
+        <button class="grp-feito-excluir" onclick="grpExcluirGrupo('${uid}',${idx},${gi})">excluir</button>
       </div>`;
     }).join('');
     feitosHtml = `<div class="grp-feitos-lista">${items}</div>`;
@@ -5366,50 +5380,52 @@ function renderTabelaTrabalho(uid, idx, atv, alunos, notas){
     return `<div class="lancamento-tabela">${titulo}<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Aluno</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
   }
 
-  // ── Com grupos → bloco por grupo (notas em grupo + tabela individual) ──
+  // ── Com grupos → mostra apenas o grupo ativo no wizard ──────────────
   const subGrupo = subs.filter(s=>trabModalidade(atv,s)==='grupo');
   const subInd   = subs.filter(s=>trabModalidade(atv,s)==='individual');
   const colsInd  = [];
   subInd.forEach(s=>{ const sub=TRABALHO_SUBTIPOS[s]; if(sub) sub.criterios.forEach(c=>colsInd.push({s,c})); });
 
-  const blocks = grupos.map((gr,gi)=>{
-    const members = [];
-    alunos.forEach((a,ai)=>{ if(atv.alunoGrupo?.[ai]===gi) members.push(ai); });
-    const nomes = members.map(ai=>{const a=alunos[ai];return (ai+1)+'. '+(typeof a==='string'?a:a.nome);});
+  // Determina qual grupo está ativo no wizard (padrão: 0 se não há estado)
+  const wizKey = `${uid}-${idx}`;
+  const giAtivo = window._grpWizard?.[wizKey]?.gi ?? 0;
+  // Limita ao último grupo válido caso o wizard aponte para um índice além
+  const giMostra = Math.min(giAtivo, grupos.length - 1);
 
-    let grpHtml = '';
-    if(subGrupo.length){
-      grpHtml = subGrupo.map(s=>{
-        const sub = TRABALHO_SUBTIPOS[s];
-        const cells = sub.criterios.map(c=>{
-          const v = members.length ? trabCritVal((notas[members[0]]||{}), s, c.id) : undefined;
-          return `<div class="trab-grp-crit"><label title="${c.niveis.join(' | ').replace(/"/g,'&quot;')}">${c.label}</label>${_trabCell(uid,idx,{kind:'grp',gi},s,c.id,c,v,formato)}</div>`;
-        }).join('');
-        return `<div class="trab-grp-sub"><div class="trab-grp-sub-title">${sub.label} · nota do grupo</div><div class="trab-grp-crit-row">${cells}</div></div>`;
+  const gr = grupos[giMostra];
+  const members = [];
+  alunos.forEach((_,ai)=>{ if(atv.alunoGrupo?.[ai]===giMostra) members.push(ai); });
+  const nomes = members.map(ai=>{ const a=alunos[ai]; return (ai+1)+'. '+(typeof a==='string'?a:a.nome); });
+
+  let grpHtml = '';
+  if(subGrupo.length){
+    grpHtml = subGrupo.map(s=>{
+      const sub = TRABALHO_SUBTIPOS[s];
+      const cells = sub.criterios.map(c=>{
+        const v = members.length ? trabCritVal((notas[members[0]]||{}), s, c.id) : undefined;
+        return `<div class="trab-grp-crit"><label title="${c.niveis.join(' | ').replace(/"/g,'&quot;')}">${c.label}</label>${_trabCell(uid,idx,{kind:'grp',gi:giMostra},s,c.id,c,v,formato)}</div>`;
       }).join('');
-    }
+      return `<div class="trab-grp-sub"><div class="trab-grp-sub-title">${sub.label} · nota do grupo</div><div class="trab-grp-crit-row">${cells}</div></div>`;
+    }).join('');
+  }
 
-    let indHtml = '';
-    if(members.length){
-      const ths = colsInd.map(col=>`<th class="col-visto" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${col.c.label}</th>`).join('');
-      const rows = members.map(ai=>{
-        const a=alunos[ai]; const nome=typeof a==='string'?a:a.nome;
-        const crits=(notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
-        const tds=colsInd.map(col=>{const v=trabCritVal(crits,col.s,col.c.id);return `<td class="col-visto" style="text-align:center;">${_trabCell(uid,idx,{kind:'ind',ai},col.s,col.c.id,col.c,v,formato)}</td>`;}).join('');
-        return `<tr><td class="col-aluno">${ai+1}. ${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td></tr>`;
-      }).join('');
-      indHtml = `<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Integrante</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div>`;
-    } else {
-      indHtml = `<div class="trab-hint" style="margin:6px 0;">Nenhum aluno neste grupo ainda.</div>`;
-    }
-    return `<div class="trab-grupo-card"><div class="trab-grupo-head">👥 ${gr.nome||('Grupo '+(gi+1))} <small>${nomes.length?nomes.join(' · '):'sem integrantes'}</small></div>${grpHtml}${indHtml}</div>`;
-  }).join('');
+  let indHtml = '';
+  if(members.length){
+    const ths = colsInd.map(col=>`<th class="col-visto" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${col.c.label}</th>`).join('');
+    const rows = members.map(ai=>{
+      const a=alunos[ai]; const nome=typeof a==='string'?a:a.nome;
+      const crits=(notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
+      const tds=colsInd.map(col=>{ const v=trabCritVal(crits,col.s,col.c.id); return `<td class="col-visto" style="text-align:center;">${_trabCell(uid,idx,{kind:'ind',ai},col.s,col.c.id,col.c,v,formato)}</td>`; }).join('');
+      return `<tr><td class="col-aluno">${ai+1}. ${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td></tr>`;
+    }).join('');
+    indHtml = `<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Integrante</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+  } else {
+    indHtml = `<div class="trab-hint" style="margin:6px 0;">Nenhum aluno neste grupo ainda.</div>`;
+  }
 
-  const semG = [];
-  alunos.forEach((a,ai)=>{ const g=atv.alunoGrupo?.[ai]; if(g==null||!grupos[g]) semG.push((ai+1)+'. '+(typeof a==='string'?a:a.nome)); });
-  const semHtml = semG.length ? `<div class="trab-hint" style="margin-top:8px;">⚠️ Sem grupo (nota fica — até a atribuição): ${semG.join(', ')}</div>` : '';
+  const block = `<div class="trab-grupo-card"><div class="trab-grupo-head">Grupo ${giMostra+1} de ${grupos.length} <small>${nomes.length?nomes.join(' · '):'sem integrantes'}</small></div>${grpHtml}${indHtml}</div>`;
 
-  return `<div class="lancamento-tabela">${titulo}${blocks}${semHtml}</div>`;
+  return `<div class="lancamento-tabela">${titulo}${block}</div>`;
 }
 
 // ── Gravação de critérios ────────────────────────────────────────────
@@ -5589,6 +5605,35 @@ window.grpContinuarDepois = function(uid, idx){
   agendarAutosave();
 };
 
+// Exclui um grupo, libera os integrantes e reajusta índices
+window.grpExcluirGrupo = function(uid, idx, gi){
+  const atv = _atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  _trabNormalizar(atv);
+  const nome = atv.grupos[gi]?.nome || ('Grupo ' + (gi+1));
+  if(!confirm(`Excluir "${nome}"? Os integrantes voltarão para disponíveis.`)) return;
+
+  // Libera integrantes
+  Object.keys(atv.alunoGrupo).forEach(ai=>{
+    if(atv.alunoGrupo[ai] === gi) delete atv.alunoGrupo[ai];
+  });
+  // Remove o grupo
+  atv.grupos.splice(gi, 1);
+  // Reajusta índices dos grupos seguintes
+  Object.keys(atv.alunoGrupo).forEach(ai=>{
+    if(atv.alunoGrupo[ai] > gi) atv.alunoGrupo[ai]--;
+  });
+
+  // Atualiza o estado do wizard
+  const key = `${uid}-${idx}`;
+  if(!window._grpWizard) window._grpWizard = {};
+  const novoGi = atv.grupos.length;
+  window._grpWizard[key] = { gi: novoGi, tela:'A', injetado:false };
+
+  renderTrabalhoConfig(uid, idx);
+  rerenderTabelaAtvCard(uid, idx);
+  agendarAutosave();
+};
+
 // Reabre um grupo já criado (volta para tela A ou B)
 window.grpReabrirGrupo = function(uid, idx, gi){
   const key = `${uid}-${idx}`;
@@ -5601,6 +5646,34 @@ window.onTrabAlunoGrupo = function(uid, idx, ai, val){
   const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return; _trabNormalizar(atv);
   if(val===''||val==null) delete atv.alunoGrupo[ai]; else atv.alunoGrupo[ai]=parseInt(val);
   rerenderTabelaAtvCard(uid,idx); agendarAutosave();
+};
+
+// Limpa todas as notas de uma atividade (incluindo grupos e configuração de trabalho)
+window.onLimparNotasAtv = function(uid, idx){
+  const atv = _atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  const nome = atv.nome || `Atividade ${idx+1}`;
+  if(!confirm(`Limpar todas as notas de "${nome}"? Esta ação não pode ser desfeita.`)) return;
+
+  // Apaga notas do cache
+  if(_notasCache[uid]?.atv) _notasCache[uid].atv[idx] = {};
+
+  // Se for trabalho, reseta também grupos e estado do wizard
+  if(atv.tipo === 'trabalho'){
+    _trabNormalizar(atv);
+    atv.grupos     = [];
+    atv.alunoGrupo = {};
+    const key = `${uid}-${idx}`;
+    if(window._grpWizard) window._grpWizard[key] = { gi:0, tela:'A', injetado:false };
+  }
+
+  // Recalcula a prévia de todos os alunos
+  const alunos = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+  alunos.forEach((_,ai)=>{ recalcularPrevia && recalcularPrevia(uid, ai); });
+
+  renderTrabalhoConfig && renderTrabalhoConfig(uid, idx);
+  rerenderTabelaAtvCard(uid, idx);
+  agendarAutosave();
+  showToast && showToast(`Notas de "${nome}" apagadas.`, 'success');
 };
 
 // Re-renderiza a tabela de lançamento dentro de um card de atividade
@@ -6308,7 +6381,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ══════════════════════════════════════════════════════════════════════
+// ════  ═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
