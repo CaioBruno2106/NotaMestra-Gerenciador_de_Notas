@@ -4407,7 +4407,10 @@ function renderUnidadesTabs(unidades){
        onclick="abrirDiagnostico()">📊 Diagnóstico</button>
     <button class="unidade-tab" id="tab-btn-exportacao"
        style="background:rgba(40,167,69,.18);"
-       onclick="abrirExportacao()">📤 Exportação</button>`;
+       onclick="abrirExportacao()">📤 Exportação</button>
+    <button class="unidade-tab" id="tab-btn-backup"
+       style="background:rgba(108,117,125,.18);"
+       onclick="abrirBackupImportacao()">💾 Backup</button>`;
 }
 
 window.abrirUnidadePorId = function(id){
@@ -4910,9 +4913,20 @@ function renderTabelaVistos(uid, idx, atv, alunos, notas){
   if(!atv.vistos||atv.vistos.length===0){
     atv.vistos = [{label:'Visto 1', data:''}];
   }
-  const vCols = atv.vistos.map((v,vi)=>
-    `<th class="col-visto" title="${v.data||''}">${v.label||`V${vi+1}`}</th>`
-  ).join('');
+  // Ponto 2: cabeçalho com botão de exclusão por coluna
+  const vCols = atv.vistos.map((v,vi)=>{
+    const temMarca = temMarcasNoVisto(uid, idx, vi);
+    return `<th class="col-visto" title="${v.data||''}" style="position:relative;vertical-align:middle;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <span>${v.label||`V${vi+1}`}</span>
+        <button
+          title="${temMarca?'Esta coluna tem marcações — será pedida confirmação':'Excluir coluna'}"
+          onclick="excluirColunaVisto('${uid}',${idx},${vi})"
+          style="background:${temMarca?'#fff3cd':'#fdecea'};color:${temMarca?'#856404':'var(--pe-red)'};border:none;border-radius:3px;font-size:.6rem;padding:1px 5px;cursor:pointer;font-weight:700;line-height:1.4;white-space:nowrap;"
+        >${temMarca?'⚠ del':'✕ del'}</button>
+      </div>
+    </th>`;
+  }).join('');
 
   return `
   <div class="lancamento-tabela">
@@ -4947,6 +4961,54 @@ function renderTabelaVistos(uid, idx, atv, alunos, notas){
     </div>
   </div>`;
 }
+
+// Ponto 2: Excluir uma coluna inteira de visto
+window.excluirColunaVisto = function(uid, idx, vi){
+  const atv = _atvConfig[uid]?.atividades[idx];
+  if(!atv || !atv.vistos) return;
+  const temMarca = temMarcasNoVisto(uid, idx, vi);
+  const nomeCol  = atv.vistos[vi]?.label || `Visto ${vi+1}`;
+  const totalCols = atv.vistos.length;
+
+  let msg = `Excluir a coluna "${nomeCol}"?`;
+  if(totalCols <= 1){
+    showToast('A atividade precisa ter pelo menos 1 coluna de visto.','error');
+    return;
+  }
+  if(temMarca){
+    // Conta quantas marcações existem nessa coluna
+    const nc = _notasCache[uid]?.atv[idx] || {};
+    const qtdMarcas = Object.values(nc).filter(m => m?.[vi] === true).length;
+    msg = `A coluna "${nomeCol}" tem ${qtdMarcas} marcação(ões) salva(s).\nExcluir mesmo assim apagará essas marcações.\n\nConfirmar exclusão?`;
+  }
+  if(!confirm(msg)) return;
+
+  // Remove a coluna do config
+  atv.vistos.splice(vi, 1);
+
+  // Remove as marcações dessa coluna do cache e reindexar colunas posteriores
+  const nc = _notasCache[uid]?.atv[idx];
+  if(nc){
+    Object.keys(nc).forEach(aiStr => {
+      const marcados = nc[aiStr];
+      if(!marcados || typeof marcados !== 'object') return;
+      // Remove a coluna vi e desloca as posteriores
+      const novo = {};
+      Object.keys(marcados).forEach(viStr => {
+        const viNum = parseInt(viStr);
+        if(viNum < vi)       novo[viNum]     = marcados[viStr];
+        else if(viNum > vi)  novo[viNum - 1] = marcados[viStr];
+        // viNum === vi é descartado
+      });
+      nc[aiStr] = novo;
+    });
+  }
+
+  renderVistosConfig(uid, idx);
+  rerenderTabelaAtvCard(uid, idx);
+  agendarAutosave();
+  showToast(`Coluna "${nomeCol}" excluída.`, 'success');
+};
 
 function calcNotaVistos(atv, marcados){
   const total   = atv.vistos?.length||0;
@@ -6772,9 +6834,9 @@ window.incrementarVistos = function(uid, idx){
   if(!atv) return;
   atv.vistos.push({label:`Visto ${atv.vistos.length+1}`, data:''});
   renderVistosConfig(uid, idx);
-  // Atualiza tabela se estiver aberta
-  const tabela = document.querySelector(`[data-atv-uid="${uid}"][data-atv-idx="${idx}"]`);
-  if(tabela) atualizarUnidade(uid);
+  // Ponto 3: atualização automática da tabela sempre que mudar qtd de vistos
+  rerenderTabelaAtvCard(uid, idx);
+  agendarAutosave();
 };
 
 window.decrementarVistos = function(uid, idx){
@@ -6788,6 +6850,9 @@ window.decrementarVistos = function(uid, idx){
   }
   atv.vistos.pop();
   renderVistosConfig(uid, idx);
+  // Ponto 3: atualização automática da tabela sempre que mudar qtd de vistos
+  rerenderTabelaAtvCard(uid, idx);
+  agendarAutosave();
 };
 
 window.definirQtdVistos = function(uid, idx, novaQtdStr, minAtual){
@@ -6808,6 +6873,9 @@ window.definirQtdVistos = function(uid, idx, novaQtdStr, minAtual){
     atv.vistos.pop();
   }
   renderVistosConfig(uid, idx);
+  // Ponto 3: atualização automática da tabela ao definir qtd diretamente
+  rerenderTabelaAtvCard(uid, idx);
+  agendarAutosave();
 };
 
 
@@ -7309,6 +7377,355 @@ window.gerarPlanilhaFinal = function(){
   abrirJanelaImpressao(html, orient);
 };
 
+
+// ══════════════════════════════════════════════════════════════════════
+// PONTO 1 — BACKUP & IMPORTAÇÃO
+// ══════════════════════════════════════════════════════════════════════
+// Exportação: gera JSON por escola (todas as turmas + unidades + notas)
+// Importação: lê JSON do modelo antigo (atv1..atvN, prova, rec) e casa
+//             os alunos pelo nome (normalizado) com os alunos da turma atual.
+// ──────────────────────────────────────────────────────────────────────
+
+window.abrirBackupImportacao = async function(){
+  const turma = _turmaAtual;
+  if(!turma){ showToast('Abra uma turma primeiro', 'error'); return; }
+
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-btn-backup')?.classList.add('active');
+
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+
+  // Monta lista de escolas para o seletor de exportação
+  const escolasAtivas = _escolas.filter(e=>e.ativo!==false);
+
+  el.innerHTML = `
+  <!-- ── EXPORTAÇÃO ──────────────────────────────────────────── -->
+  <div class="medias-card" style="margin-bottom:14px;">
+    <h4>💾 Backup & Importação</h4>
+    <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
+      Exporte todas as turmas de uma escola em JSON ou importe notas de um arquivo salvo no programa anterior.
+    </p>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;margin-bottom:14px;">
+
+    <!-- Exportar por escola -->
+    <div class="medias-card">
+      <h4>📤 Exportar escola completa</h4>
+      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
+        Gera um arquivo JSON com todas as turmas, unidades e notas da escola selecionada.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <select id="bkp-escola-sel" class="nota-input" style="width:100%;">
+          ${escolasAtivas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('')}
+        </select>
+        <button class="btn-aplicar-qtd" onclick="exportarEscolaJSON()">
+          📥 Baixar JSON da escola
+        </button>
+      </div>
+    </div>
+
+    <!-- Importar modelo antigo -->
+    <div class="medias-card">
+      <h4>📂 Importar do modelo anterior</h4>
+      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
+        Carrega um arquivo JSON gerado pelo programa anterior e importa as notas para a
+        unidade ativa (<strong>${_unidadeAtiva?.label||'—'}</strong>).
+        O casamento de alunos é feito pelo <strong>nome</strong>.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <input type="file" id="bkp-file-input" accept=".json"
+          style="font-size:.82rem;"
+          onchange="lerArquivoBKP(this)">
+        <div id="bkp-preview" style="display:none;margin-top:6px;"></div>
+        <button class="btn-aplicar-qtd" id="bkp-import-btn" style="display:none;background:var(--pe-success);"
+          onclick="confirmarImportacaoBKP()">
+          ✅ Confirmar importação
+        </button>
+      </div>
+      <div id="bkp-msg" class="ob-msg" style="margin-top:8px;"></div>
+    </div>
+
+  </div>`;
+};
+
+// ── Exportar escola ───────────────────────────────────────────────────
+window.exportarEscolaJSON = async function(){
+  const escolaId = document.getElementById('bkp-escola-sel')?.value;
+  if(!escolaId){ showToast('Selecione uma escola.', 'error'); return; }
+  const escola = _escolas.find(e=>e.id===escolaId);
+  if(!escola) return;
+
+  showLoading('Coletando dados da escola...');
+  try {
+    const turmasEscola = _turmas.filter(t=>t.escolaId===escolaId);
+    const payload = {
+      exportadoEm: new Date().toISOString(),
+      versao: 'nm-v37',
+      escola: { id:escola.id, nome:escola.nome, tipo:escola.tipo, sistema:escola.sistema||'bimestral' },
+      turmas: []
+    };
+
+    for(const turma of turmasEscola){
+      // Carrega unidades e notas desta turma
+      const unidades = await garantirUnidades(turma);
+      const turmaData = {
+        id: turma.id, nome: turma.nome, serie: turma.serie, turma: turma.turma,
+        nivel: turma.nivel, turno: turma.turno, disciplina: turma.disciplina,
+        anoLetivo: turma.anoLetivo, sistema: turma.sistema, ativo: turma.ativo,
+        alunos: turma.alunos||[],
+        unidades: []
+      };
+
+      for(const u of unidades){
+        if(u.id.startsWith('local-')) continue;
+        try {
+          const snap = await getDoc(doc(db,'users',_uid,'turmas',turma.id,'unidades',u.id));
+          turmaData.unidades.push({
+            id: u.id, label: u.label, ordem: u.ordem,
+            sistema: u.sistema, qtdAtividades: u.qtdAtividades,
+            notasLancadas: snap.exists() ? (snap.data()?.notasLancadas||null) : null
+          });
+        } catch(e){ turmaData.unidades.push({ id:u.id, label:u.label, ordem:u.ordem, notasLancadas:null }); }
+      }
+
+      // Consolidação
+      try {
+        const cSnap = await getDoc(doc(db,'users',_uid,'turmas',turma.id,'consolidacao','final'));
+        turmaData.consolidacao = cSnap.exists() ? cSnap.data() : null;
+      } catch(e){ turmaData.consolidacao = null; }
+
+      payload.turmas.push(turmaData);
+    }
+
+    hideLoading();
+    // Dispara download
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const nomeSafe = escola.nome.replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_');
+    a.download = `NM_Backup_${nomeSafe}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;
+    a.href = url;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Backup de "${escola.nome}" baixado com sucesso! ✅`, 'success');
+  } catch(e){
+    hideLoading();
+    showToast('Erro ao exportar: '+e.message, 'error');
+  }
+};
+
+// ── Importação do modelo antigo ───────────────────────────────────────
+let _bkpDados = null; // armazena o JSON lido para confirmação posterior
+
+// Normaliza nome para comparação (sem acentos, minúsculo, só letras/espaços)
+function _normNome(nome){
+  return (nome||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase().replace(/[^a-z\s]/g,'').replace(/\s+/g,' ').trim();
+}
+
+window.lerArquivoBKP = function(input){
+  const file = input.files[0];
+  if(!file) return;
+  const msgEl  = document.getElementById('bkp-msg');
+  const prevEl = document.getElementById('bkp-preview');
+  const btnEl  = document.getElementById('bkp-import-btn');
+  _bkpDados = null;
+  if(msgEl){ msgEl.textContent=''; msgEl.className='ob-msg'; }
+  if(prevEl) prevEl.style.display='none';
+  if(btnEl) btnEl.style.display='none';
+
+  const reader = new FileReader();
+  reader.onload = function(e){
+    try {
+      const raw = JSON.parse(e.target.result);
+
+      // Detecta se é formato nm-v37 (backup novo) ou modelo antigo
+      if(raw.versao && raw.versao.startsWith('nm-')){
+        // Formato novo — informativo; importação completa de escola não está disponível aqui
+        if(msgEl){ msgEl.textContent='Este é um arquivo de backup do Nota Mestra v37. Para restaurar uma escola completa, use a função de restauração disponível no painel de perfil (em breve).'; msgEl.className='ob-msg info'; }
+        return;
+      }
+
+      // Tenta ler como modelo antigo
+      if(!raw.setup || !raw.setup.alunos){
+        if(msgEl){ msgEl.textContent='Arquivo inválido: não encontrei "setup.alunos" — verifique se é o backup correto.'; msgEl.className='ob-msg error'; }
+        return;
+      }
+
+      _bkpDados = raw;
+      _mostrarPreviewImportacao(raw, prevEl, btnEl, msgEl);
+    } catch(err){
+      if(msgEl){ msgEl.textContent='Erro ao ler o arquivo: '+err.message; msgEl.className='ob-msg error'; }
+    }
+  };
+  reader.readAsText(file, 'UTF-8');
+};
+
+function _mostrarPreviewImportacao(raw, prevEl, btnEl, msgEl){
+  const setup  = raw.setup;
+  const turma  = _turmaAtual;
+  const unidade= _unidadeAtiva;
+  if(!turma || !unidade){
+    if(msgEl){ msgEl.textContent='Você precisa estar numa turma com uma unidade aberta para importar.'; msgEl.className='ob-msg error'; }
+    return;
+  }
+
+  const alunosBKP   = setup.alunos || [];
+  const alunosTurma = (turma.alunos||[]).filter(a=>a.ativo!==false);
+
+  // Casamento por nome
+  const pares = [];
+  alunosBKP.forEach(ab => {
+    const nNorm = _normNome(ab.nome);
+    // Procura match na turma atual
+    const match = alunosTurma.findIndex(at => _normNome(typeof at==='string'?at:at.nome) === nNorm);
+    pares.push({ bkpNome: ab.nome, bkpIdx: ab.id, turmaIdx: match });
+  });
+
+  const matched   = pares.filter(p=>p.turmaIdx >= 0).length;
+  const unmatched = pares.filter(p=>p.turmaIdx < 0).length;
+
+  // Descobre quais atividades existem no JSON (atv1, atv2, ...)
+  const notas = raw.notas || {};
+  const atvKeys = Object.keys(notas).filter(k=>/^atv\d+$/.test(k)).sort((a,b)=>{
+    return parseInt(a.replace('atv','')) - parseInt(b.replace('atv',''));
+  });
+  const temProva = Array.isArray(notas.prova);
+  const temRec   = Array.isArray(notas.recuperacao);
+
+  let linhasPrev = pares.slice(0,8).map(p=>`
+    <tr>
+      <td style="font-size:.75rem;padding:3px 6px;">${p.bkpNome}</td>
+      <td style="font-size:.75rem;padding:3px 6px;text-align:center;">
+        ${p.turmaIdx >= 0
+          ? `<span style="color:var(--pe-success);font-weight:700;">✓ ${typeof alunosTurma[p.turmaIdx]==='string'?alunosTurma[p.turmaIdx]:alunosTurma[p.turmaIdx].nome}</span>`
+          : `<span style="color:var(--pe-red);font-size:.7rem;">Não encontrado</span>`}
+      </td>
+    </tr>`).join('');
+  if(pares.length > 8) linhasPrev += `<tr><td colspan="2" style="font-size:.7rem;color:var(--pe-muted);padding:4px 6px;">...e mais ${pares.length-8} alunos</td></tr>`;
+
+  prevEl.style.display = 'block';
+  prevEl.innerHTML = `
+  <div style="background:#f8f9fa;border-radius:6px;padding:10px;border:1px solid var(--pe-border);">
+    <div style="font-size:.78rem;font-weight:700;color:var(--pe-navy);margin-bottom:6px;">
+      Arquivo: ${setup.serie} ${setup.turma} — ${setup.unidadeLetiva} (${setup.disciplina})
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;">
+      <span style="font-size:.72rem;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-weight:700;">${matched} alunos casados</span>
+      ${unmatched>0?`<span style="font-size:.72rem;background:#fdecea;color:var(--pe-red);padding:2px 8px;border-radius:10px;font-weight:700;">${unmatched} não encontrados</span>`:''}
+      <span style="font-size:.72rem;background:#e8f0fe;color:var(--pe-blue);padding:2px 8px;border-radius:10px;font-weight:700;">${atvKeys.length} atividade(s)${temProva?' + prova':''}${temRec?' + rec':''}</span>
+    </div>
+    <div style="font-size:.72rem;color:var(--pe-muted);margin-bottom:8px;">
+      As notas serão importadas para <strong>${unidade.label}</strong>. Atividades existentes serão sobrescritas se o índice coincidir.
+    </div>
+    <table style="width:100%;border-collapse:collapse;">
+      <thead><tr>
+        <th style="background:#f1f3f5;font-size:.7rem;padding:3px 6px;text-align:left;">Aluno no arquivo</th>
+        <th style="background:#f1f3f5;font-size:.7rem;padding:3px 6px;text-align:center;">Casamento na turma</th>
+      </tr></thead>
+      <tbody>${linhasPrev}</tbody>
+    </table>
+  </div>`;
+
+  if(matched === 0){
+    if(msgEl){ msgEl.textContent='Nenhum aluno pôde ser casado pelo nome. Verifique se o arquivo corresponde a esta turma.'; msgEl.className='ob-msg error'; }
+    return;
+  }
+  if(btnEl) btnEl.style.display='block';
+  if(msgEl){ msgEl.textContent=`${matched} aluno(s) encontrado(s). Revise o mapeamento acima e clique em "Confirmar importação".`; msgEl.className='ob-msg info'; }
+}
+
+window.confirmarImportacaoBKP = function(){
+  if(!_bkpDados){ showToast('Nenhum arquivo carregado.','error'); return; }
+  const turma   = _turmaAtual;
+  const unidade = _unidadeAtiva;
+  if(!turma || !unidade){ showToast('Abra uma turma e selecione uma unidade.','error'); return; }
+
+  const setup       = _bkpDados.setup;
+  const notas       = _bkpDados.notas || {};
+  const alunosBKP   = setup.alunos || [];
+  const alunosTurma = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  const uid         = unidade.id;
+
+  // Garante cache
+  if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
+  if(!_atvConfig[uid])  _atvConfig[uid]={qtdAtividades:0,atividades:[]};
+
+  const atvKeys = Object.keys(notas).filter(k=>/^atv\d+$/.test(k)).sort((a,b)=>
+    parseInt(a.replace('atv','')) - parseInt(b.replace('atv',''))
+  );
+
+  let importados = 0;
+
+  alunosBKP.forEach(ab => {
+    const nNorm   = _normNome(ab.nome);
+    const turmaIdx = alunosTurma.findIndex(at => _normNome(typeof at==='string'?at:at.nome) === nNorm);
+    if(turmaIdx < 0) return; // não encontrado
+
+    // Atividades diretas (atv1, atv2, ...)
+    atvKeys.forEach((key, ki) => {
+      const arr = notas[key];
+      if(!Array.isArray(arr)) return;
+      const val = arr[ab.id]; // o JSON antigo indexa por ab.id que é a posição original
+      if(val === '' || val == null) return;
+      const parsed = parseFloat(val);
+      if(isNaN(parsed)) return;
+
+      if(!_notasCache[uid].atv[ki]) _notasCache[uid].atv[ki] = {};
+      _notasCache[uid].atv[ki][turmaIdx] = parsed;
+
+      // Garante que o config de atividade existe
+      while(_atvConfig[uid].atividades.length <= ki) _atvConfig[uid].atividades.push(defaultAtv(_atvConfig[uid].atividades.length));
+    });
+
+    // Prova
+    if(Array.isArray(notas.prova)){
+      const vp = notas.prova[ab.id];
+      if(vp !== '' && vp != null && !isNaN(parseFloat(vp))){
+        _notasCache[uid].prova[turmaIdx] = parseFloat(vp);
+      }
+    }
+
+    // Recuperação
+    if(Array.isArray(notas.recuperacao)){
+      const vr = notas.recuperacao[ab.id];
+      if(vr !== '' && vr != null && !isNaN(parseFloat(vr))){
+        _notasCache[uid].rec[turmaIdx] = parseFloat(vr);
+      }
+    }
+
+    importados++;
+  });
+
+  // Ajusta qtdAtividades no config se necessário
+  if(atvKeys.length > _atvConfig[uid].qtdAtividades){
+    _atvConfig[uid].qtdAtividades = atvKeys.length;
+  }
+
+  if(importados === 0){
+    showToast('Nenhum aluno foi casado — importação cancelada.', 'error');
+    return;
+  }
+
+  // Re-renderiza a unidade para mostrar as notas importadas
+  renderUnidadeContent(unidade);
+  const alunos = alunosTurma;
+  alunos.forEach((_,ai)=>recalcularPrevia(uid, ai));
+  agendarAutosave();
+
+  const msgEl = document.getElementById('bkp-msg');
+  if(msgEl){
+    msgEl.textContent = `${importados} aluno(s) importado(s) com sucesso! As notas já aparecem na unidade. Clique em Salvar para persistir.`;
+    msgEl.className='ob-msg success';
+  }
+  showToast(`Importação concluída: ${importados} aluno(s). ✅`, 'success');
+  _bkpDados = null;
+  const btnEl = document.getElementById('bkp-import-btn');
+  if(btnEl) btnEl.style.display='none';
+};
 
 window.showConfirmLogout = function(){
   document.getElementById('confirm-modal').classList.add('active');
