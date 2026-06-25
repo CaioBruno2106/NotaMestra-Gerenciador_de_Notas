@@ -784,6 +784,72 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 .tipo-badge-direto  {background:#e8f0fe;color:var(--pe-blue);}
 .tipo-badge-vistos  {background:#fff3e0;color:#e65100;}
 .tipo-badge-trabalho{background:#f3e5f5;color:#6a1b9a;}
+
+/* ── Trabalho acadêmico: wizard de configuração ── */
+.trab-config{background:#fcfaff;}
+.trab-chip{
+  background:#f3e5f5;color:#6a1b9a;border:1px solid #e1bee7;
+  padding:3px 9px;border-radius:10px;font-size:.7rem;font-weight:700;
+  max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+}
+.trab-steps-bar{display:flex;align-items:center;gap:4px;margin:6px 0 12px;}
+.trab-step-line{flex:1;height:2px;background:#e1bee7;}
+.trab-step-dot{
+  display:flex;flex-direction:column;align-items:center;gap:2px;
+  background:none;border:none;cursor:pointer;padding:0;min-width:54px;
+}
+.trab-step-dot>span{
+  width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  font-size:.78rem;font-weight:800;background:#ede0f3;color:#9c6fb0;border:2px solid transparent;
+}
+.trab-step-dot>small{font-size:.62rem;color:var(--pe-muted);font-weight:700;}
+.trab-step-dot.active>span{background:#8e24aa;color:#fff;}
+.trab-step-dot.active>small{color:#6a1b9a;}
+.trab-step-dot.done>span{background:#e8f5e9;color:#2e7d32;border-color:#a5d6a7;}
+.trab-step-body{min-height:90px;}
+.trab-field>label{font-size:.72rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;}
+.trab-field input{width:100%;padding:7px 9px;border:1.5px solid var(--pe-border);border-radius:6px;font-size:.85rem;}
+.trab-toggle{display:flex;gap:8px;flex-wrap:wrap;}
+.trab-toggle>button{
+  flex:1;min-width:140px;text-align:left;cursor:pointer;
+  padding:8px 11px;border:1.5px solid var(--pe-border);border-radius:8px;background:#fff;
+  font-size:.82rem;font-weight:700;color:var(--pe-navy);line-height:1.2;
+}
+.trab-toggle>button small{display:block;font-weight:500;color:var(--pe-muted);font-size:.68rem;margin-top:2px;}
+.trab-toggle>button.active{border-color:#8e24aa;background:#f7edfb;color:#6a1b9a;box-shadow:0 0 0 1px #8e24aa inset;}
+.trab-hint{font-size:.72rem;color:var(--pe-muted);margin-top:10px;line-height:1.45;}
+.trab-sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.trab-sub-card{border:1.5px solid var(--pe-border);border-radius:8px;padding:9px 11px;background:#fff;}
+.trab-sub-card.on{border-color:#ce93d8;background:#fbf5fe;}
+.trab-sub-head{display:flex;align-items:center;gap:7px;cursor:pointer;font-size:.82rem;font-weight:700;color:var(--pe-navy);}
+.trab-sub-head small{margin-left:auto;font-weight:500;color:var(--pe-muted);font-size:.68rem;}
+.trab-sub-mod{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:.7rem;color:var(--pe-muted);flex-wrap:wrap;}
+.trab-sub-mod>button{
+  cursor:pointer;padding:3px 9px;border:1.5px solid var(--pe-border);border-radius:12px;background:#fff;
+  font-size:.7rem;font-weight:700;color:var(--pe-navy);
+}
+.trab-sub-mod>button.active{border-color:#8e24aa;background:#8e24aa;color:#fff;}
+.trab-nav-btn{
+  cursor:pointer;padding:7px 14px;border:1.5px solid var(--pe-border);border-radius:8px;background:#fff;
+  font-size:.8rem;font-weight:700;color:var(--pe-navy);
+}
+.trab-nav-btn:disabled{opacity:.4;cursor:default;}
+.trab-nav-btn.primary{border-color:#8e24aa;background:#8e24aa;color:#fff;}
+.trab-alunos-list{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:8px;}
+.trab-aluno-row{display:flex;align-items:center;gap:8px;font-size:.78rem;color:var(--pe-navy);}
+.trab-aluno-row>span{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.trab-aluno-row>select{padding:4px 6px;border:1.5px solid var(--pe-border);border-radius:6px;font-size:.76rem;}
+.trab-grupo-card{border:1px solid #e1bee7;border-radius:8px;padding:10px 12px;margin-top:10px;background:#fff;}
+.trab-grupo-head{font-size:.82rem;font-weight:800;color:#6a1b9a;margin-bottom:8px;}
+.trab-grupo-head small{display:block;font-weight:500;color:var(--pe-muted);font-size:.7rem;margin-top:2px;}
+.trab-grp-sub{background:#faf5ff;border:1px dashed #ce93d8;border-radius:6px;padding:8px 10px;margin-bottom:8px;}
+.trab-grp-sub-title{font-size:.74rem;font-weight:700;color:#6a1b9a;margin-bottom:6px;}
+.trab-grp-crit-row{display:flex;flex-wrap:wrap;gap:12px;}
+.trab-grp-crit{display:flex;flex-direction:column;gap:3px;}
+.trab-grp-crit label{font-size:.7rem;color:var(--pe-navy);font-weight:600;}
+@media(max-width:640px){
+  .trab-sub-grid,.trab-alunos-list{grid-template-columns:1fr;}
+}
 .atv-card-chevron{
   color:var(--pe-muted);font-size:.8rem;transition:transform .2s;
 }
@@ -2138,7 +2204,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────────────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -4360,17 +4426,55 @@ const TRABALHO_SUBTIPOS = {
   }
 };
 
-// Nota do trabalho = média dos critérios marcados (0–5) ÷ 5 × teto
+// ── Helpers do Trabalho Acadêmico (multi-subtipo + grupos + formato) ──
+function trabSubtipos(atv){
+  if(Array.isArray(atv.subtipos) && atv.subtipos.length) return atv.subtipos;
+  if(atv.subtipo) return [atv.subtipo];           // compat: modelo de subtipo único
+  return ['apres'];
+}
+function trabFormato(atv){ return atv.formato === 'caixa' ? 'caixa' : 'escala'; }
+function trabModalidade(atv, sub){
+  return (atv.modalidade && atv.modalidade[sub]) === 'individual' ? 'individual' : 'grupo';
+}
+function trabCritKey(sub, critId){ return sub + '::' + critId; }
+function trabCritVal(crits, sub, critId){
+  if(!crits || typeof crits !== 'object') return undefined;
+  const k = trabCritKey(sub, critId);
+  if(crits[k] !== undefined) return crits[k];
+  if(crits[critId] !== undefined) return crits[critId];   // compat subtipo único
+  return undefined;
+}
+
+// Nota do trabalho (POR ALUNO). Mantém o contrato calcNotaTrabalho(atv, critsAluno):
+//  • Ficha conceitual (escala): média dos critérios marcados (0–5) ÷ 5 × teto
+//  • Caixa digital (caixa):     soma dos critérios ÷ máx. da ficha × teto
 function calcNotaTrabalho(atv, criteriosAluno){
-  const sub = TRABALHO_SUBTIPOS[atv.subtipo] || TRABALHO_SUBTIPOS.apres;
-  const teto = atv.teto ?? 10;
   if(!criteriosAluno || typeof criteriosAluno !== 'object') return '—';
-  const vals = sub.criterios
-    .map(c => criteriosAluno[c.id])
-    .filter(v => v !== undefined && v !== null && v !== '');
-  if(!vals.length) return '—';
-  const media = vals.reduce((s,v)=>s+parseFloat(v),0) / vals.length;
-  const nota  = (media/5) * teto;
+  const subs    = trabSubtipos(atv);
+  const formato = trabFormato(atv);
+  const teto    = atv.teto ?? 10;
+  let soma = 0, count = 0;
+  subs.forEach(subKey=>{
+    const sub = TRABALHO_SUBTIPOS[subKey];
+    if(!sub) return;
+    sub.criterios.forEach(c=>{
+      const v = trabCritVal(criteriosAluno, subKey, c.id);
+      if(v !== undefined && v !== null && v !== ''){
+        soma += parseFloat(v) || 0;
+        count++;
+      }
+    });
+  });
+  if(!count) return '—';
+  let nota;
+  if(formato === 'caixa'){
+    const maxFolha = parseFloat(atv.maxFolha) || 10;
+    nota = (soma / maxFolha) * teto;
+  } else {
+    nota = (soma / (count * 5)) * teto;
+  }
+  if(nota > teto) nota = teto;
+  if(nota < 0)    nota = 0;
   return arredondarPE(nota).toFixed(1);
 }
 
@@ -4380,7 +4484,9 @@ function calcNotaTrabalhoNum(atv, criteriosAluno){
 }
 
 function defaultAtv(idx){
-  return { tipo:'direto', teto:10.0, nome:'', vistos:[], subtipo:'apres', tema:'' };
+  return { tipo:'direto', teto:10.0, nome:'', vistos:[],
+           subtipos:['apres'], modalidade:{}, formato:'escala', maxFolha:10,
+           tema:'', grupos:[], alunoGrupo:{} };
 }
 
 // ── Renderizar conteúdo da unidade ───────────────────────────────────
@@ -4715,152 +4821,329 @@ function calcNotaVistos(atv, marcados){
 // ETAPA 8 — UI do Trabalho Acadêmico
 // ══════════════════════════════════════════════════════════
 
+// Passo atual do wizard de cada trabalho (transitório, não persistido)
+window._trabStep = window._trabStep || {};
+
+function _trabNormalizar(atv){
+  if(!Array.isArray(atv.subtipos) || !atv.subtipos.length)
+    atv.subtipos = atv.subtipo ? [atv.subtipo] : ['apres'];
+  if(typeof atv.modalidade !== 'object' || !atv.modalidade) atv.modalidade = {};
+  if(atv.formato !== 'caixa' && atv.formato !== 'escala') atv.formato = 'escala';
+  if(atv.maxFolha == null) atv.maxFolha = 10;
+  if(atv.tema == null) atv.tema = '';
+  if(!Array.isArray(atv.grupos)) atv.grupos = [];
+  if(typeof atv.alunoGrupo !== 'object' || !atv.alunoGrupo) atv.alunoGrupo = {};
+}
+
+window.trabGoStep = function(uid, idx, step){
+  window._trabStep[`${uid}-${idx}`] = step;
+  renderTrabalhoConfig(uid, idx);
+};
+
 function renderTrabalhoConfig(uid, idx){
   const atv   = _atvConfig[uid]?.atividades[idx];
   const panel = document.getElementById(`trabalho-panel-${uid}-${idx}`);
   if(!atv || !panel) return;
-  if(!atv.subtipo) atv.subtipo = 'apres';
-  if(atv.tema == null) atv.tema = '';
+  _trabNormalizar(atv);
 
-  const opts = Object.entries(TRABALHO_SUBTIPOS).map(([k,v]) =>
-    `<option value="${k}" ${atv.subtipo===k?'selected':''}>${v.label}</option>`
-  ).join('');
+  const key  = `${uid}-${idx}`;
+  const step = window._trabStep[key] || 1;
+  const alunos = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
 
-  const sub = TRABALHO_SUBTIPOS[atv.subtipo];
-  const listaCrit = sub.criterios.map(c => `
-    <li style="margin:4px 0;">
-      <strong style="color:var(--pe-navy);">${c.label}</strong>
-      <span style="color:var(--pe-muted);font-size:.72rem;"> · níveis 0–5</span>
-    </li>`).join('');
+  // ── Resumo (sempre visível, mantém a primeira vista limpa) ──
+  const nSubs   = atv.subtipos.length;
+  const nGrupos = atv.grupos.length;
+  const fmtTxt  = atv.formato==='caixa' ? 'Caixa digital' : 'Ficha 0–5';
+  const resumo = `
+    <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
+      <span class="trab-chip">📌 ${atv.tema ? atv.tema : 'Sem tema'}</span>
+      <span class="trab-chip">📊 ${fmtTxt}</span>
+      <span class="trab-chip">🧩 ${nSubs} subtipo${nSubs!==1?'s':''}</span>
+      <span class="trab-chip">👥 ${nGrupos} grupo${nGrupos!==1?'s':''}</span>
+    </div>`;
+
+  // ── Indicador de passos ──
+  const passos = [['1','Tema'],['2','Critérios'],['3','Grupos']];
+  const ind = passos.map(([n,lbl])=>`
+    <button type="button" class="trab-step-dot ${step==+n?'active':''} ${step>+n?'done':''}"
+      onclick="trabGoStep('${uid}',${idx},${n})">
+      <span>${step>+n?'✓':n}</span><small>${lbl}</small>
+    </button>`).join('<div class="trab-step-line"></div>');
+
+  let conteudo = '';
+  if(step===1) conteudo = _trabStep1(uid, idx, atv);
+  else if(step===2) conteudo = _trabStep2(uid, idx, atv);
+  else conteudo = _trabStep3(uid, idx, atv, alunos);
+
+  const nav = `
+    <div style="display:flex;justify-content:space-between;gap:8px;margin-top:12px;">
+      <button type="button" class="trab-nav-btn" ${step<=1?'disabled':''}
+        onclick="trabGoStep('${uid}',${idx},${step-1})">← Voltar</button>
+      <button type="button" class="trab-nav-btn primary" ${step>=3?'style=\"visibility:hidden\"':''}
+        onclick="trabGoStep('${uid}',${idx},${step+1})">Avançar →</button>
+    </div>`;
 
   panel.innerHTML = `
-  <div class="vistos-config" style="border-left:3px solid #8e24aa;">
+  <div class="vistos-config trab-config" style="border-left:3px solid #8e24aa;">
     <div class="vistos-config-title" style="color:#6a1b9a;">📁 Configuração do Trabalho Acadêmico</div>
-
-    <div style="display:grid;grid-template-columns:1fr 2fr;gap:10px;margin-bottom:10px;">
-      <div>
-        <label style="font-size:.72rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Subtipo do trabalho</label>
-        <select id="subtipo-trab-${uid}-${idx}"
-          onchange="onSubtipoTrabalhoChange('${uid}',${idx},this.value)"
-          style="width:100%;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:4px;font-size:.85rem;">
-          ${opts}
-        </select>
-      </div>
-      <div>
-        <label style="font-size:.72rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">📌 Tema do trabalho</label>
-        <input type="text" id="tema-trab-${uid}-${idx}" value="${atv.tema.replace(/"/g,'&quot;')}"
-          placeholder="Ex.: Sistema Solar, Revolução Industrial..."
-          oninput="onTemaTrabalhoChange('${uid}',${idx},this.value)"
-          style="width:100%;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:4px;font-size:.85rem;">
-      </div>
-    </div>
-
-    <div style="background:#faf5ff;border:1px dashed #ce93d8;border-radius:6px;padding:10px 12px;">
-      <div style="font-size:.78rem;font-weight:700;color:#6a1b9a;margin-bottom:6px;">Critérios avaliados (${sub.criterios.length})</div>
-      <ul style="list-style:none;padding-left:0;font-size:.78rem;color:var(--pe-text);">${listaCrit}</ul>
-      <div style="font-size:.7rem;color:var(--pe-muted);margin-top:6px;">
-        Nota = (média dos critérios marcados ÷ 5) × teto da atividade. Passe o mouse no nível para ver o descritor completo.
-      </div>
-    </div>
+    ${resumo}
+    <div class="trab-steps-bar">${ind}</div>
+    <div class="trab-step-body">${conteudo}</div>
+    ${nav}
   </div>`;
+}
+
+// Passo 1 — Tema + formato de avaliação
+function _trabStep1(uid, idx, atv){
+  const caixa = atv.formato==='caixa';
+  return `
+    <div class="trab-field">
+      <label>📌 Tema do trabalho</label>
+      <input type="text" value="${(atv.tema||'').replace(/"/g,'&quot;')}"
+        placeholder="Ex.: Sistema Solar, Revolução Industrial..."
+        oninput="onTrabTema('${uid}',${idx},this.value)">
+    </div>
+    <div class="trab-field" style="margin-top:10px;">
+      <label>📊 Formato de avaliação</label>
+      <div class="trab-toggle">
+        <button type="button" class="${!caixa?'active':''}" onclick="onTrabFormato('${uid}',${idx},'escala')">
+          Ficha conceitual <small>níveis 0 a 5</small>
+        </button>
+        <button type="button" class="${caixa?'active':''}" onclick="onTrabFormato('${uid}',${idx},'caixa')">
+          Caixa digital <small>pontos de 0,1 em 0,1</small>
+        </button>
+      </div>
+    </div>
+    ${caixa ? `
+    <div class="trab-field" style="margin-top:10px;max-width:220px;">
+      <label>Máx. da ficha (soma total dos critérios)</label>
+      <input type="number" min="0" step="0.5" value="${atv.maxFolha??10}"
+        oninput="onTrabMaxFolha('${uid}',${idx},this.value)">
+    </div>` : ''}
+    <div class="trab-hint">A nota final é convertida para o <strong>teto da atividade (${atv.teto??10})</strong>${caixa?', dividindo a soma pelo máx. da ficha.':', pela média dos critérios.'}</div>`;
+}
+
+// Passo 2 — Subtipos e modalidade
+function _trabStep2(uid, idx, atv){
+  const cards = Object.entries(TRABALHO_SUBTIPOS).map(([k,v])=>{
+    const on  = atv.subtipos.includes(k);
+    const mod = trabModalidade(atv, k);
+    return `
+    <div class="trab-sub-card ${on?'on':''}">
+      <label class="trab-sub-head">
+        <input type="checkbox" ${on?'checked':''} onchange="onTrabSubtipo('${uid}',${idx},'${k}',this.checked)">
+        <span>${v.label}</span>
+        <small>${v.criterios.length} critérios</small>
+      </label>
+      ${on ? `
+      <div class="trab-sub-mod">
+        <span>Modalidade:</span>
+        <button type="button" class="${mod==='grupo'?'active':''}" onclick="onTrabModalidade('${uid}',${idx},'${k}','grupo')">Em grupo</button>
+        <button type="button" class="${mod==='individual'?'active':''}" onclick="onTrabModalidade('${uid}',${idx},'${k}','individual')">Individual</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+  return `
+    <div class="trab-hint" style="margin-top:0;margin-bottom:8px;">Marque um ou mais tipos de trabalho. Cada um pode valer nota <strong>em grupo</strong> (mesma nota para todos) ou <strong>individual</strong> (nota por aluno).</div>
+    <div class="trab-sub-grid">${cards}</div>`;
+}
+
+// Passo 3 — Grupos e integrantes
+function _trabStep3(uid, idx, atv, alunos){
+  const nGrupos = atv.grupos.length;
+  const linhas = alunos.map((a,ai)=>{
+    const nome = typeof a==='string'?a:a.nome;
+    const g = atv.alunoGrupo?.[ai];
+    const opts = ['<option value="">— Sem grupo —</option>']
+      .concat(atv.grupos.map((gr,gi)=>`<option value="${gi}" ${g===gi?'selected':''}>${gr.nome||('Grupo '+(gi+1))}</option>`))
+      .join('');
+    return `
+      <div class="trab-aluno-row">
+        <span>${ai+1}. ${nome}</span>
+        <select onchange="onTrabAlunoGrupo('${uid}',${idx},${ai},this.value)">${opts}</select>
+      </div>`;
+  }).join('');
+  return `
+    <div class="trab-field" style="max-width:240px;">
+      <label>👥 Número de grupos</label>
+      <input type="number" min="0" max="${Math.max(alunos.length,1)}" value="${nGrupos}"
+        onchange="onTrabQtdGrupos('${uid}',${idx},this.value)">
+    </div>
+    ${nGrupos>0 ? `
+      <div class="trab-hint" style="margin-top:8px;">Defina o grupo de cada aluno. Trabalhos "em grupo" recebem a mesma nota para todos os integrantes.</div>
+      <div class="trab-alunos-list">${linhas}</div>
+    ` : `<div class="trab-hint" style="margin-top:8px;">Sem grupos definidos: todos os subtipos serão lançados <strong>individualmente</strong> por aluno.</div>`}`;
+}
+
+// Célula de critério (escala 0–5 = select; caixa = input numérico)
+function _trabCell(uid, idx, scope, sub, critId, c, val, formato){
+  const handler = scope.kind==='ind'
+    ? `setCritTrabInd('${uid}',${idx},${scope.ai},'${sub}','${critId}',this.value)`
+    : `setCritTrabGrp('${uid}',${idx},${scope.gi},'${sub}','${critId}',this.value)`;
+  if(formato==='caixa'){
+    const v = (val==null) ? '' : val;
+    return `<input type="number" class="nota-input" style="width:64px;text-align:center;" min="0" step="0.1" value="${v}" oninput="${handler}">`;
+  }
+  const opts = [0,1,2,3,4,5].map(n=>{
+    const desc = c.niveis[n] || String(n);
+    const sel  = (val!==undefined&&val!==null&&val!==''&&parseInt(val)===n) ? 'selected' : '';
+    return `<option value="${n}" title="${desc.replace(/"/g,'&quot;')}" ${sel}>${n}</option>`;
+  }).join('');
+  const none = (val===undefined||val===null||val==='') ? 'selected' : '';
+  return `<select class="nota-input" style="padding:4px 6px;min-width:50px;" onchange="${handler}"><option value="" ${none}>—</option>${opts}</select>`;
 }
 
 function renderTabelaTrabalho(uid, idx, atv, alunos, notas){
-  if(!atv.subtipo) atv.subtipo = 'apres';
-  const sub = TRABALHO_SUBTIPOS[atv.subtipo];
+  _trabNormalizar(atv);
+  const subs    = trabSubtipos(atv);
+  const formato = trabFormato(atv);
+  const grupos  = atv.grupos || [];
+  const tetoTxt = `teto ${atv.teto??10}` + (formato==='caixa'?` · máx. ficha ${atv.maxFolha??10}`:'');
+  const titulo  = `<div class="lancamento-tabela-title">📁 Lançamento${atv.tema?` — <em style="font-weight:400;">${atv.tema}</em>`:''} <span style="font-weight:400;color:var(--pe-muted);font-size:.78rem;">(${tetoTxt})</span></div>`;
 
-  const ths = sub.criterios.map(c =>
-    `<th class="col-visto" title="${c.niveis.join(' | ').replace(/"/g,'&quot;')}">${c.label}</th>`
-  ).join('');
+  if(!alunos.length)
+    return `<div class="lancamento-tabela">${titulo}<div class="unidade-empty" style="padding:12px 0;"><span>👤</span>Nenhum aluno ativo.</div></div>`;
 
-  const rows = alunos.map((a, ai) => {
-    const nome = typeof a==='string' ? a : a.nome;
-    const crits = (notas[ai] && typeof notas[ai]==='object') ? notas[ai] : {};
-    const tdsCrit = sub.criterios.map(c => {
-      const v = crits[c.id];
-      const opts = [0,1,2,3,4,5].map(n => {
-        const desc = c.niveis[n] || String(n);
-        const sel = (v !== undefined && v !== null && v !== '' && parseInt(v)===n) ? 'selected' : '';
-        return `<option value="${n}" title="${desc.replace(/"/g,'&quot;')}">${n}</option>`;
+  // ── Sem grupos → tabela individual única (todos os subtipos por aluno) ──
+  if(!grupos.length){
+    const cols = [];
+    subs.forEach(s=>{ const sub=TRABALHO_SUBTIPOS[s]; if(sub) sub.criterios.forEach(c=>cols.push({s,c})); });
+    const ths = cols.map(col=>`<th class="col-visto" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${col.c.label}</th>`).join('');
+    const rows = alunos.map((a,ai)=>{
+      const nome  = typeof a==='string'?a:a.nome;
+      const crits = (notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
+      const tds = cols.map(col=>{
+        const v = trabCritVal(crits, col.s, col.c.id);
+        return `<td class="col-visto" style="text-align:center;" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${_trabCell(uid,idx,{kind:'ind',ai},col.s,col.c.id,col.c,v,formato)}</td>`;
       }).join('');
-      return `
-        <td class="col-visto" style="text-align:center;" title="${c.niveis.join(' | ').replace(/"/g,'&quot;')}">
-          <select class="nota-input" style="padding:4px 6px;min-width:54px;"
-            onchange="setCriterioTrabalho('${uid}',${idx},${ai},'${c.id}',this.value)">
-            <option value="" ${v===undefined||v===null||v===''?'selected':''}>—</option>
-            ${opts}
-          </select>
-        </td>`;
+      return `<tr><td class="col-aluno">${ai+1}. ${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td></tr>`;
     }).join('');
-    const notaCalc = calcNotaTrabalho(atv, crits);
-    return `<tr>
-      <td class="col-aluno">${ai+1}. ${nome}</td>
-      ${tdsCrit}
-      <td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${notaCalc}</strong></td>
-    </tr>`;
+    return `<div class="lancamento-tabela">${titulo}<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Aluno</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
+  }
+
+  // ── Com grupos → bloco por grupo (notas em grupo + tabela individual) ──
+  const subGrupo = subs.filter(s=>trabModalidade(atv,s)==='grupo');
+  const subInd   = subs.filter(s=>trabModalidade(atv,s)==='individual');
+  const colsInd  = [];
+  subInd.forEach(s=>{ const sub=TRABALHO_SUBTIPOS[s]; if(sub) sub.criterios.forEach(c=>colsInd.push({s,c})); });
+
+  const blocks = grupos.map((gr,gi)=>{
+    const members = [];
+    alunos.forEach((a,ai)=>{ if(atv.alunoGrupo?.[ai]===gi) members.push(ai); });
+    const nomes = members.map(ai=>{const a=alunos[ai];return (ai+1)+'. '+(typeof a==='string'?a:a.nome);});
+
+    let grpHtml = '';
+    if(subGrupo.length){
+      grpHtml = subGrupo.map(s=>{
+        const sub = TRABALHO_SUBTIPOS[s];
+        const cells = sub.criterios.map(c=>{
+          const v = members.length ? trabCritVal((notas[members[0]]||{}), s, c.id) : undefined;
+          return `<div class="trab-grp-crit"><label title="${c.niveis.join(' | ').replace(/"/g,'&quot;')}">${c.label}</label>${_trabCell(uid,idx,{kind:'grp',gi},s,c.id,c,v,formato)}</div>`;
+        }).join('');
+        return `<div class="trab-grp-sub"><div class="trab-grp-sub-title">${sub.label} · nota do grupo</div><div class="trab-grp-crit-row">${cells}</div></div>`;
+      }).join('');
+    }
+
+    let indHtml = '';
+    if(members.length){
+      const ths = colsInd.map(col=>`<th class="col-visto" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${col.c.label}</th>`).join('');
+      const rows = members.map(ai=>{
+        const a=alunos[ai]; const nome=typeof a==='string'?a:a.nome;
+        const crits=(notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
+        const tds=colsInd.map(col=>{const v=trabCritVal(crits,col.s,col.c.id);return `<td class="col-visto" style="text-align:center;">${_trabCell(uid,idx,{kind:'ind',ai},col.s,col.c.id,col.c,v,formato)}</td>`;}).join('');
+        return `<tr><td class="col-aluno">${ai+1}. ${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td></tr>`;
+      }).join('');
+      indHtml = `<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Integrante</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+    } else {
+      indHtml = `<div class="trab-hint" style="margin:6px 0;">Nenhum aluno neste grupo ainda.</div>`;
+    }
+    return `<div class="trab-grupo-card"><div class="trab-grupo-head">👥 ${gr.nome||('Grupo '+(gi+1))} <small>${nomes.length?nomes.join(' · '):'sem integrantes'}</small></div>${grpHtml}${indHtml}</div>`;
   }).join('');
 
-  return `
-  <div class="lancamento-tabela">
-    <div class="lancamento-tabela-title">
-      📁 ${sub.label}${atv.tema?` — <em style="font-weight:400;">${atv.tema}</em>`:''}
-      <span style="font-weight:400;color:var(--pe-muted);font-size:.78rem;"> (teto: ${atv.teto??10})</span>
-    </div>
-    <div style="overflow-x:auto;">
-    <table class="notas-table">
-      <thead><tr>
-        <th class="col-aluno">Aluno</th>
-        ${ths}
-        <th class="col-nota">Nota</th>
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
-    </div>
-  </div>`;
+  const semG = [];
+  alunos.forEach((a,ai)=>{ const g=atv.alunoGrupo?.[ai]; if(g==null||!grupos[g]) semG.push((ai+1)+'. '+(typeof a==='string'?a:a.nome)); });
+  const semHtml = semG.length ? `<div class="trab-hint" style="margin-top:8px;">⚠️ Sem grupo (nota fica — até a atribuição): ${semG.join(', ')}</div>` : '';
+
+  return `<div class="lancamento-tabela">${titulo}${blocks}${semHtml}</div>`;
 }
 
-window.onSubtipoTrabalhoChange = function(uid, idx, val){
-  const atv = _atvConfig[uid]?.atividades[idx];
-  if(!atv) return;
-  atv.subtipo = val;
-  // Critérios mudam → as notas anteriores podem ficar inválidas. Mantemos o objeto
-  // (não apaga) para preservar dados se o usuário voltar ao subtipo anterior.
-  renderTrabalhoConfig(uid, idx);
-  rerenderTabelaAtvCard(uid, idx);
-  agendarAutosave();
-};
-
-window.onTemaTrabalhoChange = function(uid, idx, val){
-  const atv = _atvConfig[uid]?.atividades[idx];
-  if(!atv) return;
-  atv.tema = val;
-  // Atualiza título da tabela sem re-renderizar tudo
-  const titulo = document.querySelector(`#atv-card-${uid}-${idx} .lancamento-tabela-title`);
-  if(titulo){
-    const sub = TRABALHO_SUBTIPOS[atv.subtipo] || TRABALHO_SUBTIPOS.apres;
-    titulo.innerHTML = `📁 ${sub.label}${val?` — <em style="font-weight:400;">${val}</em>`:''}` +
-      ` <span style="font-weight:400;color:var(--pe-muted);font-size:.78rem;"> (teto: ${atv.teto??10})</span>`;
-  }
-  agendarAutosave();
-};
-
-window.setCriterioTrabalho = function(uid, idx, ai, critId, val){
+// ── Gravação de critérios ────────────────────────────────────────────
+function _trabEnsureCrit(uid, idx, ai){
   if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
   if(!_notasCache[uid].atv[idx]) _notasCache[uid].atv[idx]={};
-  if(!_notasCache[uid].atv[idx][ai] || typeof _notasCache[uid].atv[idx][ai] !== 'object'){
-    _notasCache[uid].atv[idx][ai] = {};
-  }
-  if(val==='' || val==null){
-    delete _notasCache[uid].atv[idx][ai][critId];
-  } else {
-    _notasCache[uid].atv[idx][ai][critId] = parseInt(val);
-  }
-  // Atualiza célula da nota calculada
-  const atv = _atvConfig[uid]?.atividades[idx];
-  const cel = document.getElementById(`nota-trab-${uid}-${idx}-${ai}`);
-  if(cel) cel.innerHTML = `<strong>${calcNotaTrabalho(atv, _notasCache[uid].atv[idx][ai])}</strong>`;
-  recalcularPrevia(uid, ai);
+  const cur=_notasCache[uid].atv[idx][ai];
+  if(!cur||typeof cur!=='object') _notasCache[uid].atv[idx][ai]={};
+  return _notasCache[uid].atv[idx][ai];
+}
+function _trabUpdNotaCell(uid, idx, ai){
+  const atv=_atvConfig[uid]?.atividades[idx];
+  const cel=document.getElementById(`nota-trab-${uid}-${idx}-${ai}`);
+  if(cel) cel.innerHTML=`<strong>${calcNotaTrabalho(atv,_notasCache[uid].atv[idx][ai])}</strong>`;
+}
+function _trabSetVal(uid, idx, ai, sub, critId, val){
+  const atv=_atvConfig[uid]?.atividades[idx];
+  const obj=_trabEnsureCrit(uid,idx,ai);
+  const k=trabCritKey(sub,critId);
+  if(val===''||val==null){ delete obj[k]; }
+  else { obj[k]= trabFormato(atv)==='caixa' ? (parseFloat(val)||0) : parseInt(val); }
+  _trabUpdNotaCell(uid,idx,ai);
+  recalcularPrevia(uid,ai);
+}
+window.setCritTrabInd = function(uid, idx, ai, sub, critId, val){
+  _trabSetVal(uid,idx,ai,sub,critId,val);
   agendarAutosave();
+};
+window.setCritTrabGrp = function(uid, idx, gi, sub, critId, val){
+  const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  const alunos=(_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+  alunos.forEach((a,ai)=>{ if(atv.alunoGrupo?.[ai]===gi) _trabSetVal(uid,idx,ai,sub,critId,val); });
+  agendarAutosave();
+};
+
+// ── Handlers de configuração (wizard) ────────────────────────────────
+window.onTrabTema = function(uid, idx, val){
+  const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  atv.tema=val;
+  const chip=document.querySelector(`#trabalho-panel-${uid}-${idx} .trab-chip`);
+  if(chip) chip.textContent='📌 '+(val||'Sem tema');
+  agendarAutosave();
+};
+window.onTrabFormato = function(uid, idx, val){
+  const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  atv.formato=(val==='caixa'?'caixa':'escala');
+  renderTrabalhoConfig(uid,idx); rerenderTabelaAtvCard(uid,idx); agendarAutosave();
+};
+window.onTrabMaxFolha = function(uid, idx, val){
+  const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return;
+  atv.maxFolha=parseFloat(val)||10;
+  rerenderTabelaAtvCard(uid,idx); agendarAutosave();
+};
+window.onTrabSubtipo = function(uid, idx, sub, checked){
+  const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return; _trabNormalizar(atv);
+  const set=new Set(atv.subtipos);
+  if(checked) set.add(sub); else set.delete(sub);
+  if(set.size===0){ showToast && showToast('Mantenha ao menos um subtipo.','info'); return renderTrabalhoConfig(uid,idx); }
+  atv.subtipos=Object.keys(TRABALHO_SUBTIPOS).filter(k=>set.has(k));
+  delete atv.subtipo;
+  renderTrabalhoConfig(uid,idx); rerenderTabelaAtvCard(uid,idx); agendarAutosave();
+};
+window.onTrabModalidade = function(uid, idx, sub, val){
+  const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return; _trabNormalizar(atv);
+  atv.modalidade[sub]=(val==='individual'?'individual':'grupo');
+  renderTrabalhoConfig(uid,idx); rerenderTabelaAtvCard(uid,idx); agendarAutosave();
+};
+window.onTrabQtdGrupos = function(uid, idx, val){
+  const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return; _trabNormalizar(atv);
+  let n=parseInt(val)||0; if(n<0) n=0;
+  const old=atv.grupos;
+  atv.grupos=Array.from({length:n},(_,i)=> old[i] || {nome:'Grupo '+(i+1)});
+  Object.keys(atv.alunoGrupo).forEach(ai=>{ if(atv.alunoGrupo[ai]>=n) delete atv.alunoGrupo[ai]; });
+  renderTrabalhoConfig(uid,idx); rerenderTabelaAtvCard(uid,idx); agendarAutosave();
+};
+window.onTrabAlunoGrupo = function(uid, idx, ai, val){
+  const atv=_atvConfig[uid]?.atividades[idx]; if(!atv) return; _trabNormalizar(atv);
+  if(val===''||val==null) delete atv.alunoGrupo[ai]; else atv.alunoGrupo[ai]=parseInt(val);
+  rerenderTabelaAtvCard(uid,idx); agendarAutosave();
 };
 
 // Re-renderiza a tabela de lançamento dentro de um card de atividade
@@ -5085,7 +5368,16 @@ function montarPayload(uid, nc, cfg){
       nome:  atv.nome||'',
       notas: nc.atv[idx] || {},
       ...(atv.tipo==='vistos'   ? {vistosConfig: atv.vistos||[]} : {}),
-      ...(atv.tipo==='trabalho' ? {subtipo: atv.subtipo||'apres', tema: atv.tema||''} : {})
+      ...(atv.tipo==='trabalho' ? {
+            subtipos:   trabSubtipos(atv),
+            modalidade: atv.modalidade || {},
+            formato:    trabFormato(atv),
+            maxFolha:   atv.maxFolha ?? 10,
+            grupos:     atv.grupos || [],
+            alunoGrupo: atv.alunoGrupo || {},
+            tema:       atv.tema || '',
+            subtipo:    (atv.subtipos && atv.subtipos[0]) || atv.subtipo || 'apres' // compat
+          } : {})
     };
   });
   return {
@@ -5185,10 +5477,17 @@ async function carregarNotasUnidade(turmaId, unidade){
           _atvConfig[uid].atividades[idx].nome  = atv.nome  || '';
           if(atv.vistosConfig)
             _atvConfig[uid].atividades[idx].vistos = atv.vistosConfig;
-          if(atv.subtipo)
-            _atvConfig[uid].atividades[idx].subtipo = atv.subtipo;
-          if(atv.tema !== undefined)
-            _atvConfig[uid].atividades[idx].tema = atv.tema;
+          // Trabalho acadêmico (formato completo) + compat com subtipo único
+          const dst = _atvConfig[uid].atividades[idx];
+          if(Array.isArray(atv.subtipos) && atv.subtipos.length) dst.subtipos = atv.subtipos;
+          else if(atv.subtipo) dst.subtipos = [atv.subtipo];
+          if(atv.subtipo) dst.subtipo = atv.subtipo;
+          if(atv.modalidade) dst.modalidade = atv.modalidade;
+          if(atv.formato)    dst.formato    = atv.formato;
+          if(atv.maxFolha !== undefined) dst.maxFolha = atv.maxFolha;
+          if(Array.isArray(atv.grupos))  dst.grupos   = atv.grupos;
+          if(atv.alunoGrupo) dst.alunoGrupo = atv.alunoGrupo;
+          if(atv.tema !== undefined) dst.tema = atv.tema;
         }
       });
       if(dados.qtdAtividades !== undefined && _atvConfig[uid]){
