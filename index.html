@@ -648,6 +648,209 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
   .profile-grid{grid-template-columns:1fr;}
 }
 
+/* ══════════════════════════════════════════════
+   TELA DE TURMA — LANÇAMENTO DE NOTAS
+   ══════════════════════════════════════════════ */
+#turma-screen{
+  display:none;flex-direction:column;min-height:100vh;
+  background:var(--pe-bg);
+}
+#turma-screen.active{display:flex;}
+
+/* ── Cabeçalho info da turma ── */
+.turma-header-info{
+  background:linear-gradient(135deg,var(--pe-navy),var(--pe-blue));
+  padding:16px 20px;color:#fff;
+}
+.turma-header-title{
+  font-size:1.15rem;font-weight:900;letter-spacing:-.01em;
+}
+.turma-header-meta{
+  font-size:.78rem;color:var(--pe-cyan);margin-top:4px;
+  display:flex;flex-wrap:wrap;gap:10px;
+}
+.turma-header-badge{
+  background:rgba(255,255,255,.15);
+  padding:2px 9px;border-radius:10px;font-size:.7rem;font-weight:700;
+}
+
+/* ── Abas de unidade ── */
+.unidades-tabs-bar{
+  background:var(--pe-navy);
+  display:flex;gap:2px;padding:0 16px;
+  overflow-x:auto;scrollbar-width:none;
+  border-bottom:3px solid var(--pe-yellow);
+}
+.unidades-tabs-bar::-webkit-scrollbar{display:none;}
+.unidade-tab{
+  padding:11px 18px;color:rgba(255,255,255,.6);
+  font-size:.82rem;font-weight:700;border:none;background:none;
+  cursor:pointer;white-space:nowrap;border-bottom:3px solid transparent;
+  margin-bottom:-3px;transition:var(--transition);
+}
+.unidade-tab:hover{color:#fff;}
+.unidade-tab.active{
+  color:#fff;border-bottom-color:var(--pe-yellow);
+}
+
+/* ── Corpo da unidade ── */
+.turma-body{
+  flex:1;padding:20px 16px 40px;
+  max-width:900px;margin:0 auto;width:100%;
+}
+
+/* ── Cabeçalho da unidade ── */
+.unidade-header{
+  background:#fff;border-radius:var(--radius-md);
+  border:1px solid var(--pe-border);box-shadow:var(--shadow-sm);
+  padding:16px 18px;margin-bottom:16px;
+  display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;
+}
+.unidade-header-left h3{
+  font-size:.95rem;font-weight:800;color:var(--pe-navy);
+}
+.unidade-header-left p{
+  font-size:.75rem;color:var(--pe-muted);margin-top:2px;
+}
+.unidade-qtd-ctrl{
+  display:flex;align-items:center;gap:8px;
+}
+.unidade-qtd-ctrl label{
+  font-size:.75rem;font-weight:700;color:var(--pe-muted);
+}
+.unidade-qtd-input{
+  width:64px;padding:6px 8px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.88rem;font-weight:700;text-align:center;outline:none;
+}
+.unidade-qtd-input:focus{border-color:var(--pe-blue);}
+.btn-aplicar-qtd{
+  padding:6px 13px;background:var(--pe-blue);color:#fff;
+  border:none;border-radius:6px;font-size:.78rem;font-weight:700;cursor:pointer;
+}
+.btn-aplicar-qtd:hover{background:var(--pe-navy);}
+
+/* ── Cards de atividade ── */
+.atividades-section{
+  display:flex;flex-direction:column;gap:12px;
+  margin-bottom:20px;
+}
+.atv-card{
+  background:#fff;border-radius:var(--radius-md);
+  border:1.5px solid var(--pe-border);box-shadow:var(--shadow-sm);
+  overflow:hidden;
+}
+.atv-card-header{
+  display:flex;align-items:center;gap:10px;padding:12px 16px;
+  background:#f8f9fa;border-bottom:1px solid var(--pe-border);
+  cursor:pointer;user-select:none;
+}
+.atv-card-num{
+  width:28px;height:28px;border-radius:50%;
+  background:var(--pe-navy);color:#fff;
+  font-size:.78rem;font-weight:900;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+}
+.atv-card-title{flex:1;font-size:.88rem;font-weight:700;color:var(--pe-navy);}
+.atv-card-tipo-badge{
+  padding:3px 9px;border-radius:10px;font-size:.68rem;font-weight:700;
+}
+.tipo-badge-direto  {background:#e8f0fe;color:var(--pe-blue);}
+.tipo-badge-vistos  {background:#fff3e0;color:#e65100;}
+.tipo-badge-trabalho{background:#f3e5f5;color:#6a1b9a;}
+.atv-card-chevron{
+  color:var(--pe-muted);font-size:.8rem;transition:transform .2s;
+}
+.atv-card.open .atv-card-chevron{transform:rotate(180deg);}
+
+.atv-card-body{
+  display:none;padding:16px;
+  border-top:1px solid var(--pe-border);
+}
+.atv-card.open .atv-card-body{display:block;}
+
+/* ── Configuração dentro do card ── */
+.atv-config-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;
+}
+.atv-config-field label{
+  display:block;font-size:.72rem;font-weight:700;
+  color:var(--pe-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px;
+}
+.atv-config-field select,
+.atv-config-field input{
+  width:100%;padding:8px 11px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.88rem;outline:none;background:#fafafa;
+}
+.atv-config-field select:focus,
+.atv-config-field input:focus{border-color:var(--pe-blue);background:#fff;}
+
+/* ── Painel de vistos ── */
+.vistos-config{
+  background:#fff8f0;border:1px solid #ffe0b2;
+  border-radius:8px;padding:14px;margin-top:8px;
+}
+.vistos-config-title{
+  font-size:.78rem;font-weight:700;color:#e65100;margin-bottom:10px;
+}
+.vistos-row{
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;
+}
+.vistos-row input[type=text]{
+  flex:1;padding:6px 10px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.82rem;outline:none;
+}
+.vistos-row input[type=date]{
+  padding:6px 10px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.82rem;outline:none;width:150px;
+}
+.vistos-row input:focus{border-color:var(--pe-blue);}
+.visto-num{
+  width:22px;font-size:.72rem;font-weight:700;
+  color:var(--pe-muted);text-align:right;flex-shrink:0;
+}
+.btn-visto-ctrl{
+  padding:5px 10px;border:none;border-radius:5px;
+  font-size:.8rem;font-weight:700;cursor:pointer;
+}
+.btn-add-visto{background:#e8f0fe;color:var(--pe-blue);}
+.btn-rem-visto{background:#fdecea;color:var(--pe-red);}
+
+/* ── Seção prova e extras ── */
+.prova-extras-row{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;
+}
+.prova-extras-card{
+  background:#fff;border-radius:var(--radius-md);
+  border:1.5px solid var(--pe-border);padding:14px;box-shadow:var(--shadow-sm);
+}
+.prova-extras-card h4{
+  font-size:.82rem;font-weight:800;color:var(--pe-navy);margin-bottom:10px;
+  display:flex;align-items:center;gap:6px;
+}
+.prova-extras-field label{
+  display:block;font-size:.7rem;font-weight:700;color:var(--pe-muted);
+  text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px;
+}
+.prova-extras-field input{
+  width:100%;padding:7px 10px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.88rem;outline:none;
+}
+.prova-extras-field input:focus{border-color:var(--pe-blue);}
+
+/* ── Estado vazio ── */
+.unidade-empty{
+  text-align:center;padding:40px 20px;color:var(--pe-muted);
+  font-size:.88rem;
+}
+.unidade-empty span{font-size:2rem;display:block;margin-bottom:8px;}
+
+/* ── Responsive ── */
+@media(max-width:520px){
+  .atv-config-row{grid-template-columns:1fr;}
+  .prova-extras-row{grid-template-columns:1fr;}
+  .unidade-header{flex-direction:column;align-items:flex-start;}
+}
+
 /* ─── TOAST ─── */
 #toast{
   position:fixed;top:74px;left:50%;transform:translateX(-50%) translateY(-12px);
@@ -1328,6 +1531,61 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
     </div>
 
   </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     TELA: TURMA / LANÇAMENTO DE NOTAS
+     ═══════════════════════════════════════════ -->
+<div id="turma-screen">
+
+  <!-- Navbar -->
+  <nav class="navbar" style="position:relative;">
+    <div class="navbar-brand">
+      <button id="btn-back-turma" onclick="closeTurmaScreen()"
+        style="background:rgba(255,255,255,.15);border:none;color:#fff;
+               padding:7px 13px;border-radius:6px;font-size:.82rem;font-weight:700;cursor:pointer;">
+        ← Voltar
+      </button>
+    </div>
+    <div style="position:absolute;left:50%;transform:translateX(-50%);text-align:center;">
+      <div class="navbar-title" id="turma-screen-title">Turma</div>
+      <div class="navbar-subtitle" id="turma-screen-subtitle"></div>
+    </div>
+    <div class="navbar-actions">
+      <button onclick="showProfile()"
+        style="background:rgba(255,255,255,.12);border:none;color:#fff;
+               padding:6px 12px;border-radius:16px;font-size:.78rem;font-weight:600;cursor:pointer;">
+        👤
+      </button>
+    </div>
+    <div class="brand-line">
+      <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
+    </div>
+  </nav>
+
+  <!-- Info da turma -->
+  <div class="turma-header-info">
+    <div class="turma-header-title" id="ts-titulo">—</div>
+    <div class="turma-header-meta">
+      <span id="ts-escola">—</span>
+      <span class="turma-header-badge" id="ts-rede">—</span>
+      <span class="turma-header-badge" id="ts-sistema">—</span>
+      <span class="turma-header-badge" id="ts-alunos">—</span>
+    </div>
+  </div>
+
+  <!-- Abas de unidade -->
+  <div class="unidades-tabs-bar" id="unidades-tabs-bar"></div>
+
+  <!-- Corpo: conteúdo da unidade ativa -->
+  <div class="turma-body">
+    <div id="unidade-content">
+      <div class="unidade-empty">
+        <span>📋</span>Carregando unidades...
+      </div>
+    </div>
+  </div>
+
 </div>
 
 <!-- ── Toast ── -->
@@ -2806,7 +3064,7 @@ function renderDashboard(){
     const alunosAtivos = (t.alunos||[]).filter(a=>a.ativo!==false).length;
     const alunosTotal  = (t.alunos||[]).length;
     return `
-    <div class="turma-mini${isInativa?' inativa':''}">
+    <div class="turma-mini${isInativa?' inativa':''}" onclick="openTurmaScreen('${t.id}')" style="cursor:pointer">
       <div class="turma-mini-badge ${tagC}">
         🏫 ${t.escolaNome||'Escola'}
         <span style="background:rgba(0,0,0,.1);padding:1px 6px;border-radius:8px;margin-left:4px;">${tagL}</span>
@@ -2818,7 +3076,7 @@ function renderDashboard(){
         <span>👤 <strong>${alunosAtivos}</strong>/${alunosTotal} alunos</span>
         <span>📝 <strong>${t.atividades||0}</strong> atividades</span>
       </div>
-      <div class="turma-mini-actions">
+      <div class="turma-mini-actions" onclick="event.stopPropagation()">
         <button class="turma-act-btn turma-act-edit" onclick="openEditTurma('${t.id}')">✏️ Editar</button>
         ${isInativa
           ? `<button class="turma-act-btn turma-act-react" onclick="reativarTurma('${t.id}')">▶️ Reativar</button>
@@ -3457,6 +3715,385 @@ function labelSituacao(situacao){
     'sem_dados':  '—',
   }[situacao] || '—';
 }
+
+// ══════════════════════════════════════════════════════════════════════
+// ETAPA 3 — TELA DE TURMA: ABAS DE UNIDADE + CONFIGURAÇÃO DE ATIVIDADES
+// ══════════════════════════════════════════════════════════════════════
+
+let _turmaAtual   = null;  // objeto da turma aberta
+let _unidadeAtiva = null;  // { id, label, ordem, qtdAtividades, ... }
+// Config local de atividades por unidade (antes de salvar):
+// { [unidadeId]: { qtdAtividades, atividades:[{tipo,teto,vistosConfig}] } }
+let _atvConfig = {};
+
+// ── Abrir tela da turma ─────────────────────────────────
+window.openTurmaScreen = async function(turmaId){
+  const turma = _turmas.find(t=>t.id===turmaId);
+  if(!turma || turma.ativo===false) return;
+  _turmaAtual = turma;
+  _atvConfig  = {};
+
+  // Preenche cabeçalho
+  document.getElementById('turma-screen-title').textContent =
+    `${turma.serie} ${turma.turma}`;
+  document.getElementById('turma-screen-subtitle').textContent =
+    turma.disciplina || nivelLabel(turma.nivel);
+  document.getElementById('ts-titulo').textContent =
+    `${turma.serie} ${turma.turma} — ${nivelLabel(turma.nivel)}`;
+  document.getElementById('ts-escola').textContent =
+    `🏫 ${turma.escolaNome||'—'}`;
+  document.getElementById('ts-rede').textContent =
+    turma.escolaTipo==='municipal' ? 'Rede Municipal' : 'Rede Estadual';
+  document.getElementById('ts-sistema').textContent =
+    turma.sistema==='trimestral' ? 'Trimestral' : 'Bimestral';
+  const alunosAtivos = (turma.alunos||[]).filter(a=>a.ativo!==false).length;
+  document.getElementById('ts-alunos').textContent =
+    `👤 ${alunosAtivos} alunos`;
+
+  showScreen('turma-screen');
+  showLoading('Carregando unidades...');
+  try {
+    const unidades = await garantirUnidades(turma);
+    hideLoading();
+    renderUnidadesTabs(unidades);
+    abrirUnidade(unidades[0]);
+  } catch(e){
+    hideLoading();
+    showToast('Erro ao carregar unidades: '+e.message, 'error');
+  }
+};
+
+window.closeTurmaScreen = function(){
+  _turmaAtual   = null;
+  _unidadeAtiva = null;
+  _atvConfig    = {};
+  showScreen('dashboard-screen');
+};
+
+// ── Renderizar abas ─────────────────────────────────────
+function renderUnidadesTabs(unidades){
+  const bar = document.getElementById('unidades-tabs-bar');
+  bar.innerHTML = unidades.map(u=>`
+    <button class="unidade-tab" id="tab-btn-${u.id}"
+      onclick="abrirUnidade(${JSON.stringify(u).replace(/"/g,'&quot;')})">
+      ${u.label}
+    </button>`
+  ).join('');
+}
+
+// ── Abrir unidade ───────────────────────────────────────
+function abrirUnidade(unidade){
+  _unidadeAtiva = unidade;
+
+  // Atualiza aba ativa
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  const tabBtn = document.getElementById(`tab-btn-${unidade.id}`);
+  if(tabBtn) tabBtn.classList.add('active');
+
+  // Inicializa config local se não existir
+  if(!_atvConfig[unidade.id]){
+    _atvConfig[unidade.id] = {
+      qtdAtividades: unidade.qtdAtividades || _turmaAtual?.atividades || 0,
+      atividades: []
+    };
+    // Popula com defaults (tipo=direto, teto=10)
+    const qtd = _atvConfig[unidade.id].qtdAtividades;
+    for(let i=0;i<qtd;i++){
+      _atvConfig[unidade.id].atividades.push(defaultAtv(i));
+    }
+  }
+
+  renderUnidadeContent(unidade);
+}
+
+function defaultAtv(idx){
+  return {
+    tipo: 'direto',
+    teto: 10.0,
+    nome: '',
+    vistos: []  // [{label:'', data:''}]
+  };
+}
+
+// ── Renderizar conteúdo da unidade ─────────────────────
+function renderUnidadeContent(unidade){
+  const cfg  = _atvConfig[unidade.id];
+  const qtd  = cfg.qtdAtividades;
+  const regras = getRegrasRede(_turmaAtual?.escolaTipo||'municipal');
+
+  let html = `
+  <!-- Cabeçalho da unidade -->
+  <div class="unidade-header">
+    <div class="unidade-header-left">
+      <h3>📋 ${unidade.label}</h3>
+      <p>Configure as atividades e lance as notas desta unidade</p>
+    </div>
+    <div class="unidade-qtd-ctrl">
+      <label>Nº de atividades</label>
+      <input type="number" class="unidade-qtd-input"
+        id="qtd-atv-${unidade.id}"
+        value="${qtd}" min="0" max="20">
+      <button class="btn-aplicar-qtd"
+        onclick="aplicarQtdAtividades('${unidade.id}')">
+        Aplicar
+      </button>
+    </div>
+  </div>
+
+  <!-- Cards de atividade -->
+  <div class="atividades-section" id="atividades-section-${unidade.id}">
+    ${qtd===0
+      ? `<div class="unidade-empty"><span>📝</span>Nenhuma atividade configurada. Defina o número acima.</div>`
+      : cfg.atividades.map((atv,i)=>renderAtvCard(unidade.id, i, atv)).join('')
+    }
+  </div>
+
+  <!-- Prova e Extras -->
+  <div class="prova-extras-row">
+    <div class="prova-extras-card">
+      <h4>📄 Prova da Unidade</h4>
+      <div class="prova-extras-field">
+        <label>Teto da prova</label>
+        <input type="number" id="teto-prova-${unidade.id}"
+          value="${unidade.prova?.teto ?? regras.tetoProva}"
+          min="0" max="10" step="0.5"
+          style="width:100px;">
+      </div>
+      ${regras.rede==='estadual'
+        ? `<div class="prova-extras-field" style="margin-top:8px;">
+             <label>Campo de substituição (Rec. unidade)</label>
+             <input type="number" id="rec-unidade-${unidade.id}"
+               placeholder="—" min="0" max="10" step="0.5"
+               style="width:100px;">
+           </div>`
+        : `<div class="prova-extras-field" style="margin-top:8px;">
+             <label>Recuperação da unidade</label>
+             <input type="number" id="rec-unidade-${unidade.id}"
+               placeholder="—" min="0" max="10" step="0.5"
+               style="width:100px;">
+             <div style="font-size:.68rem;color:var(--pe-muted);margin-top:3px;">
+               Substitui o menor componente (atv ou prova) se for maior
+             </div>
+           </div>`
+      }
+    </div>
+    <div class="prova-extras-card">
+      <h4>⭐ Ponto Extra</h4>
+      <div class="prova-extras-field">
+        <label>Teto (positivo)</label>
+        <input type="number" id="teto-extra-pos-${unidade.id}"
+          value="${regras.tetoExtra}" min="0" max="10" step="0.5"
+          style="width:80px;">
+      </div>
+      <div class="prova-extras-field" style="margin-top:8px;">
+        <label>Piso (negativo)</label>
+        <input type="number" id="teto-extra-neg-${unidade.id}"
+          value="${regras.pisoExtra}" min="-10" max="0" step="0.5"
+          style="width:80px;">
+      </div>
+    </div>
+  </div>`;
+
+  document.getElementById('unidade-content').innerHTML = html;
+
+  // Reabilita toggles dos cards abertos
+  cfg.atividades.forEach((_,i)=>{
+    const card = document.getElementById(`atv-card-${unidade.id}-${i}`);
+    if(card && card.classList.contains('open')){
+      renderVistosConfig(unidade.id, i);
+    }
+  });
+}
+
+// ── Renderizar card de atividade ────────────────────────
+function renderAtvCard(unidadeId, idx, atv){
+  const tipoBadge = {
+    direto:   ['tipo-badge-direto',   '📝 Lançamento direto'],
+    vistos:   ['tipo-badge-vistos',   '✅ Vistos'],
+    trabalho: ['tipo-badge-trabalho', '📁 Trabalho'],
+  }[atv.tipo] || ['tipo-badge-direto','📝 Lançamento direto'];
+
+  const nomePlaceholder = `Atividade ${idx+1}`;
+  return `
+  <div class="atv-card" id="atv-card-${unidadeId}-${idx}">
+    <div class="atv-card-header" onclick="toggleAtvCard('${unidadeId}',${idx})">
+      <div class="atv-card-num">${idx+1}</div>
+      <div class="atv-card-title">${atv.nome||nomePlaceholder}</div>
+      <span class="atv-card-tipo-badge ${tipoBadge[0]}">${tipoBadge[1]}</span>
+      <span class="atv-card-chevron">▼</span>
+    </div>
+    <div class="atv-card-body">
+      <div class="atv-config-row">
+        <div class="atv-config-field">
+          <label>Tipo de lançamento</label>
+          <select id="tipo-atv-${unidadeId}-${idx}"
+            onchange="onTipoAtvChange('${unidadeId}',${idx})">
+            <option value="direto"   ${atv.tipo==='direto'  ?'selected':''}>📝 Lançamento direto</option>
+            <option value="vistos"   ${atv.tipo==='vistos'  ?'selected':''}>✅ Controle de vistos</option>
+            <option value="trabalho" ${atv.tipo==='trabalho'?'selected':''}>📁 Trabalho acadêmico</option>
+          </select>
+        </div>
+        <div class="atv-config-field">
+          <label>Teto desta atividade</label>
+          <input type="number" id="teto-atv-${unidadeId}-${idx}"
+            value="${atv.teto??10}" min="0" max="10" step="0.5"
+            onchange="onTetoAtvChange('${unidadeId}',${idx},this.value)">
+        </div>
+      </div>
+      <div class="atv-config-field" style="margin-bottom:12px;">
+        <label>Nome / descrição (opcional)</label>
+        <input type="text" id="nome-atv-${unidadeId}-${idx}"
+          value="${atv.nome||''}"
+          placeholder="${nomePlaceholder}"
+          onchange="onNomeAtvChange('${unidadeId}',${idx},this.value)">
+      </div>
+      <!-- Painel de vistos (só aparece se tipo=vistos) -->
+      <div id="vistos-panel-${unidadeId}-${idx}"
+        style="${atv.tipo==='vistos'?'':'display:none'}">
+      </div>
+      <!-- Painel de trabalho (em breve) -->
+      <div id="trabalho-panel-${unidadeId}-${idx}"
+        style="${atv.tipo==='trabalho'?'':'display:none'}">
+        <div style="background:#f3e5f5;border:1px solid #ce93d8;border-radius:8px;padding:12px;font-size:.8rem;color:#6a1b9a;font-weight:600;">
+          📁 Configuração de Trabalho Acadêmico — disponível na próxima etapa
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── Interações dos cards ────────────────────────────────
+window.toggleAtvCard = function(unidadeId, idx){
+  const card = document.getElementById(`atv-card-${unidadeId}-${idx}`);
+  if(!card) return;
+  card.classList.toggle('open');
+  if(card.classList.contains('open')){
+    const atv = _atvConfig[unidadeId]?.atividades[idx];
+    if(atv?.tipo==='vistos') renderVistosConfig(unidadeId, idx);
+  }
+};
+
+window.onTipoAtvChange = function(unidadeId, idx, ){
+  const sel = document.getElementById(`tipo-atv-${unidadeId}-${idx}`);
+  if(!sel) return;
+  const tipo = sel.value;
+  _atvConfig[unidadeId].atividades[idx].tipo = tipo;
+
+  // Atualiza badge no header
+  const badge = document.querySelector(`#atv-card-${unidadeId}-${idx} .atv-card-tipo-badge`);
+  const map = {
+    direto:   ['tipo-badge-direto',  '📝 Lançamento direto'],
+    vistos:   ['tipo-badge-vistos',  '✅ Vistos'],
+    trabalho: ['tipo-badge-trabalho','📁 Trabalho'],
+  };
+  if(badge){
+    badge.className = `atv-card-tipo-badge ${map[tipo][0]}`;
+    badge.textContent = map[tipo][1];
+  }
+
+  // Mostra/oculta painéis
+  const vPanel = document.getElementById(`vistos-panel-${unidadeId}-${idx}`);
+  const tPanel = document.getElementById(`trabalho-panel-${unidadeId}-${idx}`);
+  if(vPanel) vPanel.style.display = tipo==='vistos'   ? '' : 'none';
+  if(tPanel) tPanel.style.display = tipo==='trabalho' ? '' : 'none';
+  if(tipo==='vistos') renderVistosConfig(unidadeId, idx);
+};
+
+window.onTetoAtvChange = function(unidadeId, idx, val){
+  if(_atvConfig[unidadeId]?.atividades[idx])
+    _atvConfig[unidadeId].atividades[idx].teto = parseFloat(val)||10;
+};
+
+window.onNomeAtvChange = function(unidadeId, idx, val){
+  if(_atvConfig[unidadeId]?.atividades[idx]){
+    _atvConfig[unidadeId].atividades[idx].nome = val;
+    const titleEl = document.querySelector(`#atv-card-${unidadeId}-${idx} .atv-card-title`);
+    if(titleEl) titleEl.textContent = val || `Atividade ${idx+1}`;
+  }
+};
+
+// ── Alterar quantidade de atividades ───────────────────
+window.aplicarQtdAtividades = async function(unidadeId){
+  const input = document.getElementById(`qtd-atv-${unidadeId}`);
+  const novaQtd = parseInt(input?.value)||0;
+  const cfg = _atvConfig[unidadeId];
+  if(!cfg) return;
+
+  const qtdAtual = cfg.atividades.length;
+  if(novaQtd === qtdAtual) return;
+
+  if(novaQtd < qtdAtual){
+    if(!confirm(`Reduzir de ${qtdAtual} para ${novaQtd} atividades? Os dados das atividades removidas serão perdidos.`)) {
+      input.value = qtdAtual; return;
+    }
+    cfg.atividades = cfg.atividades.slice(0, novaQtd);
+  } else {
+    for(let i=qtdAtual; i<novaQtd; i++) cfg.atividades.push(defaultAtv(i));
+  }
+  cfg.qtdAtividades = novaQtd;
+
+  // Persiste a nova qtd na unidade (override)
+  try {
+    await setQtdAtividadesUnidade(_turmaAtual.id, unidadeId, novaQtd);
+  } catch(e){
+    console.warn('Erro ao salvar qtdAtividades:', e);
+  }
+
+  renderUnidadeContent(_unidadeAtiva);
+};
+
+// ── Configuração de Vistos ──────────────────────────────
+function renderVistosConfig(unidadeId, idx){
+  const atv   = _atvConfig[unidadeId]?.atividades[idx];
+  const panel = document.getElementById(`vistos-panel-${unidadeId}-${idx}`);
+  if(!atv || !panel) return;
+
+  if(!atv.vistos || atv.vistos.length===0){
+    atv.vistos = [{label:'Atividade 1', data:''}];
+  }
+
+  panel.innerHTML = `
+  <div class="vistos-config">
+    <div class="vistos-config-title">✅ Atividades de Visto — defina nome e data de cada uma</div>
+    <div id="vistos-list-${unidadeId}-${idx}">
+      ${atv.vistos.map((v,vi)=>`
+        <div class="vistos-row" id="visto-row-${unidadeId}-${idx}-${vi}">
+          <span class="visto-num">${vi+1}.</span>
+          <input type="text" value="${v.label||''}"
+            placeholder="Nome do visto ${vi+1}"
+            onchange="onVistosChange('${unidadeId}',${idx},${vi},'label',this.value)">
+          <input type="date" value="${v.data||''}"
+            onchange="onVistosChange('${unidadeId}',${idx},${vi},'data',this.value)">
+          <button class="btn-visto-ctrl btn-rem-visto"
+            onclick="removeVisto('${unidadeId}',${idx},${vi})">✕</button>
+        </div>`).join('')}
+    </div>
+    <button class="btn-visto-ctrl btn-add-visto" style="margin-top:8px;"
+      onclick="addVisto('${unidadeId}',${idx})">+ Adicionar visto</button>
+    <div style="font-size:.7rem;color:var(--pe-muted);margin-top:6px;">
+      A nota da atividade = (vistos marcados ÷ total de vistos) × teto
+    </div>
+  </div>`;
+}
+
+window.onVistosChange = function(unidadeId, idx, vi, campo, val){
+  const atv = _atvConfig[unidadeId]?.atividades[idx];
+  if(atv?.vistos?.[vi]) atv.vistos[vi][campo] = val;
+};
+
+window.addVisto = function(unidadeId, idx){
+  const atv = _atvConfig[unidadeId]?.atividades[idx];
+  if(!atv) return;
+  atv.vistos.push({label:`Atividade ${atv.vistos.length+1}`, data:''});
+  renderVistosConfig(unidadeId, idx);
+};
+
+window.removeVisto = function(unidadeId, idx, vi){
+  const atv = _atvConfig[unidadeId]?.atividades[idx];
+  if(!atv || atv.vistos.length<=1) return;
+  atv.vistos.splice(vi,1);
+  renderVistosConfig(unidadeId, idx);
+};
 
 window.showConfirmLogout = function(){
   document.getElementById('confirm-modal').classList.add('active');
