@@ -3772,14 +3772,22 @@ window.closeTurmaScreen = function(){
 
 // ── Renderizar abas ─────────────────────────────────────
 function renderUnidadesTabs(unidades){
+  // Guarda no cache indexado por id para o onclick usar
+  unidades.forEach(u=>{ _unidades[_turmaAtual.id] = _unidades[_turmaAtual.id] || []; });
   const bar = document.getElementById('unidades-tabs-bar');
   bar.innerHTML = unidades.map(u=>`
     <button class="unidade-tab" id="tab-btn-${u.id}"
-      onclick="abrirUnidade(${JSON.stringify(u).replace(/"/g,'&quot;')})">
+      onclick="abrirUnidadePorId('${u.id}')">
       ${u.label}
     </button>`
   ).join('');
 }
+
+window.abrirUnidadePorId = function(unidadeId){
+  const unidades = _unidades[_turmaAtual?.id] || [];
+  const u = unidades.find(u=>u.id===unidadeId);
+  if(u) abrirUnidade(u);
+};
 
 // ── Abrir unidade ───────────────────────────────────────
 function abrirUnidade(unidade){
