@@ -673,6 +673,19 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
   font-size:.62rem;font-weight:700;background:#e0e0e0;
   color:#777;padding:2px 6px;border-radius:8px;
 }
+/* ── Foto de perfil ── */
+.avatar-foto-wrap{
+  position:relative;display:inline-block;cursor:pointer;
+}
+.avatar-foto-wrap:hover .avatar-foto-overlay{opacity:1;}
+.avatar-foto-overlay{
+  position:absolute;inset:0;border-radius:50%;
+  background:rgba(0,43,92,.55);display:flex;align-items:center;justify-content:center;
+  opacity:0;transition:opacity .2s;font-size:.65rem;color:#fff;font-weight:700;
+  flex-direction:column;gap:2px;
+}
+.avatar-foto-overlay span{font-size:1.2rem;}
+#foto-input{display:none;}
 @media(max-width:480px){
   .profile-grid{grid-template-columns:1fr;}
 }
@@ -1743,6 +1756,35 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
         </button>
       </div>
     </div>
+
+    <!-- Card de Backup por escola no dashboard -->
+    <div id="dash-backup-card" style="background:#fff;border-radius:var(--radius-md);border:1.5px solid var(--pe-border);
+      box-shadow:var(--shadow-sm);padding:14px 16px;margin-bottom:16px;display:flex;
+      align-items:center;flex-wrap:wrap;gap:12px;">
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:.88rem;font-weight:800;color:var(--pe-navy);display:flex;align-items:center;gap:6px;">
+          💾 Backup por escola
+        </div>
+        <div style="font-size:.72rem;color:var(--pe-muted);margin-top:2px;">
+          Exportar ou importar todas as turmas e alunos de uma escola
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
+        <select id="dash-bkp-escola-sel" style="padding:6px 10px;border:1.5px solid var(--pe-border);
+          border-radius:var(--radius-sm);font-size:.8rem;outline:none;background:#fafafa;
+          min-width:140px;max-width:200px;">
+        </select>
+        <button onclick="dashExportarEscola()" class="btn-sm btn-sm-primary"
+          style="background:var(--pe-blue);padding:6px 12px;">
+          📥 Exportar JSON
+        </button>
+        <label style="padding:6px 12px;background:var(--pe-success);color:#fff;border-radius:var(--radius-sm);
+          font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;">
+          📂 Importar JSON
+          <input type="file" accept=".json" style="display:none;" onchange="dashImportarEscola(this)">
+        </label>
+      </div>
+    </div>
     <div class="escola-filter-row" id="escola-filter-row"></div>
     <div class="ano-filter-row" id="ano-filter-row"></div>
     <div class="turmas-grid" id="dash-turmas-grid">
@@ -1775,10 +1817,15 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 
     <!-- Avatar / nome -->
     <div style="text-align:center;padding:24px 0 20px;">
-      <div style="width:72px;height:72px;border-radius:50%;background:var(--pe-navy);color:#fff;
-                  font-size:2rem;font-weight:900;display:flex;align-items:center;justify-content:center;
-                  margin:0 auto 12px;" id="prof-avatar">?</div>
-      <div style="font-size:1.1rem;font-weight:800;color:var(--pe-navy);" id="prof-nome-display">—</div>
+      <div class="avatar-foto-wrap" onclick="document.getElementById('foto-input').click()" title="Clique para alterar a foto">
+        <div style="width:90px;height:90px;border-radius:50%;background:var(--pe-navy);color:#fff;
+                    font-size:2.2rem;font-weight:900;display:flex;align-items:center;justify-content:center;
+                    margin:0 auto;overflow:hidden;border:3px solid var(--pe-cyan);" id="prof-avatar">?</div>
+        <div class="avatar-foto-overlay"><span>📷</span>Alterar</div>
+      </div>
+      <input type="file" id="foto-input" accept="image/*" onchange="onFotoChange(this)">
+      <div style="font-size:.68rem;color:var(--pe-muted);margin-top:6px;">Toque no avatar para alterar a foto</div>
+      <div style="font-size:1.1rem;font-weight:800;color:var(--pe-navy);margin-top:8px;" id="prof-nome-display">—</div>
       <div style="font-size:.8rem;color:var(--pe-muted);" id="prof-email-display">—</div>
     </div>
 
@@ -3671,7 +3718,20 @@ function renderDashboard(){
 
   document.getElementById('dash-welcome-name').textContent = nome;
   document.getElementById('dash-user-name').textContent    = nome;
-  document.getElementById('dash-avatar').textContent       = letra;
+  // Avatar com foto ou inicial
+  const dashAvatar = document.getElementById('dash-avatar');
+  if(dashAvatar){
+    if(_perfil?.fotoPerfil){
+      dashAvatar.style.background = 'transparent';
+      dashAvatar.innerHTML = `<img src="${_perfil.fotoPerfil}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    } else {
+      dashAvatar.style.background = 'var(--pe-cyan)';
+      dashAvatar.innerHTML = letra;
+    }
+  }
+
+  // Popular select de backup por escola no card do dashboard
+  _renderDashBkpEscolasSel();
 
   const ativas   = _turmas.filter(t=>t.ativo!==false);
   const inativas = _turmas.filter(t=>t.ativo===false);
@@ -3981,7 +4041,18 @@ function renderProfile(){
   const nome  = p.nome  || '—';
   const letra = nome[0]?.toUpperCase() || '?';
 
-  document.getElementById('prof-avatar').textContent        = letra;
+  // Avatar: foto ou inicial
+  const avatarEl = document.getElementById('prof-avatar');
+  if(avatarEl){
+    if(p.fotoPerfil){
+      avatarEl.style.background = 'transparent';
+      avatarEl.innerHTML = `<img src="${p.fotoPerfil}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    } else {
+      avatarEl.style.background = 'var(--pe-navy)';
+      avatarEl.innerHTML = letra;
+    }
+  }
+
   document.getElementById('prof-nome-display').textContent  = nome;
   document.getElementById('prof-email-display').textContent = _email || '—';
 
@@ -4082,7 +4153,11 @@ window.saveEditPessoal = async function(){
     // Atualiza nome na dashboard
     document.getElementById('dash-welcome-name').textContent = nome;
     document.getElementById('dash-user-name').textContent    = nome;
-    document.getElementById('dash-avatar').textContent       = nome[0]?.toUpperCase()||'?';
+    // Só atualiza a inicial se não houver foto
+    if(!_perfil?.fotoPerfil){
+      const dashAvatar = document.getElementById('dash-avatar');
+      if(dashAvatar){ dashAvatar.style.background='var(--pe-cyan)'; dashAvatar.innerHTML=nome[0]?.toUpperCase()||'?'; }
+    }
     showToast('Dados pessoais atualizados! ✅','success');
   } catch(e){ showMsgEl('pessoal-msg','Erro ao salvar: '+e.message,'error'); }
   finally{ hideLoading(); }
@@ -7171,11 +7246,16 @@ function _exp_estiloBase(){
     .meta-grid strong{display:block;font-size:.65rem;color:#6c757d;text-transform:uppercase;letter-spacing:.5px;margin-bottom:1px;}
     h2.sec{font-size:.95rem;color:#002b5c;margin:14px 0 6px;border-bottom:2px solid #00a8e8;padding-bottom:3px;}
 
-    table{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:4px;}
-    th,td{border:1px solid #cfd4da;padding:4px 6px;vertical-align:middle;}
+    table{width:100%;border-collapse:collapse;font-size:.78rem;margin-top:4px;
+          page-break-inside:auto;-webkit-column-break-inside:auto;}
+    thead{display:table-header-group;}
+    tfoot{display:table-footer-group;}
+    th,td{border:1px solid #cfd4da;padding:4px 6px;vertical-align:middle;
+          overflow-wrap:break-word;word-break:break-word;}
     th{background:#002b5c;color:#fff;font-weight:700;font-size:.72rem;text-transform:uppercase;letter-spacing:.3px;}
     td.num,th.num{text-align:center;}
-    td.aluno{text-align:left;}
+    td.aluno{text-align:left;min-width:120px;}
+    tr{page-break-inside:avoid;-webkit-column-break-inside:avoid;break-inside:avoid;}
     tr.aprov td{background:#eaf7ee;}
     tr.rec td{background:#fff4e3;}
     tr.rep td{background:#fdecec;}
@@ -7197,19 +7277,15 @@ function _exp_estiloBase(){
     .sit-rep{color:#c62828;font-weight:700;}
     .sit-pend{color:#6c757d;font-weight:700;}
 
-    @page { size: A4 portrait; margin: 10mm; }
-    .landscape body, body.landscape { font-size: 10pt; }
+    @page { size: A4 portrait; margin: 12mm; }
     @media print {
       .no-print{display:none!important;}
-      /* Garante que o cabeçalho da tabela repita em cada página */
-      thead { display: table-header-group; }
-      tfoot { display: table-footer-group; }
-      /* Impede que uma linha de aluno seja cortada no meio entre páginas */
-      tr { break-inside: avoid; page-break-inside: avoid; }
-      /* Impede quebra logo após o cabeçalho ou antes do rodapé */
-      thead tr { break-after: avoid; page-break-after: avoid; }
-      /* Tabela ocupa toda a largura disponível */
-      table { width: 100%; border-collapse: collapse; }
+      body{padding:0;}
+      table{width:100%;border-collapse:collapse;page-break-inside:auto;}
+      thead{display:table-header-group;}
+      tfoot{display:table-footer-group;}
+      tr{page-break-inside:avoid;-webkit-column-break-inside:avoid;break-inside:avoid;}
+      thead tr{page-break-after:avoid;break-after:avoid;}
     }
     .barra-acoes{position:fixed;top:8px;right:8px;display:flex;gap:6px;}
     .barra-acoes button{background:#0056b3;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.85rem;}
@@ -7279,77 +7355,120 @@ window.print = function(){
   setTimeout(restore, 4000);
 };
 
-// Abre nova janela com HTML e dispara o diálogo de impressão.
-// Renderiza o documento imprimível como OVERLAY dentro da própria página.
-// Padrão idêntico ao v60 estável (que funcionava no APK): a WebView do
-// Android captura o próprio conteúdo via PrintManager — por isso o bridge
-// nativo é chamado SEM argumentos (window.AndroidApp.gerarPDF()).
-// O overlay garante que os botões "Imprimir/Salvar PDF" e "Fechar"
-// funcionem tanto no APK quanto no navegador, sem travar em janela nova.
+// Abre o documento imprimível.
+// No APK (AndroidApp.gerarPDF disponível): usa overlay interno (WebView captura via PrintManager).
+// No navegador web: abre nova janela para impressão correta em múltiplas páginas.
 function abrirJanelaImpressao(html, orientacao){
   const o = orientacao==='landscape' ? 'landscape' : 'portrait';
+  const isApk = !!(window.AndroidApp && window.AndroidApp.gerarPDF);
 
-  // Remove overlay anterior (se o usuário reabrir sem fechar)
-  document.getElementById('nm-print-overlay')?.remove();
-  document.getElementById('nm-print-style')?.remove();
+  // ── Modo APK: overlay interno (sem window.open, WebView captura direto) ──
+  if(isApk){
+    document.getElementById('nm-print-overlay')?.remove();
+    document.getElementById('nm-print-style')?.remove();
 
-  const styleEl = document.createElement('style');
-  styleEl.id = 'nm-print-style';
-  styleEl.textContent = `
-    @page { size: A4 ${o}; margin: 10mm; }
-    #nm-print-overlay{position:fixed;inset:0;z-index:99999;background:#fff;overflow:auto;-webkit-overflow-scrolling:touch;}
-    #nm-print-overlay .nm-bar{position:sticky;top:0;display:flex;gap:8px;justify-content:flex-end;padding:10px;background:#f4f6f9;border-bottom:1px solid #dee2e6;z-index:2;}
-    #nm-print-overlay .nm-bar button{background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;}
-    #nm-print-overlay .nm-bar button.cinza{background:#6c757d;}
-    #nm-print-overlay .nm-body{padding:0 10px 40px;}
-    @media print {
-      body > *:not(#nm-print-overlay){display:none!important;}
-      #nm-print-overlay{position:static!important;overflow:visible!important;background:#fff!important;}
-      #nm-print-overlay .nm-bar, #nm-print-overlay .no-print{display:none!important;}
-      #nm-print-overlay .nm-body{padding:0!important;}
-      /* Cabeçalho da tabela repete em cada página nova */
-      thead { display: table-header-group; }
-      tfoot { display: table-footer-group; }
-      /* Nenhuma linha de aluno é cortada entre páginas */
-      tr { break-inside: avoid; page-break-inside: avoid; }
-      thead tr { break-after: avoid; page-break-after: avoid; }
-      table { width: 100%; border-collapse: collapse; }
-    }
-  `;
-  document.head.appendChild(styleEl);
+    const styleEl = document.createElement('style');
+    styleEl.id = 'nm-print-style';
+    styleEl.textContent = `
+      @page { size: A4 ${o}; margin: 12mm; }
+      #nm-print-overlay{position:fixed;inset:0;z-index:99999;background:#fff;overflow:auto;-webkit-overflow-scrolling:touch;}
+      #nm-print-overlay .nm-bar{position:sticky;top:0;display:flex;gap:8px;justify-content:flex-end;padding:10px;background:#f4f6f9;border-bottom:1px solid #dee2e6;z-index:2;}
+      #nm-print-overlay .nm-bar button{background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;}
+      #nm-print-overlay .nm-bar button.cinza{background:#6c757d;}
+      #nm-print-overlay .nm-body{padding:0 10px 40px;}
+      @media print {
+        body > *:not(#nm-print-overlay){display:none!important;}
+        #nm-print-overlay{position:static!important;overflow:visible!important;background:#fff!important;}
+        #nm-print-overlay .nm-bar, #nm-print-overlay .no-print{display:none!important;}
+        #nm-print-overlay .nm-body{padding:0!important;}
+        table{width:100%;border-collapse:collapse;page-break-inside:auto;}
+        thead{display:table-header-group;}
+        tfoot{display:table-footer-group;}
+        tr{page-break-inside:avoid;-webkit-column-break-inside:avoid;break-inside:avoid;}
+        thead tr{page-break-after:avoid;break-after:avoid;}
+      }
+    `;
+    document.head.appendChild(styleEl);
 
-  const prevOverflow = document.body.style.overflow;
-  document.body.style.overflow = 'hidden';
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
 
-  const overlay = document.createElement('div');
-  overlay.id = 'nm-print-overlay';
-  overlay.className = o;
-  overlay.innerHTML = `
-    <div class="nm-bar no-print">
-      <button type="button" id="nm-print-btn">🖨️ Imprimir / Salvar PDF</button>
-      <button type="button" id="nm-close-btn" class="cinza">Fechar</button>
-    </div>
-    <div class="nm-body">
-      ${_exp_estiloBase()}
-      ${html}
-    </div>
-  `;
-  document.body.appendChild(overlay);
+    const overlay = document.createElement('div');
+    overlay.id = 'nm-print-overlay';
+    overlay.className = o;
+    overlay.innerHTML = `
+      <div class="nm-bar no-print">
+        <button type="button" id="nm-print-btn">🖨️ Gerar PDF</button>
+        <button type="button" id="nm-close-btn" class="cinza">Fechar</button>
+      </div>
+      <div class="nm-body">
+        ${_exp_estiloBase()}
+        ${html}
+      </div>
+    `;
+    document.body.appendChild(overlay);
 
-  const fechar = () => {
-    overlay.remove();
-    styleEl.remove();
-    document.body.style.overflow = prevOverflow;
-  };
+    const fechar = () => {
+      overlay.remove();
+      styleEl.remove();
+      document.body.style.overflow = prevOverflow;
+    };
+    document.getElementById('nm-close-btn').addEventListener('click', fechar);
+    document.getElementById('nm-print-btn').addEventListener('click', () => window.print());
 
-  document.getElementById('nm-close-btn').addEventListener('click', fechar);
-  document.getElementById('nm-print-btn').addEventListener('click', () => window.print());
+    const onKey = (ev) => {
+      if(ev.key === 'Escape'){ fechar(); document.removeEventListener('keydown', onKey); }
+    };
+    document.addEventListener('keydown', onKey);
+    return;
+  }
 
-  // ESC fecha o overlay
-  const onKey = (ev) => {
-    if(ev.key === 'Escape'){ fechar(); document.removeEventListener('keydown', onKey); }
-  };
-  document.addEventListener('keydown', onKey);
+  // ── Modo web/GitHub: abre nova janela com conteúdo completo ──────────
+  // Isso garante que o navegador pagine corretamente sem cortar linhas.
+  const fullHtml = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nota Mestra — Impressão</title>
+${_exp_estiloBase().replace('<style>','<style>body{padding:12mm 10mm;}').replace('@page { size: A4 portrait;',`@page { size: A4 ${o};`)}
+<style>
+  .no-print{display:none;}
+  @media print{.no-print{display:none!important;}}
+</style>
+</head>
+<body class="${o}">
+${html}
+<div class="no-print" style="position:fixed;top:10px;right:10px;display:flex;gap:8px;">
+  <button onclick="window.print()" style="background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">🖨️ Imprimir / Salvar PDF</button>
+  <button onclick="window.close()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">Fechar</button>
+</div>
+<script>
+  // Abre o diálogo de impressão automaticamente
+  window.onload = function(){ setTimeout(function(){ window.print(); }, 400); };
+<\/script>
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=900,height=700');
+  if(!win){
+    // Popup bloqueado — fallback para overlay
+    showToast && showToast('Permita popups para gerar o PDF, ou use o botão Imprimir manualmente.', 'info');
+    // tenta overlay simples como fallback
+    document.getElementById('nm-print-overlay')?.remove();
+    const ov = document.createElement('div');
+    ov.id = 'nm-print-overlay';
+    ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;overflow:auto;';
+    ov.innerHTML = `<div style="padding:10px;background:#f4f6f9;border-bottom:1px solid #dee2e6;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;">
+      <button onclick="window.print()" style="background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>
+      <button onclick="document.getElementById('nm-print-overlay').remove()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;">Fechar</button>
+    </div>${_exp_estiloBase()}${html}`;
+    document.body.style.overflow='hidden';
+    document.body.appendChild(ov);
+    return;
+  }
+  win.document.write(fullHtml);
+  win.document.close();
 }
 
 // ── Aba "Exportação" ────────────────────────────────────────────────
@@ -8256,6 +8375,192 @@ window.saveNovaTurma = async function(){
     if(btn){ btn.disabled = false; btn.textContent = 'Criar turma'; }
   }
 };
+
+// ══════════════════════════════════════════════════════════════════════
+// FOTO DE PERFIL
+// ══════════════════════════════════════════════════════════════════════
+window.onFotoChange = async function(input){
+  const file = input.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = async function(ev){
+    const base64 = ev.target.result;
+    showLoading('Salvando foto...');
+    try {
+      await setDoc(doc(db,'users',_uid,'perfil','dados'), { fotoPerfil: base64 }, { merge: true });
+      _perfil = { ..._perfil, fotoPerfil: base64 };
+      _atualizarAvatarUI(base64);
+      showToast('Foto de perfil atualizada! ✅', 'success');
+    } catch(e){
+      showToast('Erro ao salvar foto: ' + e.message, 'error');
+    } finally { hideLoading(); }
+  };
+  reader.readAsDataURL(file);
+};
+
+function _atualizarAvatarUI(base64){
+  const avatarEl = document.getElementById('prof-avatar');
+  if(!avatarEl) return;
+  if(base64){
+    avatarEl.style.background = 'transparent';
+    avatarEl.innerHTML = `<img src="${base64}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  } else {
+    const nome = _perfil?.nome || (_email?.split('@')[0] || '?');
+    avatarEl.style.background = 'var(--pe-navy)';
+    avatarEl.innerHTML = nome[0]?.toUpperCase() || '?';
+  }
+  const dashAvatar = document.getElementById('dash-avatar');
+  if(dashAvatar){
+    if(base64){
+      dashAvatar.style.background = 'transparent';
+      dashAvatar.innerHTML = `<img src="${base64}" alt="Foto" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+    } else {
+      const nome = _perfil?.nome || (_email?.split('@')[0] || '?');
+      dashAvatar.style.background = 'var(--pe-cyan)';
+      dashAvatar.innerHTML = nome[0]?.toUpperCase() || '?';
+    }
+  }
+}
+
+// ══════════════════════════════════════════════════════════════════════
+// BACKUP POR ESCOLA — DASHBOARD (card pequeno)
+// ══════════════════════════════════════════════════════════════════════
+function _renderDashBkpEscolasSel(){
+  const sel = document.getElementById('dash-bkp-escola-sel');
+  if(!sel) return;
+  const escolasAtivas = _escolas.filter(e=>e.ativo!==false);
+  sel.innerHTML = escolasAtivas.length === 0
+    ? '<option value="">Nenhuma escola</option>'
+    : escolasAtivas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+}
+
+window.dashExportarEscola = async function(){
+  const escolaId = document.getElementById('dash-bkp-escola-sel')?.value;
+  if(!escolaId){ showToast('Selecione uma escola.', 'error'); return; }
+  const escola = _escolas.find(e=>e.id===escolaId);
+  if(!escola) return;
+  showLoading('Coletando dados da escola...');
+  try {
+    const turmasEscola = _turmas.filter(t=>t.escolaId===escolaId);
+    const payload = {
+      exportadoEm: new Date().toISOString(),
+      versao: 'nm-v41',
+      escola: { id:escola.id, nome:escola.nome, tipo:escola.tipo, sistema:escola.sistema||'bimestral' },
+      turmas: []
+    };
+    for(const turma of turmasEscola){
+      const unidades = await garantirUnidades(turma);
+      const turmaData = {
+        id:turma.id, nome:turma.nome, serie:turma.serie, turma:turma.turma,
+        nivel:turma.nivel, turno:turma.turno, disciplina:turma.disciplina,
+        anoLetivo:turma.anoLetivo, sistema:turma.sistema, ativo:turma.ativo,
+        alunos:turma.alunos||[], unidades:[]
+      };
+      for(const u of unidades){
+        if(u.id.startsWith('local-')) continue;
+        try {
+          const snap = await getDoc(doc(db,'users',_uid,'turmas',turma.id,'unidades',u.id));
+          turmaData.unidades.push({id:u.id,label:u.label,ordem:u.ordem,sistema:u.sistema,
+            qtdAtividades:u.qtdAtividades,
+            notasLancadas:snap.exists()?(snap.data()?.notasLancadas||null):null});
+        } catch(e){ turmaData.unidades.push({id:u.id,label:u.label,ordem:u.ordem,notasLancadas:null}); }
+      }
+      try {
+        const cSnap = await getDoc(doc(db,'users',_uid,'turmas',turma.id,'consolidacao','final'));
+        turmaData.consolidacao = cSnap.exists() ? cSnap.data() : null;
+      } catch(e){ turmaData.consolidacao=null; }
+      payload.turmas.push(turmaData);
+    }
+    hideLoading();
+    const json = JSON.stringify(payload,null,2);
+    const blob = new Blob([json],{type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const nomeSafe = escola.nome.replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_');
+    a.download = `NM_Backup_${nomeSafe}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;
+    a.href = url; a.click(); URL.revokeObjectURL(url);
+    showToast(`Backup de "${escola.nome}" baixado! ✅`,'success');
+  } catch(e){ hideLoading(); showToast('Erro ao exportar: '+e.message,'error'); }
+};
+
+window.dashImportarEscola = async function(input){
+  const file = input.files[0];
+  if(!file) return;
+  input.value = '';
+  const reader = new FileReader();
+  reader.onload = async function(ev){
+    let raw;
+    try { raw = JSON.parse(ev.target.result); } catch(e){ showToast('Arquivo JSON inválido.','error'); return; }
+    if(!raw.versao||!raw.versao.startsWith('nm-')||!raw.escola||!Array.isArray(raw.turmas)){
+      showToast('Arquivo não reconhecido. Use um backup gerado pelo Nota Mestra.','error'); return;
+    }
+    const escolaPayload = raw.escola;
+    showLoading('Importando escola...');
+    try {
+      let escolaLocal = _escolas.find(e=>e.id===escolaPayload.id||e.nome===escolaPayload.nome);
+      let escolaId;
+      if(!escolaLocal){
+        const ref = await addDoc(collection(db,'users',_uid,'escolas'),{
+          nome:escolaPayload.nome, tipo:escolaPayload.tipo||'municipal',
+          sistema:escolaPayload.sistema||'bimestral', ativo:true, criadoEm:serverTimestamp()
+        });
+        escolaLocal={id:ref.id,nome:escolaPayload.nome,tipo:escolaPayload.tipo||'municipal',
+          sistema:escolaPayload.sistema||'bimestral',ativo:true};
+        _escolas.push(escolaLocal);
+        escolaId=ref.id;
+      } else { escolaId=escolaLocal.id; }
+
+      let turmasCriadas=0,turmasAtualizadas=0,alunosAdicionados=0;
+
+      for(const tp of raw.turmas){
+        let turmaLocal=_turmas.find(t=>
+          t.escolaId===escolaId&&t.serie===(tp.serie||''||t.serie)&&
+          t.turma===(tp.turma||''||t.turma)&&
+          t.anoLetivo===(tp.anoLetivo||new Date().getFullYear())
+        );
+        if(!turmaLocal){
+          const alunos=(tp.alunos||[]).map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
+          const qtdAtv=(tp.unidades?.[0]?.qtdAtividades)||0;
+          const sistema=tp.sistema||escolaLocal.sistema||'bimestral';
+          const ref=await addDoc(collection(db,'users',_uid,'turmas'),{
+            escolaId,escolaNome:escolaLocal.nome,escolaTipo:escolaLocal.tipo,
+            nome:`${tp.serie||''} ${tp.turma||''}`.trim(),
+            anoLetivo:tp.anoLetivo||new Date().getFullYear(),
+            nivel:tp.nivel||'fund2',turno:tp.turno||'manha',
+            serie:tp.serie||'',turma:tp.turma||'',disciplina:tp.disciplina||'',
+            atividades:qtdAtv,sistema,alunos,ativo:tp.ativo!==false,criadoEm:serverTimestamp()
+          });
+          await inicializarUnidades(ref.id,sistema,qtdAtv);
+          turmaLocal={id:ref.id,escolaId,escolaNome:escolaLocal.nome,escolaTipo:escolaLocal.tipo,
+            nome:`${tp.serie||''} ${tp.turma||''}`.trim(),serie:tp.serie||'',turma:tp.turma||'',
+            anoLetivo:tp.anoLetivo||new Date().getFullYear(),nivel:tp.nivel||'fund2',
+            turno:tp.turno||'manha',disciplina:tp.disciplina||'',alunos,sistema,ativo:tp.ativo!==false};
+          _turmas.push(turmaLocal);
+          turmasCriadas++;
+        } else {
+          const alunosExist=(turmaLocal.alunos||[]).map(a=>_normNome(typeof a==='string'?a:a.nome));
+          const novos=(tp.alunos||[]).filter(a=>{
+            const n=typeof a==='string'?a:a.nome; return !alunosExist.includes(_normNome(n));
+          }).map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
+          if(novos.length){
+            const updated=[...(turmaLocal.alunos||[]),...novos];
+            await setDoc(doc(db,'users',_uid,'turmas',turmaLocal.id),{alunos:updated},{merge:true});
+            turmaLocal.alunos=updated; alunosAdicionados+=novos.length;
+          }
+          turmasAtualizadas++;
+        }
+      }
+      hideLoading(); renderDashboard();
+      const msg=[];
+      if(turmasCriadas)    msg.push(`${turmasCriadas} turma(s) criada(s)`);
+      if(turmasAtualizadas)msg.push(`${turmasAtualizadas} turma(s) verificada(s)`);
+      if(alunosAdicionados)msg.push(`${alunosAdicionados} aluno(s) adicionado(s)`);
+      showToast(`Importação concluída: ${msg.join(', ')||'sem alterações'}. ✅`,'success');
+    } catch(e){ hideLoading(); showToast('Erro na importação: '+e.message,'error'); }
+  };
+  reader.readAsText(file,'UTF-8');
+};
+
 
 window.showConfirmLogout = function(){
   document.getElementById('confirm-modal').classList.add('active');
