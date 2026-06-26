@@ -566,7 +566,24 @@ html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Ro
 }
 .add-aluno-btn:hover{background:var(--pe-navy);}
 
-/* ── Onboarding: campo ano letivo ── */
+/* ── FAB Backup ── */
+#dash-bkp-fab{
+  position:fixed;bottom:22px;left:18px;z-index:4000;
+  background:var(--pe-navy);color:#fff;border:none;
+  border-radius:28px;padding:10px 16px;
+  display:none; /* mostrado só no dashboard-screen.active */
+  align-items:center;gap:7px;cursor:pointer;
+  box-shadow:0 4px 16px rgba(0,0,0,.28);
+  font-size:1.1rem;font-weight:700;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .15s,box-shadow .15s;
+}
+#dash-bkp-fab:active{transform:scale(.95);}
+.fab-label{font-size:.78rem;font-weight:700;}
+#dashboard-screen.active #dash-bkp-fab{display:flex;}
+
+/* ── Animação fadeUp (se não existir) ── */
+@keyframes fadeUp{from{opacity:0;transform:translateY(30px);}to{opacity:1;transform:translateY(0);}}
 .ob-field-ano{margin-bottom:16px;}
 .ob-field-ano label{display:block;font-size:.78rem;font-weight:700;color:var(--pe-navy);margin-bottom:5px;}
 .ob-field-ano input{
@@ -1757,34 +1774,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
       </div>
     </div>
 
-    <!-- Card de Backup por escola no dashboard -->
-    <div id="dash-backup-card" style="background:#fff;border-radius:var(--radius-md);border:1.5px solid var(--pe-border);
-      box-shadow:var(--shadow-sm);padding:14px 16px;margin-bottom:16px;display:flex;
-      align-items:center;flex-wrap:wrap;gap:12px;">
-      <div style="flex:1;min-width:0;">
-        <div style="font-size:.88rem;font-weight:800;color:var(--pe-navy);display:flex;align-items:center;gap:6px;">
-          💾 Backup por escola
-        </div>
-        <div style="font-size:.72rem;color:var(--pe-muted);margin-top:2px;">
-          Exportar ou importar todas as turmas e alunos de uma escola
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;flex-shrink:0;">
-        <select id="dash-bkp-escola-sel" style="padding:6px 10px;border:1.5px solid var(--pe-border);
-          border-radius:var(--radius-sm);font-size:.8rem;outline:none;background:#fafafa;
-          min-width:140px;max-width:200px;">
-        </select>
-        <button onclick="dashExportarEscola()" class="btn-sm btn-sm-primary"
-          style="background:var(--pe-blue);padding:6px 12px;">
-          📥 Exportar JSON
-        </button>
-        <label style="padding:6px 12px;background:var(--pe-success);color:#fff;border-radius:var(--radius-sm);
-          font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;">
-          📂 Importar JSON
-          <input type="file" accept=".json" style="display:none;" onchange="dashImportarEscola(this)">
-        </label>
-      </div>
-    </div>
+    <!-- FAB de backup: ver #dash-bkp-fab abaixo -->
     <div class="escola-filter-row" id="escola-filter-row"></div>
     <div class="ano-filter-row" id="ano-filter-row"></div>
     <div class="turmas-grid" id="dash-turmas-grid">
@@ -1792,6 +1782,75 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
     </div>
   </div>
 
+  <!-- FAB: Backup por escola (canto inferior esquerdo) -->
+  <button id="dash-bkp-fab" onclick="abrirBkpModal()" title="Backup por escola"
+    aria-label="Backup por escola">
+    💾
+    <span class="fab-label">Backup</span>
+  </button>
+
+</div>
+
+<!-- Modal: Backup por escola (abre sobre o dashboard) -->
+<div id="bkp-modal-overlay" onclick="if(event.target===this)fecharBkpModal()"
+  style="display:none;position:fixed;inset:0;z-index:5000;
+         background:rgba(0,0,0,.45);align-items:flex-end;justify-content:center;
+         padding:0;">
+  <div style="background:#fff;border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+       width:100%;max-width:480px;box-shadow:var(--shadow-lg);
+       animation:fadeUp .25s ease both;padding-bottom:env(safe-area-inset-bottom,0);">
+    <!-- Header -->
+    <div style="background:var(--pe-navy);padding:16px 20px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;
+         display:flex;align-items:center;justify-content:space-between;position:relative;">
+      <div>
+        <div style="color:#fff;font-size:.95rem;font-weight:800;">💾 Backup por escola</div>
+        <div style="color:var(--pe-cyan);font-size:.72rem;margin-top:2px;">
+          Exportar ou importar turmas e alunos
+        </div>
+      </div>
+      <button onclick="fecharBkpModal()"
+        style="background:rgba(255,255,255,.15);border:none;color:#fff;
+               width:32px;height:32px;border-radius:50%;cursor:pointer;
+               font-size:1rem;display:flex;align-items:center;justify-content:center;
+               -webkit-tap-highlight-color:transparent;">✕</button>
+      <div class="brand-line" style="bottom:0;left:0;right:0;height:3px;display:flex;position:absolute;">
+        <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
+      </div>
+    </div>
+    <!-- Body -->
+    <div style="padding:20px;">
+      <div style="margin-bottom:14px;">
+        <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:6px;">
+          Escola
+        </label>
+        <select id="dash-bkp-escola-sel"
+          style="width:100%;padding:10px 12px;border:1.5px solid var(--pe-border);
+                 border-radius:var(--radius-sm);font-size:.9rem;outline:none;
+                 background:#fafafa;-webkit-appearance:auto;">
+        </select>
+      </div>
+      <!-- Exportar -->
+      <button onclick="dashExportarEscola()"
+        style="width:100%;padding:13px;background:var(--pe-blue);color:#fff;border:none;
+               border-radius:var(--radius-sm);font-size:.92rem;font-weight:700;cursor:pointer;
+               display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:10px;
+               -webkit-tap-highlight-color:transparent;">
+        📥 Exportar JSON da escola
+      </button>
+      <!-- Importar: label wrapping input para funcionar no APK -->
+      <label style="width:100%;padding:13px;background:var(--pe-success);color:#fff;
+               border-radius:var(--radius-sm);font-size:.92rem;font-weight:700;cursor:pointer;
+               display:flex;align-items:center;justify-content:center;gap:8px;
+               -webkit-tap-highlight-color:transparent;box-sizing:border-box;">
+        📂 Importar JSON da escola
+        <input type="file" accept=".json" style="display:none;"
+          onchange="dashImportarEscola(this)">
+      </label>
+      <div style="font-size:.7rem;color:var(--pe-muted);margin-top:10px;line-height:1.45;text-align:center;">
+        A importação cria turmas e alunos ausentes sem apagar os existentes.
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ═══════════════════════════════════════════
@@ -2590,7 +2649,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -3674,7 +3733,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════��══════════════════════════════════���══════
+// ════  ══════════════════════════════════   ══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -3908,7 +3967,7 @@ window.excluirTurmaDefinitivo = async function(id){
   finally{ hideLoading(); }
 };
 
-// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -4282,7 +4341,7 @@ window.saveEscolaTipoModal = async function(){
     if(!sistIgual){
       for(const turma of turmasAfetadas){
         await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
-        // Limpa cache para for��ar releitura na próxima abertura
+        // Limpa cache para for  ar releitura na próxima abertura
         delete _unidades[turma.id];
       }
     }
@@ -4412,7 +4471,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -4516,7 +4575,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -5060,7 +5119,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────���────────────────────────
+// ── Toggle de seção colapsável ─────────────   ────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -6821,7 +6880,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════��═════════════════════════════════════════════════════════════════
+// ════  ═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -7070,7 +7129,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────��────────────────────────
+// ── Helpers de vistos ─────────────  ────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
@@ -7317,151 +7376,170 @@ function _exp_rodape(){
 }
 
 // --- SISTEMA DE IMPRESSÃO NATIVO ---
-// Mantém o mesmo padrão do v60 estável: qualquer chamada a window.print()
-// prepara a tela e, dentro do APK, chama window.AndroidApp.gerarPDF() SEM argumentos.
+// window.print() só é chamado no modo APK (dentro do overlay/iframe).
+// No APK, AndroidApp.gerarPDF() é chamado para acionar o PrintManager.
 if(!window._nmOriginalPrint){
   window._nmOriginalPrint = window.print ? window.print.bind(window) : function(){};
 }
 window.print = function(){
-  const noPrintElements = Array.from(document.querySelectorAll('.no-print, .nm-bar'));
-  const printOnlyElements = Array.from(document.querySelectorAll('.print-only'));
-  const previousNoPrint = noPrintElements.map(el => el.style.display);
-  const previousPrintOnly = printOnlyElements.map(el => el.style.display);
-
-  noPrintElements.forEach(el => { el.style.display = 'none'; });
-  printOnlyElements.forEach(el => { el.style.display = 'block'; });
-
-  const restore = () => {
-    noPrintElements.forEach((el, i) => { el.style.display = previousNoPrint[i] || ''; });
-    printOnlyElements.forEach((el, i) => { el.style.display = previousPrintOnly[i] || ''; });
-  };
-
   try{
     if(window.AndroidApp && window.AndroidApp.gerarPDF){
       window.AndroidApp.gerarPDF();
-    }else{
-      if(/Android/i.test(navigator.userAgent) && !window._nmPrintBridgeWarningShown){
-        window._nmPrintBridgeWarningShown = true;
-        alert('O APK não expôs a ponte AndroidApp.gerarPDF para esta tela. Verifique no Android Studio se addJavascriptInterface(..., "AndroidApp") está ativo antes de carregar este HTML.');
-      }
+    } else {
       window._nmOriginalPrint();
     }
   }catch(e){
     console.error('Falha ao iniciar impressão/PDF:', e);
     try{ window._nmOriginalPrint(); }catch(_e){}
   }
-
-  // No Android o PrintManager precisa de um pequeno tempo para capturar a tela.
-  setTimeout(restore, 4000);
 };
 
 // Abre o documento imprimível.
-// No APK (AndroidApp.gerarPDF disponível): usa overlay interno (WebView captura via PrintManager).
-// No navegador web: abre nova janela para impressão correta em múltiplas páginas.
+// APK: usa um iframe oculto com o HTML completo; o PrintManager do Android consegue
+//      paginar o iframe inteiro (sem corte). window.print() → AndroidApp.gerarPDF().
+// Web: abre nova janela (window.open) com o HTML completo para paginação correta.
 function abrirJanelaImpressao(html, orientacao){
   const o = orientacao==='landscape' ? 'landscape' : 'portrait';
   const isApk = !!(window.AndroidApp && window.AndroidApp.gerarPDF);
 
-  // ── Modo APK: overlay interno (sem window.open, WebView captura direto) ──
-  if(isApk){
-    document.getElementById('nm-print-overlay')?.remove();
-    document.getElementById('nm-print-style')?.remove();
-
-    const styleEl = document.createElement('style');
-    styleEl.id = 'nm-print-style';
-    styleEl.textContent = `
-      @page { size: A4 ${o}; margin: 12mm; }
-      #nm-print-overlay{position:fixed;inset:0;z-index:99999;background:#fff;overflow:auto;-webkit-overflow-scrolling:touch;}
-      #nm-print-overlay .nm-bar{position:sticky;top:0;display:flex;gap:8px;justify-content:flex-end;padding:10px;background:#f4f6f9;border-bottom:1px solid #dee2e6;z-index:2;}
-      #nm-print-overlay .nm-bar button{background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;}
-      #nm-print-overlay .nm-bar button.cinza{background:#6c757d;}
-      #nm-print-overlay .nm-body{padding:0 10px 40px;}
-      @media print {
-        body > *:not(#nm-print-overlay){display:none!important;}
-        #nm-print-overlay{position:static!important;overflow:visible!important;background:#fff!important;}
-        #nm-print-overlay .nm-bar, #nm-print-overlay .no-print{display:none!important;}
-        #nm-print-overlay .nm-body{padding:0!important;}
-        table{width:100%;border-collapse:collapse;page-break-inside:auto;}
-        thead{display:table-header-group;}
-        tfoot{display:table-footer-group;}
-        tr{page-break-inside:avoid;-webkit-column-break-inside:avoid;break-inside:avoid;}
-        thead tr{page-break-after:avoid;break-after:avoid;}
-      }
-    `;
-    document.head.appendChild(styleEl);
-
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-
-    const overlay = document.createElement('div');
-    overlay.id = 'nm-print-overlay';
-    overlay.className = o;
-    overlay.innerHTML = `
-      <div class="nm-bar no-print">
-        <button type="button" id="nm-print-btn">🖨️ Gerar PDF</button>
-        <button type="button" id="nm-close-btn" class="cinza">Fechar</button>
-      </div>
-      <div class="nm-body">
-        ${_exp_estiloBase()}
-        ${html}
-      </div>
-    `;
-    document.body.appendChild(overlay);
-
-    const fechar = () => {
-      overlay.remove();
-      styleEl.remove();
-      document.body.style.overflow = prevOverflow;
-    };
-    document.getElementById('nm-close-btn').addEventListener('click', fechar);
-    document.getElementById('nm-print-btn').addEventListener('click', () => window.print());
-
-    const onKey = (ev) => {
-      if(ev.key === 'Escape'){ fechar(); document.removeEventListener('keydown', onKey); }
-    };
-    document.addEventListener('keydown', onKey);
-    return;
-  }
-
-  // ── Modo web/GitHub: abre nova janela com conteúdo completo ──────────
-  // Isso garante que o navegador pagine corretamente sem cortar linhas.
-  const fullHtml = `<!DOCTYPE html>
+  // HTML completo que vai para o iframe (APK) ou nova janela (web)
+  const buildFullHtml = () => {
+    const baseStyle = _exp_estiloBase();
+    // Ajusta @page para orientação correta
+    const style = baseStyle.replace('@page { size: A4 portrait;', `@page { size: A4 ${o};`);
+    return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Nota Mestra — Impressão</title>
-${_exp_estiloBase().replace('<style>','<style>body{padding:12mm 10mm;}').replace('@page { size: A4 portrait;',`@page { size: A4 ${o};`)}
+${style}
 <style>
-  .no-print{display:none;}
+  body{padding:10mm 8mm;}
+  .no-print{display:none!important;}
   @media print{.no-print{display:none!important;}}
 </style>
 </head>
 <body class="${o}">
 ${html}
-<div class="no-print" style="position:fixed;top:10px;right:10px;display:flex;gap:8px;">
-  <button onclick="window.print()" style="background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">🖨️ Imprimir / Salvar PDF</button>
-  <button onclick="window.close()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">Fechar</button>
-</div>
-<script>
-  // Abre o diálogo de impressão automaticamente
-  window.onload = function(){ setTimeout(function(){ window.print(); }, 400); };
-<\/script>
 </body>
 </html>`;
+  };
+
+  // ── Modo APK ─────────────────────────────────────────────────────────
+  // Usa um iframe invisível carregado com o HTML completo.
+  // O AndroidApp.gerarPDF() aciona o PrintManager sobre a WebView inteira,
+  // mas primeiro substituímos o body pelo iframe p/ que o print capture tudo.
+  if(isApk){
+    // Remove overlay/iframe anterior
+    document.getElementById('nm-print-overlay')?.remove();
+    document.getElementById('nm-iframe-print')?.remove();
+    document.getElementById('nm-print-style')?.remove();
+
+    const fullHtml = buildFullHtml();
+
+    // Injeta estilo global de impressão: esconde tudo exceto o iframe
+    const styleEl = document.createElement('style');
+    styleEl.id = 'nm-print-style';
+    styleEl.textContent = `
+      @page { size: A4 ${o}; margin: 0; }
+      #nm-print-overlay{
+        position:fixed;inset:0;z-index:99999;background:#fff;
+        display:flex;flex-direction:column;overflow:hidden;
+      }
+      #nm-print-overlay .nm-bar{
+        flex-shrink:0;display:flex;gap:8px;justify-content:flex-end;
+        padding:10px;background:#f4f6f9;border-bottom:1px solid #dee2e6;
+      }
+      #nm-print-overlay .nm-bar button{
+        background:#0056b3;color:#fff;border:none;padding:10px 18px;
+        border-radius:6px;font-weight:700;cursor:pointer;font-size:.95rem;
+        -webkit-tap-highlight-color:transparent;
+      }
+      #nm-print-overlay .nm-bar button.cinza{background:#6c757d;}
+      #nm-iframe-print{
+        flex:1;width:100%;border:none;display:block;
+        /* iframe cresce para o conteúdo; o PrintManager captura o documento completo */
+      }
+      @media print {
+        body > *{display:none!important;}
+        #nm-print-overlay{display:block!important;position:static!important;}
+        #nm-print-overlay .nm-bar{display:none!important;}
+        #nm-iframe-print{
+          display:block!important;width:100%!important;
+          height:auto!important;border:none!important;
+          /* Sem height fixo: o PrintManager renderiza o documento inteiro do iframe */
+        }
+      }
+    `;
+    document.head.appendChild(styleEl);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'nm-print-overlay';
+    overlay.innerHTML = `
+      <div class="nm-bar">
+        <button type="button" id="nm-close-btn" class="cinza">✕ Fechar</button>
+        <button type="button" id="nm-print-btn">🖨️ Gerar PDF</button>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    // Cria o iframe e carrega o HTML via srcdoc
+    const iframe = document.createElement('iframe');
+    iframe.id = 'nm-iframe-print';
+    iframe.setAttribute('srcdoc', fullHtml);
+    // Fallback para Android < 5 que não suporta srcdoc
+    if(!('srcdoc' in iframe)){
+      const blob = new Blob([fullHtml], {type:'text/html'});
+      iframe.src = URL.createObjectURL(blob);
+    }
+    overlay.appendChild(iframe);
+
+    const fechar = () => {
+      overlay.remove();
+      styleEl.remove();
+    };
+    document.getElementById('nm-close-btn').addEventListener('click', fechar);
+    document.getElementById('nm-print-btn').addEventListener('click', () => {
+      // Aciona o PrintManager do Android sobre o documento do iframe
+      try {
+        if(window.AndroidApp && window.AndroidApp.gerarPDFIframe){
+          // Se o app expõe gerarPDFIframe, usa-o (captura o iframe diretamente)
+          window.AndroidApp.gerarPDFIframe();
+        } else {
+          // Fallback: chama print() dentro do iframe — no Android 5+ o WebView
+          // propaga para o PrintManager e pagina o conteúdo completo
+          iframe.contentWindow.print();
+        }
+      } catch(e){
+        console.error('Erro ao gerar PDF:', e);
+        // último recurso
+        try { window.AndroidApp.gerarPDF(); } catch(_e){}
+      }
+    });
+    return;
+  }
+
+  // ── Modo web/GitHub: nova janela ──────────────────────────────────────
+  const fullHtml = buildFullHtml().replace('</body>', `
+<div class="no-print" style="position:fixed;top:10px;right:10px;display:flex;gap:8px;z-index:9999;">
+  <button onclick="window.print()" style="background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">🖨️ Imprimir / Salvar PDF</button>
+  <button onclick="window.close()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">✕ Fechar</button>
+</div>
+<script>window.onload=function(){setTimeout(function(){window.print();},500);};<\/script>
+</body>`);
 
   const win = window.open('', '_blank', 'width=900,height=700');
   if(!win){
-    // Popup bloqueado — fallback para overlay
-    showToast && showToast('Permita popups para gerar o PDF, ou use o botão Imprimir manualmente.', 'info');
-    // tenta overlay simples como fallback
+    showToast && showToast('Permite popups para gerar o PDF, ou use Ctrl+P nesta janela.','info');
+    // Fallback overlay simples
     document.getElementById('nm-print-overlay')?.remove();
     const ov = document.createElement('div');
     ov.id = 'nm-print-overlay';
     ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;overflow:auto;';
     ov.innerHTML = `<div style="padding:10px;background:#f4f6f9;border-bottom:1px solid #dee2e6;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;">
       <button onclick="window.print()" style="background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>
-      <button onclick="document.getElementById('nm-print-overlay').remove()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;">Fechar</button>
+      <button onclick="document.getElementById('nm-print-overlay').remove()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;">✕ Fechar</button>
     </div>${_exp_estiloBase()}${html}`;
     document.body.style.overflow='hidden';
     document.body.appendChild(ov);
@@ -7470,7 +7548,6 @@ ${html}
   win.document.write(fullHtml);
   win.document.close();
 }
-
 // ── Aba "Exportação" ────────────────────────────────────────────────
 window.abrirExportacao = async function(){
   const turma = _turmaAtual;
@@ -8562,6 +8639,17 @@ window.dashImportarEscola = async function(input){
 };
 
 
+// ── Modal de Backup do Dashboard ─────────────────────────────────────
+window.abrirBkpModal = function(){
+  _renderDashBkpEscolasSel();
+  const m = document.getElementById('bkp-modal-overlay');
+  if(m){ m.style.display='flex'; }
+};
+window.fecharBkpModal = function(){
+  const m = document.getElementById('bkp-modal-overlay');
+  if(m){ m.style.display='none'; }
+};
+
 window.showConfirmLogout = function(){
   document.getElementById('confirm-modal').classList.add('active');
 };
@@ -8584,8 +8672,8 @@ window.androidHandleBack = function(){
     turmaModal.classList.remove('active');
     return true;
   }
-  // 3. Modais auxiliares visíveis (escola-tipo, nova-escola, nova-turma)
-  const auxModals = ['escola-tipo-modal','nova-escola-modal','nova-turma-modal','phone-modal-overlay'];
+  // 3. Modais auxiliares visíveis (escola-tipo, nova-escola, nova-turma, backup)
+  const auxModals = ['escola-tipo-modal','nova-escola-modal','nova-turma-modal','phone-modal-overlay','bkp-modal-overlay'];
   for(const id of auxModals){
     const el = document.getElementById(id);
     if(el && el.style.display !== 'none' && el.style.display !== ''){
