@@ -2364,6 +2364,7 @@ import {
   signOut,
   GoogleAuthProvider,
   signInWithPopup,
+  signInWithCredential,
   getAdditionalUserInfo,
   setPersistence,
   browserSessionPersistence,
@@ -2389,7 +2390,7 @@ const gProvider = new GoogleAuthProvider();
 // ── ESTADO DA APLICAÇÃO ───────────────────────────────────────────────
 // Versão interna do app — NÃO exibir na UI nem no <title>.
 // Atualizar a cada release para conferência no código-fonte.
-const APP_VERSION = 'v27';
+const APP_VERSION = 'v41';
 let _uid    = null;
 let _email  = null;
 let _perfil = null;   // dados do Firestore: users/{uid}/perfil/dados
@@ -2542,7 +2543,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -2787,6 +2788,18 @@ window.doGoogleLogin = async function(context){
       errId = 'register-msg';
     }
   }
+
+  // ── Android WebView: delega ao Sign-In nativo via bridge ──────────────
+  // O Google bloqueia OAuth embutido em WebView (disallowed_useragent).
+  // Quando AndroidApp está disponível, o Kotlin inicia o fluxo nativo e
+  // chama de volta receiveGoogleIdToken() ou receiveGoogleSignInError().
+  if(typeof window.AndroidApp !== 'undefined' && typeof window.AndroidApp.triggerGoogleSignIn === 'function'){
+    showLoading('Conectando ao Google...');
+    window.AndroidApp.triggerGoogleSignIn(context ?? 'login');
+    return;
+  }
+
+  // ── Navegador desktop/mobile: fluxo popup padrão ──────────────────────
   try {
     showLoading('Conectando ao Google...');
     const result = await signInWithPopup(auth, gProvider);
@@ -2811,6 +2824,36 @@ window.doGoogleLogin = async function(context){
     }
     showAuthMsg(errId, friendlyAuthError(e.code), 'error');
   }
+};
+
+// ── Callbacks do bridge Android ───────────────────────────────────────
+// Chamados pelo MainActivity.kt após o fluxo nativo de Google Sign-In.
+window.receiveGoogleIdToken = async function(idToken, context){
+  const errId = (context === 'register') ? 'register-msg' : 'login-msg';
+  try {
+    const credential = GoogleAuthProvider.credential(idToken);
+    const result     = await signInWithCredential(auth, credential);
+    const info       = getAdditionalUserInfo(result);
+    if(info?.isNewUser){
+      showLoading('Conta criada! Preparando seu espaço...');
+    } else {
+      showLoading('Verificando sua conta...');
+    }
+    // onAuthStateChanged cuida do redirecionamento (onboarding ou dashboard)
+  } catch(e){
+    hideLoading();
+    showAuthMsg(errId, friendlyAuthError(e.code), 'error');
+  }
+};
+
+window.receiveGoogleSignInError = function(statusCode, context){
+  hideLoading();
+  const errId = (context === 'register') ? 'register-msg' : 'login-msg';
+  // statusCode 12501 = usuário cancelou a seleção de conta
+  const msg = (String(statusCode) === '12501')
+    ? 'Login cancelado.'
+    : 'Erro ao conectar com Google (código ' + statusCode + ').';
+  showAuthMsg(errId, msg, 'error');
 };
 
 window.doLogin = async function(){
@@ -3584,7 +3627,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════  ══════════════════════════════════   ══════
+// ════��══════════════════════════════════���══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -3805,7 +3848,7 @@ window.excluirTurmaDefinitivo = async function(id){
   finally{ hideLoading(); }
 };
 
-// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -4164,7 +4207,7 @@ window.saveEscolaTipoModal = async function(){
     if(!sistIgual){
       for(const turma of turmasAfetadas){
         await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
-        // Limpa cache para for  ar releitura na próxima abertura
+        // Limpa cache para for��ar releitura na próxima abertura
         delete _unidades[turma.id];
       }
     }
@@ -4294,7 +4337,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -4398,7 +4441,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -4942,7 +4985,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────   ────────────────────────
+// ── Toggle de seção colapsável ─────────────���────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -6703,7 +6746,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════  ═════════════════════════════════════════════════════════════════
+// ════��═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -6952,7 +6995,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────  ────────────────────────
+// ── Helpers de vistos ─────────────��────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
@@ -7156,7 +7199,18 @@ function _exp_estiloBase(){
 
     @page { size: A4 portrait; margin: 10mm; }
     .landscape body, body.landscape { font-size: 10pt; }
-    @media print { .no-print{display:none!important;} }
+    @media print {
+      .no-print{display:none!important;}
+      /* Garante que o cabeçalho da tabela repita em cada página */
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+      /* Impede que uma linha de aluno seja cortada no meio entre páginas */
+      tr { break-inside: avoid; page-break-inside: avoid; }
+      /* Impede quebra logo após o cabeçalho ou antes do rodapé */
+      thead tr { break-after: avoid; page-break-after: avoid; }
+      /* Tabela ocupa toda a largura disponível */
+      table { width: 100%; border-collapse: collapse; }
+    }
     .barra-acoes{position:fixed;top:8px;right:8px;display:flex;gap:6px;}
     .barra-acoes button{background:#0056b3;color:#fff;border:none;padding:8px 14px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.85rem;}
     .barra-acoes button.cinza{background:#6c757d;}
@@ -7186,26 +7240,116 @@ function _exp_rodape(){
   </div>`;
 }
 
+// --- SISTEMA DE IMPRESSÃO NATIVO ---
+// Mantém o mesmo padrão do v60 estável: qualquer chamada a window.print()
+// prepara a tela e, dentro do APK, chama window.AndroidApp.gerarPDF() SEM argumentos.
+if(!window._nmOriginalPrint){
+  window._nmOriginalPrint = window.print ? window.print.bind(window) : function(){};
+}
+window.print = function(){
+  const noPrintElements = Array.from(document.querySelectorAll('.no-print, .nm-bar'));
+  const printOnlyElements = Array.from(document.querySelectorAll('.print-only'));
+  const previousNoPrint = noPrintElements.map(el => el.style.display);
+  const previousPrintOnly = printOnlyElements.map(el => el.style.display);
+
+  noPrintElements.forEach(el => { el.style.display = 'none'; });
+  printOnlyElements.forEach(el => { el.style.display = 'block'; });
+
+  const restore = () => {
+    noPrintElements.forEach((el, i) => { el.style.display = previousNoPrint[i] || ''; });
+    printOnlyElements.forEach((el, i) => { el.style.display = previousPrintOnly[i] || ''; });
+  };
+
+  try{
+    if(window.AndroidApp && window.AndroidApp.gerarPDF){
+      window.AndroidApp.gerarPDF();
+    }else{
+      if(/Android/i.test(navigator.userAgent) && !window._nmPrintBridgeWarningShown){
+        window._nmPrintBridgeWarningShown = true;
+        alert('O APK não expôs a ponte AndroidApp.gerarPDF para esta tela. Verifique no Android Studio se addJavascriptInterface(..., "AndroidApp") está ativo antes de carregar este HTML.');
+      }
+      window._nmOriginalPrint();
+    }
+  }catch(e){
+    console.error('Falha ao iniciar impressão/PDF:', e);
+    try{ window._nmOriginalPrint(); }catch(_e){}
+  }
+
+  // No Android o PrintManager precisa de um pequeno tempo para capturar a tela.
+  setTimeout(restore, 4000);
+};
+
 // Abre nova janela com HTML e dispara o diálogo de impressão.
+// Renderiza o documento imprimível como OVERLAY dentro da própria página.
+// Padrão idêntico ao v60 estável (que funcionava no APK): a WebView do
+// Android captura o próprio conteúdo via PrintManager — por isso o bridge
+// nativo é chamado SEM argumentos (window.AndroidApp.gerarPDF()).
+// O overlay garante que os botões "Imprimir/Salvar PDF" e "Fechar"
+// funcionem tanto no APK quanto no navegador, sem travar em janela nova.
 function abrirJanelaImpressao(html, orientacao){
   const o = orientacao==='landscape' ? 'landscape' : 'portrait';
-  const full = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
-    <title>Nota Mestra — Exportação</title>
-    ${_exp_estiloBase()}
-    <style>@page { size: A4 ${o}; margin: 10mm; }</style>
-  </head>
-  <body class="${o}">
-    <div class="barra-acoes no-print">
-      <button onclick="window.print()">🖨️ Imprimir / Salvar PDF</button>
-      <button class="cinza" onclick="window.close()">Fechar</button>
+
+  // Remove overlay anterior (se o usuário reabrir sem fechar)
+  document.getElementById('nm-print-overlay')?.remove();
+  document.getElementById('nm-print-style')?.remove();
+
+  const styleEl = document.createElement('style');
+  styleEl.id = 'nm-print-style';
+  styleEl.textContent = `
+    @page { size: A4 ${o}; margin: 10mm; }
+    #nm-print-overlay{position:fixed;inset:0;z-index:99999;background:#fff;overflow:auto;-webkit-overflow-scrolling:touch;}
+    #nm-print-overlay .nm-bar{position:sticky;top:0;display:flex;gap:8px;justify-content:flex-end;padding:10px;background:#f4f6f9;border-bottom:1px solid #dee2e6;z-index:2;}
+    #nm-print-overlay .nm-bar button{background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;}
+    #nm-print-overlay .nm-bar button.cinza{background:#6c757d;}
+    #nm-print-overlay .nm-body{padding:0 10px 40px;}
+    @media print {
+      body > *:not(#nm-print-overlay){display:none!important;}
+      #nm-print-overlay{position:static!important;overflow:visible!important;background:#fff!important;}
+      #nm-print-overlay .nm-bar, #nm-print-overlay .no-print{display:none!important;}
+      #nm-print-overlay .nm-body{padding:0!important;}
+      /* Cabeçalho da tabela repete em cada página nova */
+      thead { display: table-header-group; }
+      tfoot { display: table-footer-group; }
+      /* Nenhuma linha de aluno é cortada entre páginas */
+      tr { break-inside: avoid; page-break-inside: avoid; }
+      thead tr { break-after: avoid; page-break-after: avoid; }
+      table { width: 100%; border-collapse: collapse; }
+    }
+  `;
+  document.head.appendChild(styleEl);
+
+  const prevOverflow = document.body.style.overflow;
+  document.body.style.overflow = 'hidden';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'nm-print-overlay';
+  overlay.className = o;
+  overlay.innerHTML = `
+    <div class="nm-bar no-print">
+      <button type="button" id="nm-print-btn">🖨️ Imprimir / Salvar PDF</button>
+      <button type="button" id="nm-close-btn" class="cinza">Fechar</button>
     </div>
-    ${html}
-  </body></html>`;
-  const w = window.open('', '_blank');
-  if(!w){ showToast('Permita pop-ups para gerar o PDF.','error'); return; }
-  w.document.open(); w.document.write(full); w.document.close();
-  // Pequeno delay para garantir layout antes do print
-  setTimeout(()=>{ try { w.focus(); w.print(); } catch(e){} }, 350);
+    <div class="nm-body">
+      ${_exp_estiloBase()}
+      ${html}
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const fechar = () => {
+    overlay.remove();
+    styleEl.remove();
+    document.body.style.overflow = prevOverflow;
+  };
+
+  document.getElementById('nm-close-btn').addEventListener('click', fechar);
+  document.getElementById('nm-print-btn').addEventListener('click', () => window.print());
+
+  // ESC fecha o overlay
+  const onKey = (ev) => {
+    if(ev.key === 'Escape'){ fechar(); document.removeEventListener('keydown', onKey); }
+  };
+  document.addEventListener('keydown', onKey);
 }
 
 // ── Aba "Exportação" ────────────────────────────────────────────────
@@ -8119,10 +8263,77 @@ window.showConfirmLogout = function(){
 window.hideConfirmLogout = function(){
   document.getElementById('confirm-modal').classList.remove('active');
 };
+// ── Botão Voltar do Android ──────────────────────────────────────────────
+// Chamado pelo MainActivity via evaluateJavascript('window.androidHandleBack()')
+// Retorna true se tratou o evento (fecha modal/tela), false se deve sair do app.
+window.androidHandleBack = function(){
+  // 1. Confirmar logout aberto
+  const confirmModal = document.getElementById('confirm-modal');
+  if(confirmModal?.classList.contains('active')){
+    confirmModal.classList.remove('active');
+    return true;
+  }
+  // 2. Modal de turma (editar/criar) aberto
+  const turmaModal = document.getElementById('turma-modal-overlay');
+  if(turmaModal?.classList.contains('active')){
+    turmaModal.classList.remove('active');
+    return true;
+  }
+  // 3. Modais auxiliares visíveis (escola-tipo, nova-escola, nova-turma)
+  const auxModals = ['escola-tipo-modal','nova-escola-modal','nova-turma-modal','phone-modal-overlay'];
+  for(const id of auxModals){
+    const el = document.getElementById(id);
+    if(el && el.style.display !== 'none' && el.style.display !== ''){
+      el.style.display = 'none';
+      return true;
+    }
+  }
+  // 4. Tela de turma aberta → volta para o dashboard
+  if(document.getElementById('turma-screen')?.classList.contains('active')){
+    showScreen('dashboard-screen');
+    return true;
+  }
+  // 5. Tela de perfil aberta → volta para o dashboard
+  if(document.getElementById('profile-screen')?.classList.contains('active')){
+    showScreen('dashboard-screen');
+    return true;
+  }
+  // 6. Telas de auth secundárias → volta para o login
+  if(document.getElementById('register-screen')?.classList.contains('active') ||
+     document.getElementById('forgot-screen')?.classList.contains('active')){
+    showScreen('login-screen');
+    return true;
+  }
+  // Nada a fechar — MainActivity deve encerrar o app
+  return false;
+};
+
 window.doLogout = async function(){
   document.getElementById('confirm-modal').classList.remove('active');
   showLoading('Saindo...');
   await signOut(auth);
+  // ── Android: limpa a conta Google cacheada pelo GoogleSignInClient ────
+  // Sem isso, o próximo "Entrar com Google" devolve silenciosamente a
+  // mesma conta usada antes, sem mostrar o seletor.
+  try {
+    if(typeof window.AndroidApp !== 'undefined' && typeof window.AndroidApp.signOutGoogle === 'function'){
+      window.AndroidApp.signOutGoogle();
+    }
+  } catch(e){ console.warn('Logout: bridge Android signOutGoogle falhou', e); }
+  // ── Limpa a sessão Firebase do localStorage do WebView ────────────────
+  // O SDK persiste a sessão em chaves "firebase:authUser:<apiKey>:[DEFAULT]".
+  // Sem essa limpeza o onAuthStateChanged reloga automaticamente na próxima
+  // abertura do app.
+  try {
+    const keysToRemove = [];
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(k && (k.startsWith('firebase:') || k.startsWith('firebaseLocalStorage'))){
+        keysToRemove.push(k);
+      }
+    }
+    keysToRemove.forEach(k => localStorage.removeItem(k));
+  } catch(e){ console.warn('Logout: erro ao limpar localStorage', e); }
   hideLoading();
 };
 
