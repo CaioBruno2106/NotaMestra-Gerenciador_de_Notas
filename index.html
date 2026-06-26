@@ -7789,12 +7789,14 @@ function _mostrarPreviewImportacao(raw, prevEl, btnEl, msgEl){
   const unmatched = pares.filter(p=>p.turmaIdx < 0).length;
 
   // Descobre quais atividades existem no JSON (atv1, atv2, ...)
-  const notas = raw.notas || {};
-  const atvKeys = Object.keys(notas).filter(k=>/^atv\d+$/.test(k)).sort((a,b)=>{
+  // Suporta tanto raw.grades (formato atual) quanto raw.notas (formato legado)
+  const grades = raw.grades || raw.notas || {};
+  const atividades = grades.atividades || grades; // atv* ficam em grades.atividades no formato atual
+  const atvKeys = Object.keys(atividades).filter(k=>/^atv\d+$/.test(k)).sort((a,b)=>{
     return parseInt(a.replace('atv','')) - parseInt(b.replace('atv',''));
   });
-  const temProva = Array.isArray(notas.prova);
-  const temRec   = Array.isArray(notas.recuperacao);
+  const temProva = Array.isArray(grades.prova);
+  const temRec   = Array.isArray(grades.recuperacao);
 
   let linhasPrev = pares.slice(0,8).map(p=>`
     <tr>
@@ -7845,7 +7847,9 @@ window.confirmarImportacaoBKP = function(){
   if(!turma || !unidade){ showToast('Abra uma turma e selecione uma unidade.','error'); return; }
 
   const setup       = _bkpDados.setup;
-  const notas       = _bkpDados.notas || {};
+  // Suporta tanto raw.grades (formato atual) quanto raw.notas (formato legado)
+  const grades      = _bkpDados.grades || _bkpDados.notas || {};
+  const atividades  = grades.atividades || grades; // atv* ficam em grades.atividades no formato atual
   const alunosBKP   = setup.alunos || [];
   const alunosTurma = (turma.alunos||[]).filter(a=>a.ativo!==false);
   const uid         = unidade.id;
@@ -7854,7 +7858,7 @@ window.confirmarImportacaoBKP = function(){
   if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
   if(!_atvConfig[uid])  _atvConfig[uid]={qtdAtividades:0,atividades:[]};
 
-  const atvKeys = Object.keys(notas).filter(k=>/^atv\d+$/.test(k)).sort((a,b)=>
+  const atvKeys = Object.keys(atividades).filter(k=>/^atv\d+$/.test(k)).sort((a,b)=>
     parseInt(a.replace('atv','')) - parseInt(b.replace('atv',''))
   );
 
@@ -7867,9 +7871,9 @@ window.confirmarImportacaoBKP = function(){
 
     // Atividades diretas (atv1, atv2, ...)
     atvKeys.forEach((key, ki) => {
-      const arr = notas[key];
+      const arr = atividades[key];
       if(!Array.isArray(arr)) return;
-      const val = arr[ab.id]; // o JSON antigo indexa por ab.id que é a posição original
+      const val = arr[ab.id]; // indexado por ab.id (posição original no backup)
       if(val === '' || val == null) return;
       const parsed = parseFloat(val);
       if(isNaN(parsed)) return;
@@ -7882,16 +7886,16 @@ window.confirmarImportacaoBKP = function(){
     });
 
     // Prova
-    if(Array.isArray(notas.prova)){
-      const vp = notas.prova[ab.id];
+    if(Array.isArray(grades.prova)){
+      const vp = grades.prova[ab.id];
       if(vp !== '' && vp != null && !isNaN(parseFloat(vp))){
         _notasCache[uid].prova[turmaIdx] = parseFloat(vp);
       }
     }
 
     // Recuperação
-    if(Array.isArray(notas.recuperacao)){
-      const vr = notas.recuperacao[ab.id];
+    if(Array.isArray(grades.recuperacao)){
+      const vr = grades.recuperacao[ab.id];
       if(vr !== '' && vr != null && !isNaN(parseFloat(vr))){
         _notasCache[uid].rec[turmaIdx] = parseFloat(vr);
       }
