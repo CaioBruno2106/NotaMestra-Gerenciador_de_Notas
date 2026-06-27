@@ -1415,6 +1415,118 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
   .ob-card-header{padding:14px 16px;}
   .add-turma-grid{grid-template-columns:1fr;}
 }
+
+/* ─── Stat cards clicáveis ─── */
+.stat-card-btn{cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s;}
+.stat-card-btn:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.15);background:linear-gradient(135deg,var(--pe-navy),#004fa3);}
+.stat-card-btn:active{transform:translateY(0);}
+.stat-hint{font-size:.65rem;color:rgba(255,255,255,.5);margin-top:4px;letter-spacing:.3px;}
+
+/* ─── Modais flutuantes de dashboard ─── */
+.dash-modal-overlay{
+  position:fixed;inset:0;z-index:6000;
+  background:rgba(0,20,50,.55);backdrop-filter:blur(4px);
+  display:flex;align-items:flex-end;justify-content:center;
+  animation:fadeIn .2s ease;
+}
+@media(min-width:600px){.dash-modal-overlay{align-items:center;}}
+.dash-modal{
+  background:#fff;border-radius:20px 20px 0 0;width:100%;max-width:640px;
+  max-height:88vh;display:flex;flex-direction:column;
+  animation:slideUp .25s ease;overflow:hidden;
+}
+@media(min-width:600px){.dash-modal{border-radius:16px;max-height:80vh;}}
+@keyframes slideUp{from{transform:translateY(60px);opacity:0;}to{transform:translateY(0);opacity:1;}}
+.dash-modal-header{
+  display:flex;align-items:center;padding:16px 18px 14px;
+  border-bottom:1px solid #eee;flex-shrink:0;
+  background:linear-gradient(135deg,var(--pe-navy),#004fa3);color:#fff;
+  border-radius:20px 20px 0 0;
+}
+@media(min-width:600px){.dash-modal-header{border-radius:16px 16px 0 0;}}
+.dash-modal-header h3{flex:1;font-size:1rem;font-weight:800;margin:0;}
+.dash-modal-header button{background:rgba(255,255,255,.15);border:none;color:#fff;
+  width:32px;height:32px;border-radius:50%;font-size:1.1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;}
+.dash-modal-header button:hover{background:rgba(255,255,255,.28);}
+.dash-modal-toolbar{
+  display:flex;gap:8px;padding:12px 16px;border-bottom:1px solid #f0f0f0;
+  flex-shrink:0;flex-wrap:wrap;align-items:center;background:#fafbfc;
+}
+.dash-modal-toolbar button{
+  background:var(--pe-navy);color:#fff;border:none;
+  padding:7px 14px;border-radius:8px;font-size:.82rem;font-weight:700;
+  cursor:pointer;display:flex;align-items:center;gap:5px;white-space:nowrap;
+}
+.dash-modal-toolbar button:hover{background:#004fa3;}
+.dash-modal-toolbar .dm-filter-group{display:flex;gap:4px;margin-left:auto;}
+.dm-filter-btn{
+  background:#eef2f7!important;color:var(--pe-navy)!important;
+  border:1px solid #d0d9e8!important;font-weight:600!important;
+}
+.dm-filter-btn.active{background:var(--pe-navy)!important;color:#fff!important;border-color:var(--pe-navy)!important;}
+.dash-modal-body{flex:1;overflow-y:auto;padding:8px 0;}
+
+/* ─── Itens de escola/turma no modal ─── */
+.dm-item{
+  display:flex;align-items:center;gap:12px;
+  padding:13px 18px;border-bottom:1px solid #f4f4f4;
+  transition:background .1s;
+}
+.dm-item:hover{background:#f7f9fc;}
+.dm-item.inativo{opacity:.55;}
+.dm-item-icon{
+  width:38px;height:38px;border-radius:10px;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-size:1.1rem;
+  background:linear-gradient(135deg,var(--pe-navy),#004fa3);color:#fff;
+}
+.dm-item.inativo .dm-item-icon{background:#b0bec5;}
+.dm-item-info{flex:1;min-width:0;}
+.dm-item-name{font-weight:700;color:var(--pe-navy);font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.dm-item.inativo .dm-item-name{color:var(--pe-muted);}
+.dm-item-sub{font-size:.75rem;color:var(--pe-muted);margin-top:2px;}
+.dm-item-badge{
+  font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:20px;
+  background:#e8f5e9;color:#2e7d32;flex-shrink:0;
+}
+.dm-item-badge.inativo{background:#fce4ec;color:#c62828;}
+.dm-item-actions{display:flex;gap:6px;flex-shrink:0;}
+.dm-act-btn{
+  background:none;border:1px solid #ddd;border-radius:7px;
+  padding:5px 10px;font-size:.75rem;cursor:pointer;font-weight:600;
+  transition:all .15s;white-space:nowrap;
+}
+.dm-act-btn:hover{background:#f0f4ff;border-color:#aac;}
+.dm-act-btn.danger{color:#c62828;border-color:#f8bbd0;}
+.dm-act-btn.danger:hover{background:#fce4ec;}
+.dm-act-btn.success{color:#2e7d32;border-color:#c8e6c9;}
+.dm-act-btn.success:hover{background:#e8f5e9;}
+.dm-empty{text-align:center;padding:40px 20px;color:var(--pe-muted);font-size:.9rem;}
+
+/* ─── Itens de alunos no modal ─── */
+.dm-aluno-item{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 18px;border-bottom:1px solid #f4f4f4;
+}
+.dm-aluno-avatar{
+  width:34px;height:34px;border-radius:50%;flex-shrink:0;
+  background:linear-gradient(135deg,#e3f0ff,#b8d4f8);
+  color:var(--pe-navy);font-weight:800;font-size:.85rem;
+  display:flex;align-items:center;justify-content:center;
+}
+.dm-aluno-nome{flex:1;font-size:.88rem;font-weight:600;color:#1a1a2e;}
+.dm-aluno-tags{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end;}
+.dm-aluno-tag{
+  font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:20px;
+  background:#eef2f7;color:var(--pe-navy);white-space:nowrap;
+}
+.dm-aluno-tag.escola{background:#e8f0fe;color:#1a56db;}
+.dm-aluno-tag.serie{background:#fef3c7;color:#92400e;}
+.dm-aluno-tag.turma{background:#d1fae5;color:#065f46;}
+.dm-count-bar{
+  padding:10px 18px;background:#f7f9fc;
+  border-bottom:1px solid #eee;font-size:.78rem;color:var(--pe-muted);font-weight:600;
+}
 </style>
 </head>
 <body>
@@ -1895,17 +2007,20 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
     </div>
 
     <div class="stats-row">
-      <div class="stat-card">
+      <div class="stat-card stat-card-btn" onclick="abrirModalEscolas()" title="Ver escolas">
         <div class="stat-num" id="stat-escolas">0</div>
         <div class="stat-label">Escolas</div>
+        <div class="stat-hint">toque para ver</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card stat-card-btn" onclick="abrirModalTurmasDash()" title="Ver turmas">
         <div class="stat-num" id="stat-turmas">0</div>
         <div class="stat-label">Turmas</div>
+        <div class="stat-hint">toque para ver</div>
       </div>
-      <div class="stat-card">
+      <div class="stat-card stat-card-btn" onclick="abrirModalAlunos()" title="Ver estudantes">
         <div class="stat-num" id="stat-alunos">0</div>
         <div class="stat-label">Estudantes</div>
+        <div class="stat-hint">toque para ver</div>
       </div>
     </div>
 
@@ -4114,6 +4229,236 @@ window.excluirTurmaDefinitivo = async function(id){
     showToast('Turma excluída definitivamente.','info');
   } catch(e){ showToast('Erro ao excluir: '+e.message,'error'); }
   finally{ hideLoading(); }
+};
+
+
+// ════════════════════════════════════════════════════════
+//  MODAIS RÁPIDOS DE DASHBOARD (Escolas / Turmas / Alunos)
+// ════════════════════════════════════════════════════════
+
+// ── MODAL ESCOLAS ────────────────────────────────────────
+window.abrirModalEscolas = function(){
+  document.getElementById('dm-escolas-overlay').style.display = 'flex';
+  renderModalEscolas();
+};
+window.fecharModalEscolas = function(){
+  document.getElementById('dm-escolas-overlay').style.display = 'none';
+};
+window.renderModalEscolas = function(){
+  const mostrarInativas = document.getElementById('dm-esc-mostrar-inativas')?.checked;
+  const body = document.getElementById('dm-escolas-body');
+  if(!body) return;
+  let escolas = [..._escolas];
+  if(!mostrarInativas) escolas = escolas.filter(e => e.ativo !== false);
+  if(!escolas.length){
+    body.innerHTML = '<div class="dm-empty">Nenhuma escola encontrada.<br>Adicione uma escola para começar.</div>';
+    return;
+  }
+  body.innerHTML = escolas.map(e => {
+    const ativa = e.ativo !== false;
+    const turmasCount = _turmas.filter(t => t.escolaId === e.id).length;
+    const tipo = e.tipo === 'municipal' ? 'Municipal' : (e.tipo === 'estadual' ? 'Estadual' : (e.tipo || ''));
+    return `
+    <div class="dm-item ${ativa ? '' : 'inativo'}">
+      <div class="dm-item-icon">${ativa ? '🏫' : '🔒'}</div>
+      <div class="dm-item-info">
+        <div class="dm-item-name">${e.nome || 'Escola sem nome'}</div>
+        <div class="dm-item-sub">${tipo}${tipo && turmasCount ? ' · ' : ''}${turmasCount} turma(s)</div>
+      </div>
+      <span class="dm-item-badge ${ativa ? '' : 'inativo'}">${ativa ? 'Ativa' : 'Inativa'}</span>
+      <div class="dm-item-actions">
+        ${ativa
+          ? `<button class="dm-act-btn" onclick="desativarEscolaModal('${e.id}')">⏸ Desativar</button>`
+          : `<button class="dm-act-btn success" onclick="reativarEscolaModal('${e.id}')">▶ Reativar</button>
+             <button class="dm-act-btn danger" onclick="excluirEscolaModal('${e.id}')">🗑 Excluir</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.desativarEscolaModal = async function(id){
+  await desativarEscola(id);
+  renderModalEscolas();
+  document.getElementById('stat-escolas').textContent = _escolas.length;
+};
+window.reativarEscolaModal = async function(id){
+  await reativarEscola(id);
+  renderModalEscolas();
+};
+window.excluirEscolaModal = async function(id){
+  await excluirEscolaDefinitivo(id);
+  renderModalEscolas();
+  document.getElementById('stat-escolas').textContent = _escolas.length;
+};
+
+// ── MODAL TURMAS ─────────────────────────────────────────
+window.abrirModalTurmasDash = function(){
+  document.getElementById('dm-turmas-overlay').style.display = 'flex';
+  renderModalTurmasDash();
+};
+window.fecharModalTurmasDash = function(){
+  document.getElementById('dm-turmas-overlay').style.display = 'none';
+};
+window.renderModalTurmasDash = function(){
+  const mostrarInativas = document.getElementById('dm-trm-mostrar-inativas')?.checked;
+  const body = document.getElementById('dm-turmas-dash-body');
+  if(!body) return;
+  let turmas = [..._turmas];
+  if(!mostrarInativas) turmas = turmas.filter(t => t.ativo !== false);
+  turmas.sort((a,b) => {
+    const ea = (_escolas.find(e=>e.id===a.escolaId)||{}).nome||'';
+    const eb = (_escolas.find(e=>e.id===b.escolaId)||{}).nome||'';
+    return ea.localeCompare(eb) || (a.serie||'').localeCompare(b.serie||'');
+  });
+  if(!turmas.length){
+    body.innerHTML = '<div class="dm-empty">Nenhuma turma encontrada.</div>';
+    return;
+  }
+  body.innerHTML = turmas.map(t => {
+    const ativa = t.ativo !== false;
+    const escola = _escolas.find(e => e.id === t.escolaId);
+    const escolaNome = escola ? escola.nome : (t.escolaNome || '—');
+    const nAlunos = countStudents(t.alunosRaw);
+    const turno = turnoLabel(t.turno || '');
+    return `
+    <div class="dm-item ${ativa ? '' : 'inativo'}">
+      <div class="dm-item-icon">${ativa ? '📚' : '📕'}</div>
+      <div class="dm-item-info">
+        <div class="dm-item-name">${t.serie || ''} ${t.turma || ''}</div>
+        <div class="dm-item-sub">${escolaNome}${turno ? ' · ' + turno : ''} · ${nAlunos} aluno(s)</div>
+      </div>
+      <span class="dm-item-badge ${ativa ? '' : 'inativo'}">${ativa ? 'Ativa' : 'Inativa'}</span>
+      <div class="dm-item-actions">
+        ${ativa
+          ? `<button class="dm-act-btn" onclick="desativarTurmaModal('${t.id}')">⏸ Desativar</button>`
+          : `<button class="dm-act-btn success" onclick="reativarTurmaModal('${t.id}')">▶ Reativar</button>
+             <button class="dm-act-btn danger" onclick="excluirTurmaModal('${t.id}')">🗑 Excluir</button>`
+        }
+      </div>
+    </div>`;
+  }).join('');
+};
+
+window.desativarTurmaModal = async function(id){
+  await desativarTurma(id);
+  renderModalTurmasDash();
+};
+window.reativarTurmaModal = async function(id){
+  await reativarTurma(id);
+  renderModalTurmasDash();
+};
+window.excluirTurmaModal = async function(id){
+  await excluirTurmaDefinitivo(id);
+  renderModalTurmasDash();
+};
+
+// ── MODAL ALUNOS ─────────────────────────────────────────
+let _filtroAlunos = 'todos';
+
+window.setFiltroAlunos = function(filtro){
+  _filtroAlunos = filtro;
+  ['todos','escola','serie','periodo'].forEach(f => {
+    const btn = document.getElementById('dm-al-fil-' + f);
+    if(btn) btn.classList.toggle('active', f === filtro);
+  });
+  renderModalAlunos();
+};
+
+window.abrirModalAlunos = function(){
+  document.getElementById('dm-alunos-overlay').style.display = 'flex';
+  renderModalAlunos();
+};
+window.fecharModalAlunos = function(){
+  document.getElementById('dm-alunos-overlay').style.display = 'none';
+};
+
+window.renderModalAlunos = function(){
+  const body = document.getElementById('dm-alunos-body');
+  if(!body) return;
+
+  // Coleta todos os alunos únicos de todas as turmas ativas
+  const seen = new Set();
+  const todosAlunos = [];
+
+  for(const t of _turmas){
+    if(t.ativo === false) continue;
+    const escola = _escolas.find(e => e.id === t.escolaId);
+    const escolaNome = escola ? escola.nome : (t.escolaNome || '?');
+    // Sigla: primeiras letras de cada palavra principal (sem artigos)
+    const artigos = new Set(['de','da','do','das','dos','e','em','a','o','as','os']);
+    const sigla = escolaNome.split(/\s+/)
+      .filter(w => !artigos.has(w.toLowerCase()) && w.length > 1)
+      .slice(0,3).map(w => w[0].toUpperCase()).join('');
+
+    const alunos = parseStudents(t.alunosRaw);
+    for(const nome of alunos){
+      const key = nome.trim().toLowerCase();
+      if(seen.has(key)) continue; // descarta duplicatas entre turmas da mesma disciplina
+      seen.add(key);
+      todosAlunos.push({
+        nome: nome.trim(),
+        escola: escolaNome,
+        sigla: sigla || '?',
+        serie: t.serie || '',
+        turma: t.turma || '',
+        turno: turnoLabel(t.turno || ''),
+        escolaId: t.escolaId || '',
+      });
+    }
+  }
+
+  if(!todosAlunos.length){
+    body.innerHTML = '<div class="dm-empty">Nenhum estudante cadastrado ainda.</div>';
+    return;
+  }
+
+  // Ordena alfabeticamente
+  todosAlunos.sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+
+  const renderAluno = a => {
+    const inicial = a.nome.trim()[0]?.toUpperCase() || '?';
+    return `
+    <div class="dm-aluno-item">
+      <div class="dm-aluno-avatar">${inicial}</div>
+      <span class="dm-aluno-nome">${a.nome}</span>
+      <div class="dm-aluno-tags">
+        <span class="dm-aluno-tag escola">${a.sigla}</span>
+        <span class="dm-aluno-tag serie">${a.serie}</span>
+        <span class="dm-aluno-tag turma">${a.turma}</span>
+      </div>
+    </div>`;
+  };
+
+  if(_filtroAlunos === 'todos'){
+    body.innerHTML = `<div class="dm-count-bar">${todosAlunos.length} estudante(s) no total</div>`
+      + todosAlunos.map(renderAluno).join('');
+    return;
+  }
+
+  // Agrupamento
+  const grupos = {};
+  for(const a of todosAlunos){
+    const key = _filtroAlunos === 'escola'  ? a.escola
+              : _filtroAlunos === 'serie'   ? a.serie
+              : /* periodo */                 a.turno || 'Sem período';
+    if(!grupos[key]) grupos[key] = [];
+    grupos[key].push(a);
+  }
+
+  const keys = Object.keys(grupos).sort((a,b) => a.localeCompare(b, 'pt-BR'));
+  let html = `<div class="dm-count-bar">${todosAlunos.length} estudante(s) · ${keys.length} grupo(s)</div>`;
+  for(const key of keys){
+    const lista = grupos[key];
+    html += `
+    <div style="padding:10px 18px 4px;background:#f7f9fc;border-bottom:1px solid #eee;
+                font-size:.78rem;font-weight:800;color:var(--pe-navy);letter-spacing:.3px;
+                text-transform:uppercase;">
+      ${key} <span style="font-weight:400;color:var(--pe-muted);">(${lista.length})</span>
+    </div>`;
+    html += lista.map(renderAluno).join('');
+  }
+  body.innerHTML = html;
 };
 
 // ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
@@ -7576,99 +7921,89 @@ ${html}
   };
 
   // ── Modo APK ─────────────────────────────────────────────────────────
-  // Usa um iframe invisível carregado com o HTML completo.
-  // O AndroidApp.gerarPDF() aciona o PrintManager sobre a WebView inteira,
-  // mas primeiro substituímos o body pelo iframe p/ que o print capture tudo.
+  // Estratégia: montar o HTML completo no JS e passá-lo diretamente ao
+  // Kotlin via AndroidApp.gerarPDFIframe(html). O Kotlin cria uma WebView
+  // dedicada (invisível), carrega esse HTML, aguarda onPageFinished e só
+  // então aciona o PrintManager — sem cortes, sem HTML bruto na tela.
+  //
+  // NÃO usamos iframe com srcdoc porque o Android bloqueia acesso ao
+  // contentDocument de iframes por política de segurança (cross-origin),
+  // o que causava a exibição do CSS cru em vez do documento renderizado.
   if(isApk){
-    // Remove overlay/iframe anterior
+    // Remove overlay anterior se existir
     document.getElementById('nm-print-overlay')?.remove();
-    document.getElementById('nm-iframe-print')?.remove();
     document.getElementById('nm-print-style')?.remove();
 
+    // Monta o HTML completo aqui no JS — é esta string que vai ao Kotlin
     const fullHtml = buildFullHtml();
 
-    // Injeta estilo global de impressão: esconde tudo exceto o iframe
+    // Estilo do overlay de preview
     const styleEl = document.createElement('style');
     styleEl.id = 'nm-print-style';
     styleEl.textContent = `
-      @page { size: A4 ${o}; margin: 0; }
       #nm-print-overlay{
-        position:fixed;inset:0;z-index:99999;background:#fff;
+        position:fixed;inset:0;z-index:99999;background:#e8eaed;
         display:flex;flex-direction:column;overflow:hidden;
       }
       #nm-print-overlay .nm-bar{
-        flex-shrink:0;display:flex;gap:8px;justify-content:flex-end;
-        padding:10px;background:#f4f6f9;border-bottom:1px solid #dee2e6;
+        flex-shrink:0;display:flex;align-items:center;gap:8px;
+        padding:10px 14px;background:#002b5c;
+      }
+      #nm-print-overlay .nm-bar span{
+        flex:1;font-weight:700;color:#fff;font-size:.95rem;
       }
       #nm-print-overlay .nm-bar button{
-        background:#0056b3;color:#fff;border:none;padding:10px 18px;
+        background:#1a6fd4;color:#fff;border:none;padding:10px 18px;
         border-radius:6px;font-weight:700;cursor:pointer;font-size:.95rem;
         -webkit-tap-highlight-color:transparent;
       }
-      #nm-print-overlay .nm-bar button.cinza{background:#6c757d;}
-      #nm-iframe-print{
-        flex:1;width:100%;border:none;display:block;
-        /* iframe cresce para o conteúdo; o PrintManager captura o documento completo */
-      }
-      @media print {
-        body > *{display:none!important;}
-        #nm-print-overlay{display:block!important;position:static!important;}
-        #nm-print-overlay .nm-bar{display:none!important;}
-        #nm-iframe-print{
-          display:block!important;width:100%!important;
-          height:auto!important;border:none!important;
-          /* Sem height fixo: o PrintManager renderiza o documento inteiro do iframe */
-        }
+      #nm-print-overlay .nm-bar button.cinza{background:#546e7a;}
+      #nm-preview-scroll{flex:1;overflow:auto;padding:16px;}
+      #nm-preview-page{
+        background:#fff;max-width:794px;margin:0 auto;
+        padding:16mm 12mm;box-shadow:0 2px 12px rgba(0,0,0,.2);
+        min-height:400px;font-family:Arial,sans-serif;font-size:12px;
       }
     `;
     document.head.appendChild(styleEl);
 
+    // Monta overlay com preview e botão
     const overlay = document.createElement('div');
     overlay.id = 'nm-print-overlay';
     overlay.innerHTML = `
       <div class="nm-bar">
+        <span>📄 Prévia — pronto para imprimir</span>
         <button type="button" id="nm-close-btn" class="cinza">✕ Fechar</button>
-        <button type="button" id="nm-print-btn">🖨️ Gerar PDF</button>
+        <button type="button" id="nm-print-btn">🖨️ Salvar PDF</button>
+      </div>
+      <div id="nm-preview-scroll">
+        <div id="nm-preview-page"></div>
       </div>
     `;
     document.body.appendChild(overlay);
 
-    // Cria o iframe e carrega o HTML via srcdoc
-    const iframe = document.createElement('iframe');
-    iframe.id = 'nm-iframe-print';
-    iframe.setAttribute('srcdoc', fullHtml);
-    // Fallback para Android < 5 que não suporta srcdoc
-    if(!('srcdoc' in iframe)){
-      const blob = new Blob([fullHtml], {type:'text/html'});
-      iframe.src = URL.createObjectURL(blob);
-    }
-    overlay.appendChild(iframe);
+    // Renderiza preview: extrai só o conteúdo do <body> do fullHtml
+    const bodyContent = fullHtml.replace(/[\s\S]*<body[^>]*>/i,'').replace(/<\/body>[\s\S]*/i,'');
+    document.getElementById('nm-preview-page').innerHTML = bodyContent;
 
-    const fechar = () => {
+    // Fechar
+    document.getElementById('nm-close-btn').addEventListener('click', () => {
       overlay.remove();
       styleEl.remove();
-    };
-    document.getElementById('nm-close-btn').addEventListener('click', fechar);
+    });
+
+    // Botão PDF: envia o HTML completo ao Kotlin (sem passar por iframe)
     document.getElementById('nm-print-btn').addEventListener('click', () => {
-      // Aciona o PrintManager do Android passando o HTML completo do iframe
       try {
         if(window.AndroidApp && window.AndroidApp.gerarPDFIframe){
-          // Captura o HTML completo renderizado dentro do iframe e envia ao Kotlin,
-          // que cria uma WebView dedicada, espera onPageFinished e então imprime —
-          // garantindo que o conteúdo inteiro seja capturado sem cortes.
-          const iframeDoc = iframe.contentDocument || iframe.contentWindow?.document;
-          const htmlCompleto = iframeDoc
-            ? iframeDoc.documentElement.outerHTML
-            : fullHtml; // fallback: usa o HTML que foi passado para o srcdoc
-          window.AndroidApp.gerarPDFIframe(htmlCompleto);
-        } else {
-          // Fallback web / Android sem suporte ao método novo:
-          // chama print() dentro do iframe — o WebView propaga ao PrintManager
-          iframe.contentWindow.print();
+          // ✅ Correto: Kotlin recebe o HTML, cria WebView dedicada,
+          // aguarda onPageFinished e imprime com A4 + NO_MARGINS.
+          window.AndroidApp.gerarPDFIframe(fullHtml);
+        } else if(window.AndroidApp && window.AndroidApp.gerarPDF){
+          window.AndroidApp.gerarPDF(); // fallback antigo
         }
       } catch(e){
         console.error('Erro ao gerar PDF:', e);
-        // último recurso: imprime a WebView principal (pode cortar)
         try { window.AndroidApp.gerarPDF(); } catch(_e){}
       }
     });
@@ -8886,5 +9221,68 @@ window.doLogout = async function(){
 };
 
 </script>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL RÁPIDO — ESCOLAS
+════════════════════════════════════════════════════ -->
+<div id="dm-escolas-overlay" class="dash-modal-overlay" style="display:none;"
+     onclick="if(event.target===this)fecharModalEscolas()">
+  <div class="dash-modal">
+    <div class="dash-modal-header">
+      <h3>🏫 Escolas</h3>
+      <button onclick="fecharModalEscolas()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="dash-modal-toolbar">
+      <button onclick="fecharModalEscolas();openNovaEscolaModal()">+ Nova Escola</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--pe-muted);margin-left:auto;cursor:pointer;">
+        <input type="checkbox" id="dm-esc-mostrar-inativas" onchange="renderModalEscolas()"> Mostrar inativas
+      </label>
+    </div>
+    <div class="dash-modal-body" id="dm-escolas-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL RÁPIDO — TURMAS
+════════════════════════════════════════════════════ -->
+<div id="dm-turmas-overlay" class="dash-modal-overlay" style="display:none;"
+     onclick="if(event.target===this)fecharModalTurmasDash()">
+  <div class="dash-modal">
+    <div class="dash-modal-header">
+      <h3>📚 Turmas</h3>
+      <button onclick="fecharModalTurmasDash()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="dash-modal-toolbar">
+      <button onclick="fecharModalTurmasDash();openNovaTurmaModal()">+ Nova Turma</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--pe-muted);margin-left:auto;cursor:pointer;">
+        <input type="checkbox" id="dm-trm-mostrar-inativas" onchange="renderModalTurmasDash()"> Mostrar inativas
+      </label>
+    </div>
+    <div class="dash-modal-body" id="dm-turmas-dash-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL RÁPIDO — ALUNOS
+════════════════════════════════════════════════════ -->
+<div id="dm-alunos-overlay" class="dash-modal-overlay" style="display:none;"
+     onclick="if(event.target===this)fecharModalAlunos()">
+  <div class="dash-modal">
+    <div class="dash-modal-header">
+      <h3>👩‍🎓 Estudantes</h3>
+      <button onclick="fecharModalAlunos()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="dash-modal-toolbar">
+      <span style="font-size:.8rem;color:#666;font-weight:600;">Agrupar por:</span>
+      <div class="dm-filter-group">
+        <button class="dm-filter-btn active" id="dm-al-fil-todos"    onclick="setFiltroAlunos('todos')">Todos</button>
+        <button class="dm-filter-btn"        id="dm-al-fil-escola"   onclick="setFiltroAlunos('escola')">Escola</button>
+        <button class="dm-filter-btn"        id="dm-al-fil-serie"    onclick="setFiltroAlunos('serie')">Série</button>
+        <button class="dm-filter-btn"        id="dm-al-fil-periodo"  onclick="setFiltroAlunos('periodo')">Período</button>
+      </div>
+    </div>
+    <div class="dash-modal-body" id="dm-alunos-body"></div>
+  </div>
+</div>
 </body>
 </html>
