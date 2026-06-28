@@ -44,183 +44,227 @@
 }
 /* ── MODO ESCURO ── */
 body.dark-mode {
-  --pe-bg:     #1a1a1a;
-  --pe-card:   #2a2a2a;
+  --pe-bg:     #121212;
+  --pe-card:   #1e1e1e;
   --pe-text:   #e8e8e8;
-  --pe-muted:  #aaaaaa;
-  --pe-border: #404040;
-  --apk-bar-bottom-color: #1a1a1a;
+  --pe-muted:  #9e9e9e;
+  --pe-border: #333333;
+  --apk-bar-bottom-color: #121212;
 }
+
+/* ── BASE ── */
+body.dark-mode { background: var(--pe-bg); color: var(--pe-text); }
+
+/* ── LOGIN / ONBOARDING ── */
 body.dark-mode .auth-card,
-body.dark-mode .ob-card,
-body.dark-mode .profile-section,
-body.dark-mode .stat-card,
-body.dark-mode .turma-card,
-body.dark-mode .dash-modal,
-body.dark-mode .modal-box {
-  background: var(--pe-card);
-  color: var(--pe-text);
-  border-color: var(--pe-border);
-}
-body.dark-mode .auth-tabs { background: #222; }
+body.dark-mode .ob-card { background: var(--pe-card); color: var(--pe-text); border-color: var(--pe-border); }
+body.dark-mode .auth-tabs { background: #1a1a1a; }
 body.dark-mode .auth-tab  { color: var(--pe-muted); }
-body.dark-mode .auth-tab.active { background: #2a2a2a; color: var(--pe-cyan); }
+body.dark-mode .auth-tab.active { background: var(--pe-card); color: var(--pe-cyan); }
 body.dark-mode .auth-field input,
 body.dark-mode .auth-field select,
 body.dark-mode .ob-field input,
 body.dark-mode .ob-field select,
-body.dark-mode .ob-field textarea,
-body.dark-mode .profile-field input,
-body.dark-mode .profile-field select {
-  background: #333; color: var(--pe-text); border-color: #555;
-}
+body.dark-mode .ob-field textarea { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
 body.dark-mode .auth-field input:focus,
-body.dark-mode .ob-field input:focus,
-body.dark-mode .profile-field input:focus { background: #3a3a3a; border-color: var(--pe-cyan); }
+body.dark-mode .ob-field input:focus { background: #2f2f2f; border-color: var(--pe-cyan); }
 body.dark-mode .auth-field label,
-body.dark-mode .ob-field label,
-body.dark-mode .profile-field label { color: var(--pe-muted); }
-body.dark-mode .auth-footer { background: #222; border-color: #333; }
+body.dark-mode .ob-field label { color: var(--pe-muted); }
+body.dark-mode .auth-footer { background: #1a1a1a; border-color: #333; }
 body.dark-mode .auth-footer a,
 body.dark-mode .auth-footer span { color: var(--pe-muted); }
-body.dark-mode .google-btn {
-  background: #2a2a2a; color: var(--pe-text); border-color: #555;
-}
-body.dark-mode .pf-value { background: #333; border-color: #555; color: var(--pe-text); }
-body.dark-mode .profile-escola-item { background: #333; border-color: #555; }
-body.dark-mode .profile-escola-name { color: var(--pe-text); }
-body.dark-mode .escola-chip { background: #333; border-color: #555; }
-body.dark-mode .escola-chip-name { color: var(--pe-text); }
-body.dark-mode .add-escola-box { background: #222; border-color: #555; }
-body.dark-mode .add-escola-box input,
-body.dark-mode .add-escola-box select { background: #333; color: var(--pe-text); border-color: #555; }
-body.dark-mode .section-title,
-body.dark-mode .welcome-badge { color: var(--pe-text); }
-body.dark-mode .ob-btn-ghost { background: #333; color: var(--pe-muted); border-color: #555; }
-body.dark-mode .ob-footer { border-color: #444; }
+body.dark-mode .google-btn { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode .ob-btn-ghost { background: #2a2a2a; color: var(--pe-muted); border-color: #444; }
+body.dark-mode .ob-footer { border-color: #333; }
 body.dark-mode .ob-card-body { background: var(--pe-card); }
-body.dark-mode .dash-modal-toolbar { background: #222; border-color: #444; }
-body.dark-mode .dash-modal-body { background: var(--pe-card); }
-body.dark-mode .dm-filter-btn { background: #333; color: var(--pe-muted); border-color: #555; }
-body.dark-mode .dm-filter-btn.active { background: var(--pe-blue); color: #fff; }
-body.dark-mode .turma-card { background: var(--pe-card); }
-body.dark-mode .turma-card .tc-name,
-body.dark-mode .turma-card .tc-meta { color: var(--pe-text); }
 body.dark-mode .ob-empty { color: var(--pe-muted); }
 
-/* ── MODO ESCURO: tela de turma ── */
-body.dark-mode .turma-header-info { background: linear-gradient(135deg,#00204a,#002e6b); }
-body.dark-mode .turma-header-title,
-body.dark-mode .turma-header-meta  { color: #e8e8e8; }
-body.dark-mode .turma-body { background: var(--pe-bg); }
+/* ── PERFIL ── */
+body.dark-mode .profile-section { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .profile-field input,
+body.dark-mode .profile-field select { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode .profile-field input:focus { background: #2f2f2f; border-color: var(--pe-cyan); }
+body.dark-mode .profile-field label { color: var(--pe-muted); }
+body.dark-mode .pf-value { background: #2a2a2a; border-color: #444; color: var(--pe-text); }
+body.dark-mode .profile-escola-item { background: #2a2a2a; border-color: #444; }
+body.dark-mode .profile-escola-name { color: var(--pe-text); }
+body.dark-mode .profile-inativa-tag { opacity: .6; }
+body.dark-mode .section-title,
+body.dark-mode .welcome-badge { color: var(--pe-text); }
+body.dark-mode .add-escola-box { background: #1a1a1a; border-color: #444; }
+body.dark-mode .add-escola-box input,
+body.dark-mode .add-escola-box select { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
 
-/* Tabs de período/bimestre */
-body.dark-mode .periodo-tabs,
-body.dark-mode .bim-tabs,
-body.dark-mode [class*="periodo-tab"],
-body.dark-mode [class*="bim-tab"] { background: #222; border-color: #444; }
-body.dark-mode [class*="periodo-tab"].active,
-body.dark-mode [class*="bim-tab"].active { background: var(--pe-blue); color: #fff; }
-body.dark-mode [class*="periodo-tab"],
-body.dark-mode [class*="bim-tab"] { color: var(--pe-muted); }
+/* ── NAVBAR ── */
+body.dark-mode .navbar { background: var(--pe-navy); }
 
-/* Seções de atividade */
-body.dark-mode .atividades-section,
-body.dark-mode [class*="ativ-card"],
-body.dark-mode [class*="ativ-header"],
-body.dark-mode [class*="ativ-body"],
-body.dark-mode .periodo-body,
-body.dark-mode [class*="periodo-body"] { background: var(--pe-card); border-color: var(--pe-border); color: var(--pe-text); }
+/* ── DASHBOARD: stat cards ── */
+body.dark-mode .stat-card { background: var(--pe-card); color: var(--pe-text); border-color: var(--pe-border); }
 
-body.dark-mode [class*="ativ-header"] { background: #222; border-color: #444; }
-body.dark-mode [class*="ativ-titulo"],
-body.dark-mode [class*="ativ-nome"] { color: var(--pe-text); }
-
-/* Tabela de notas */
-body.dark-mode table { border-color: #444; }
-body.dark-mode th { background: #002b5c; color: #fff; border-color: #444; }
-body.dark-mode td { background: var(--pe-card); color: var(--pe-text); border-color: #444; }
-body.dark-mode tr:nth-child(even) td { background: #252525; }
-body.dark-mode .aluno-row { background: var(--pe-card); border-color: var(--pe-border); }
-body.dark-mode .aluno-row:hover { background: #333; }
-body.dark-mode .aluno-name,
-body.dark-mode .aluno-num  { color: var(--pe-text); }
-body.dark-mode .aluno-row.inativo { opacity: .6; }
-
-/* Inputs de nota */
-body.dark-mode .nota-input {
-  background: #333; color: var(--pe-text); border-color: #555;
+/* ── DASHBOARD: chips de escola/ano ── */
+body.dark-mode .escola-chip { background: #2a2a2a; border-color: #444; }
+body.dark-mode .escola-chip-name { color: var(--pe-text); }
+body.dark-mode .escola-chip-filter {
+  background: #2a2a2a; color: var(--pe-muted);
+  border-color: #444;
 }
-body.dark-mode .nota-input:focus { background: #3a3a3a; border-color: var(--pe-cyan); }
-body.dark-mode .nota-input-rec   { background: #2a2010; border-color: #6b4c00; }
-body.dark-mode .nota-input-extra { background: #251a2e; border-color: #5c3270; }
-body.dark-mode select,
-body.dark-mode input[type="number"],
-body.dark-mode input[type="text"] { background: #333; color: var(--pe-text); border-color: #555; }
+body.dark-mode .escola-chip-filter.active {
+  background: var(--pe-navy); color: #fff; border-color: var(--pe-navy);
+}
 
-/* Somatório / consolidação / diagnóstico */
-body.dark-mode [class*="somatorio"],
-body.dark-mode [class*="consolidacao"],
-body.dark-mode [class*="diagnostico"],
-body.dark-mode [class*="resumo-bim"],
-body.dark-mode [class*="score-"] { background: var(--pe-card); color: var(--pe-text); border-color: var(--pe-border); }
+/* ── DASHBOARD: cards de turma ── */
+body.dark-mode .turma-card { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .turma-card .tc-name { color: var(--pe-text); }
+body.dark-mode .turma-card .tc-meta { color: var(--pe-muted); }
+body.dark-mode .turma-mini { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .turma-mini-inativa-tag { opacity: .6; }
 
-/* Grupos */
-body.dark-mode .grp-wizard-header,
-body.dark-mode .grp-feito-header  { background: #222; border-color: #444; color: var(--pe-text); }
-body.dark-mode .grp-feito-body,
-body.dark-mode .grp-tabela-box,
-body.dark-mode .grp-montar-box    { background: var(--pe-card); border-color: var(--pe-border); }
-body.dark-mode .grp-feito-nome,
-body.dark-mode .grp-tabela-geral-titulo,
-body.dark-mode .grp-integrante-row { color: var(--pe-text); }
-body.dark-mode .grp-sub-step-dot  { background: #444; }
-body.dark-mode .grp-sub-step-dot.ativo { background: var(--pe-blue); }
+/* ── MODAIS DO DASHBOARD (escolas / turmas / alunos) ── */
+body.dark-mode .dash-modal { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .dash-modal-toolbar { background: #1a1a1a; border-color: #333; }
+body.dark-mode .dash-modal-body { background: var(--pe-card); }
+body.dark-mode .dm-filter-btn { background: #2a2a2a; color: var(--pe-muted); border-color: #444; }
+body.dark-mode .dm-filter-btn.active { background: var(--pe-blue); color: #fff; border-color: var(--pe-blue); }
 
-/* Modal de turma (overlay de edição) */
-body.dark-mode .modal-box,
+/* Modal de alunos: itens da lista */
+body.dark-mode .dm-aluno-item {
+  background: var(--pe-card);
+  border-bottom-color: var(--pe-border);
+}
+body.dark-mode .dm-aluno-nome { color: var(--pe-text); }
+body.dark-mode .dm-aluno-avatar { background: linear-gradient(135deg,#1a3a5c,#0d2a4a); color: #90caf9; }
+body.dark-mode .dm-count-bar { background: #1a1a1a; border-bottom-color: #333; color: var(--pe-muted); }
+/* Badges de escola/série/turma no modal de alunos */
+body.dark-mode .dm-aluno-tag         { background: #2a2a2a; color: var(--pe-muted); }
+body.dark-mode .dm-aluno-tag.escola  { background: #1a2a4a; color: #90caf9; }
+body.dark-mode .dm-aluno-tag.serie   { background: #2a1f0a; color: #ffcc80; }
+body.dark-mode .dm-aluno-tag.turma   { background: #0a2a1a; color: #80cbc4; }
+
+/* ── MODAIS DE EDIÇÃO (nova turma / nova escola) ── */
+body.dark-mode .modal-box { background: var(--pe-card); border-color: var(--pe-border); color: var(--pe-text); }
 body.dark-mode [class*="turma-modal"],
 body.dark-mode [class*="nova-turma"],
 body.dark-mode [class*="nova-escola"],
 body.dark-mode [class*="escola-tipo"] { background: var(--pe-card); border-color: var(--pe-border); color: var(--pe-text); }
-body.dark-mode [class*="modal-header"] { background: #222; border-color: #444; }
+body.dark-mode [class*="modal-header"] { background: #1a1a1a; border-color: #333; }
 body.dark-mode [class*="modal-title"]  { color: var(--pe-text); }
 
-/* Botões secundários e ações */
-body.dark-mode .btn-add-escola,
-body.dark-mode .btn-add-turma,
-body.dark-mode .btn-cancel { background: #333; color: var(--pe-text); border-color: #555; }
-body.dark-mode .aluno-btn  { background: #2a2a2a; color: var(--pe-muted); border-color: #555; }
+/* ── TELA DE TURMA: header e tabs ── */
+body.dark-mode .turma-header-info { background: linear-gradient(135deg,#001a3a,#002a5c); }
+body.dark-mode .turma-header-title { color: #fff; }
+body.dark-mode .turma-header-meta  { color: rgba(255,255,255,.7); }
+body.dark-mode .turma-header-badge { background: rgba(255,255,255,.1); color: #ccc; }
+body.dark-mode .turma-body { background: var(--pe-bg); }
+/* Tabs de unidade (1º Bimestre, Consolidação, etc.) ficam na navbar azul — já ok */
+body.dark-mode .unidade-tab { color: rgba(255,255,255,.5); }
+body.dark-mode .unidade-tab:hover { color: #fff; }
+body.dark-mode .unidade-tab.active { color: #fff; border-bottom-color: var(--pe-yellow); }
+
+/* ── TELA DE TURMA: unidade header (Nº atividades) ── */
+body.dark-mode .unidade-header { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .unidade-header-left h3 { color: var(--pe-text); }
+body.dark-mode .unidade-header-left p  { color: var(--pe-muted); }
+body.dark-mode .unidade-qtd-input { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+
+/* ── TELA DE TURMA: cards de atividade ── */
+body.dark-mode .atv-card { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .atv-card-header { background: #1a1a1a; border-bottom-color: var(--pe-border); }
+body.dark-mode .atv-card-title { color: var(--pe-text); }
+body.dark-mode .atv-card-body  { background: var(--pe-card); }
+/* Badges de tipo de atividade */
+body.dark-mode .tipo-badge-direto   { background: #1a2a4a; color: #90caf9; }
+body.dark-mode .tipo-badge-vistos   { background: #2a1a0a; color: #ffb74d; }
+body.dark-mode .tipo-badge-trabalho { background: #2a1a3a; color: #ce93d8; }
+
+/* ── TELA DE TURMA: seções colapsáveis (Somatório, Prova, Extra) ── */
+body.dark-mode .secao-colapsavel { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .secao-header { background: #1a1a1a; border-color: var(--pe-border); }
+body.dark-mode .secao-header:hover { background: #222; }
+body.dark-mode .secao-header-title { color: var(--pe-text); }
+body.dark-mode .secao-header-meta  { color: var(--pe-muted); }
+body.dark-mode .secao-chevron { color: var(--pe-muted); }
+body.dark-mode .secao-body { background: var(--pe-card); }
+body.dark-mode .secao-config-field label { color: var(--pe-muted); }
+body.dark-mode .secao-config-field input { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode .secao-info-tip { color: var(--pe-muted); }
+
+/* ── TABELA DE NOTAS ── */
+body.dark-mode table { border-color: var(--pe-border); }
+body.dark-mode th { background: #002b5c; color: #fff; border-color: #1a3a6a; }
+body.dark-mode td { background: var(--pe-card); color: var(--pe-text); border-color: var(--pe-border); }
+body.dark-mode tr:nth-child(even) td { background: #222; }
+/* Nomes dos alunos na tabela — cor clara com bom contraste */
+body.dark-mode td:first-child { color: #e8e8e8; font-weight: 600; }
+
+/* ── LISTA DE ALUNOS (modal de edição de turma) ── */
+body.dark-mode .aluno-row { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .aluno-row:hover { background: #252525; }
+body.dark-mode .aluno-nome,
+body.dark-mode .aluno-name { color: var(--pe-text); }
+body.dark-mode .aluno-num  { color: var(--pe-muted); }
+body.dark-mode .aluno-row.inativo { opacity: .55; }
+body.dark-mode .aluno-btn { background: #2a2a2a; color: var(--pe-muted); border-color: #444; }
 body.dark-mode .aluno-btn:hover { background: #333; }
 
-/* Navbar dentro de telas internas */
-body.dark-mode .navbar { background: var(--pe-navy); }
+/* ── INPUTS DE NOTA ── */
+body.dark-mode .nota-input {
+  background: #2a2a2a; color: var(--pe-text); border-color: #444;
+}
+body.dark-mode .nota-input:focus { background: #2f2f2f; border-color: var(--pe-cyan); outline: none; }
+body.dark-mode .nota-input-rec   { background: #1e1400; color: #ffcc80; border-color: #5a3e00; }
+body.dark-mode .nota-input-extra { background: #1a0f24; color: #ce93d8; border-color: #4a2060; }
 
-/* Badges e chips na tela de turma */
-body.dark-mode .turma-header-badge { background: rgba(255,255,255,.12); color: #ccc; }
-body.dark-mode .turma-mini { background: var(--pe-card); border-color: var(--pe-border); }
+/* Inputs e selects genéricos */
+body.dark-mode select { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode input[type="number"],
+body.dark-mode input[type="text"] { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
 
-/* Trab (trabalho acadêmico) */
-body.dark-mode .trab-aluno-row { color: var(--pe-text); }
-body.dark-mode .trab-aluno-row > select { background: #333; color: var(--pe-text); border-color: #555; }
+/* ── GRUPOS ── */
+body.dark-mode .grp-wizard-header { background: #1a1a1a; border-color: #333; }
+body.dark-mode .grp-wizard-titulo { color: #ce93d8; }
+body.dark-mode .grp-wizard-progresso { color: var(--pe-muted); }
+body.dark-mode .grp-sub-step-dot { background: #333; border-color: #555; color: var(--pe-muted); }
+body.dark-mode .grp-sub-step.active .grp-sub-step-dot { background: #7b1fa2; border-color: #7b1fa2; color: #fff; }
+body.dark-mode .grp-sub-step.done  .grp-sub-step-dot { background: #1b3a1e; border-color: #2e7d32; color: #81c784; }
+body.dark-mode .grp-sub-step small { color: var(--pe-muted); }
+body.dark-mode .grp-sub-step-line  { background: #3a2a4a; }
+body.dark-mode .grp-montar-box { background: var(--pe-card); }
+body.dark-mode .grp-qtd-row label { color: var(--pe-muted); }
+body.dark-mode .grp-qtd-input { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode .grp-integrante-row label { color: var(--pe-muted); }
+body.dark-mode .grp-integrante-row select { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode .grp-feito-acordeao { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .grp-feito-acordeao.ativo { border-color: #7b1fa2; }
+body.dark-mode .grp-feito-header { background: #1a1a1a; }
+body.dark-mode .grp-feito-acordeao.ativo .grp-feito-header { background: #1e1028; }
+body.dark-mode .grp-feito-nome { color: #ce93d8; }
+body.dark-mode .grp-feito-members { color: var(--pe-muted); }
+body.dark-mode .grp-feito-chevron { color: var(--pe-muted); }
+body.dark-mode .grp-feito-body { background: var(--pe-card); }
+body.dark-mode .grp-tabela-box { background: var(--pe-card); }
+body.dark-mode .grp-tabela-geral-titulo { color: var(--pe-text); }
+body.dark-mode .grp-integrante-row { color: var(--pe-text); }
 
-/* Print overlay (não afeta o dark mode, mas garante legibilidade) */
+/* ── TRABALHO ACADÊMICO ── */
+body.dark-mode .trab-config { background: #1a1028; }
+body.dark-mode .trab-chip { background: #2a1a3a; color: #ce93d8; border-color: #4a2060; }
+body.dark-mode .trab-step-dot > span { background: #2a1a3a; color: #9c6fb0; }
+body.dark-mode .trab-aluno-row { color: var(--pe-text); border-color: var(--pe-border); }
+body.dark-mode .trab-aluno-row > select { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+
+/* ── BOTÕES GERAIS ── */
+body.dark-mode .btn-add-escola,
+body.dark-mode .btn-add-turma,
+body.dark-mode .btn-cancel { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+
+/* ── PRINT (sempre claro) ── */
 body.dark-mode #nm-print-overlay { background: #fff; color: #212529; }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--pe-bg);color:var(--pe-text);overflow-x:hidden;}
-/* Safe area para APK — respeita barra de status e navegação do Android */
-body{
-  padding-top:env(safe-area-inset-top,0px);
-  padding-bottom:env(safe-area-inset-bottom,0px);
-  padding-left:env(safe-area-inset-left,0px);
-  padding-right:env(safe-area-inset-right,0px);
-  box-sizing:border-box;
-}
-/* Quando APK bars estão ativas, as barras fixas já cobrem as safe-areas */
-html[data-apk="1"] body {
-  padding-top:0;padding-bottom:0;padding-left:0;padding-right:0;
-}
+/* Safe area para APK — alturas injetadas pelo Kotlin via setAndroidInsets() */
+/* Em browser normal: sem padding. No APK: apk-bar-top/bottom cobrem as barras */
+body{ box-sizing:border-box; }
 #login-screen,#register-screen,#forgot-screen{width:100%;box-sizing:border-box;}
 
 /* ─── TELAS DE AUTH ─── */
@@ -1714,11 +1758,11 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 <!-- ═══════════════════════ APK BARS ═══════════════════════ -->
 <div id="apk-bar-top" style="
   display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
-  background:var(--apk-bar-top-color);height:env(safe-area-inset-top,0px);
+  background:var(--apk-bar-top-color);height:var(--apk-top-h,0px);
   min-height:0;pointer-events:none;"></div>
 <div id="apk-bar-bottom" style="
   display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;
-  background:var(--apk-bar-bottom-color);height:env(safe-area-inset-bottom,0px);
+  background:var(--apk-bar-bottom-color);height:var(--apk-bottom-h,0px);
   min-height:0;pointer-events:none;"></div>
 
 <!-- BOTÃO MODO ESCURO: movido para a tela de perfil (veja #profile-screen) -->
@@ -2244,7 +2288,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
          padding:0;">
   <div style="background:#fff;border-radius:var(--radius-lg) var(--radius-lg) 0 0;
        width:100%;max-width:480px;box-shadow:var(--shadow-lg);
-       animation:fadeUp .25s ease both;padding-bottom:env(safe-area-inset-bottom,0);">
+       animation:fadeUp .25s ease both;padding-bottom:var(--apk-bottom-h,0px);">
     <!-- Header -->
     <div style="background:var(--pe-navy);padding:16px 20px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;
          display:flex;align-items:center;justify-content:space-between;position:relative;">
@@ -2893,29 +2937,36 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
      FIREBASE + LÓGICA
      ═══════════════════════════════════════════ -->
 <script>
-// ── APK DETECTION & BARS ─────────────────────────────────────────────
-(function() {
-  var isApk = !!(window.AndroidApp);
-  if (!isApk) {
-    // Também detecta pelo user-agent como fallback
-    isApk = /wv/.test(navigator.userAgent) && /Android/.test(navigator.userAgent);
+// ── APK INSETS — recebe alturas reais do Kotlin via bridge ────────────
+// Chamado pelo MainActivity após onPageFinished: setAndroidInsets(topDp, bottomDp)
+window.setAndroidInsets = function(topDp, bottomDp) {
+  var root = document.documentElement;
+
+  // Guarda as alturas como variáveis CSS (em dp = px no WebView 1:1)
+  root.style.setProperty('--apk-top-h',    topDp    + 'px');
+  root.style.setProperty('--apk-bottom-h', bottomDp + 'px');
+
+  // Marca como APK para que o CSS saiba
+  root.setAttribute('data-apk', '1');
+
+  // Exibe as barras com as alturas corretas
+  var top = document.getElementById('apk-bar-top');
+  var bot = document.getElementById('apk-bar-bottom');
+  if (top) {
+    top.style.height  = topDp + 'px';
+    top.style.display = topDp > 0 ? 'block' : 'none';
   }
-  if (isApk) {
-    document.documentElement.setAttribute('data-apk', '1');
-    // Mostra barras e botão assim que o DOM estiver pronto
-    function activateBars() {
-      var top = document.getElementById('apk-bar-top');
-      var bot = document.getElementById('apk-bar-bottom');
-      if (top) top.style.display = 'block';
-      if (bot) { bot.style.display = 'block'; bot.style.background = getComputedStyle(document.documentElement).getPropertyValue('--apk-bar-bottom-color') || '#f4f6f9'; }
-    }
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', activateBars);
-    } else {
-      activateBars();
-    }
+  if (bot) {
+    bot.style.height     = bottomDp + 'px';
+    bot.style.display    = bottomDp > 0 ? 'block' : 'none';
+    bot.style.background = getComputedStyle(root)
+      .getPropertyValue('--apk-bar-bottom-color') || '#f4f6f9';
   }
-})();
+
+  // Empurra o conteúdo para não ficar atrás das barras
+  document.body.style.paddingTop    = topDp    + 'px';
+  document.body.style.paddingBottom = bottomDp + 'px';
+};
 
 // ── DARK MODE ─────────────────────────────────────────────────────────
 function syncDarkModeBtn() {
@@ -2929,9 +2980,9 @@ function toggleDarkMode() {
   var body = document.body;
   var isDark = body.classList.toggle('dark-mode');
   syncDarkModeBtn();
-  // Atualiza cor da barra inferior
+  // Atualiza cor da barra inferior conforme o tema
   var bot = document.getElementById('apk-bar-bottom');
-  if (bot) {
+  if (bot && bot.style.display !== 'none' && bot.style.height !== '0px') {
     bot.style.background = isDark ? '#1a1a1a' : '#f4f6f9';
   }
   try { localStorage.setItem('nm_dark', isDark ? '1' : '0'); } catch(e) {}
@@ -2944,7 +2995,7 @@ function toggleDarkMode() {
       document.addEventListener('DOMContentLoaded', function() {
         syncDarkModeBtn();
         var bot = document.getElementById('apk-bar-bottom');
-        if (bot) bot.style.background = '#1a1a1a';
+        if (bot && bot.style.display !== 'none') bot.style.background = '#1a1a1a';
       });
     }
   } catch(e) {}
