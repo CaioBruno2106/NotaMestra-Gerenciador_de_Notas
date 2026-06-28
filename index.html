@@ -828,14 +828,14 @@ body{
    ══════════════════════════════════════════════ */
 #turma-screen{
   display:none;flex-direction:column;height:100dvh;max-height:100dvh;
-  background:var(--pe-bg);overflow-y:auto;
+  background:var(--pe-bg);overflow:hidden;
 }
 #turma-screen.active{display:flex;}
 
 /* ── Cabeçalho info da turma ── */
 .turma-header-info{
   background:linear-gradient(135deg,var(--pe-navy),var(--pe-blue));
-  padding:16px 20px;color:#fff;
+  padding:16px 20px;color:#fff;flex-shrink:0;
 }
 .turma-header-title{
   font-size:1.15rem;font-weight:900;letter-spacing:-.01em;
@@ -853,7 +853,7 @@ body{
 .unidades-tabs-bar{
   background:var(--pe-navy);
   display:flex;gap:2px;padding:0 16px;
-  overflow-x:auto;scrollbar-width:none;
+  overflow-x:auto;scrollbar-width:none;flex-shrink:0;
   border-bottom:3px solid var(--pe-yellow);
 }
 .unidades-tabs-bar::-webkit-scrollbar{display:none;}
@@ -872,6 +872,7 @@ body{
 .turma-body{
   flex:1;padding:20px 16px 40px;
   max-width:900px;margin:0 auto;width:100%;
+  overflow-y:auto;
 }
 
 /* ── Cabeçalho da unidade ── */
