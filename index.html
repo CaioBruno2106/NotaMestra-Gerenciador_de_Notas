@@ -108,6 +108,105 @@ body.dark-mode .turma-card .tc-name,
 body.dark-mode .turma-card .tc-meta { color: var(--pe-text); }
 body.dark-mode .ob-empty { color: var(--pe-muted); }
 
+/* ── MODO ESCURO: tela de turma ── */
+body.dark-mode .turma-header-info { background: linear-gradient(135deg,#00204a,#002e6b); }
+body.dark-mode .turma-header-title,
+body.dark-mode .turma-header-meta  { color: #e8e8e8; }
+body.dark-mode .turma-body { background: var(--pe-bg); }
+
+/* Tabs de período/bimestre */
+body.dark-mode .periodo-tabs,
+body.dark-mode .bim-tabs,
+body.dark-mode [class*="periodo-tab"],
+body.dark-mode [class*="bim-tab"] { background: #222; border-color: #444; }
+body.dark-mode [class*="periodo-tab"].active,
+body.dark-mode [class*="bim-tab"].active { background: var(--pe-blue); color: #fff; }
+body.dark-mode [class*="periodo-tab"],
+body.dark-mode [class*="bim-tab"] { color: var(--pe-muted); }
+
+/* Seções de atividade */
+body.dark-mode .atividades-section,
+body.dark-mode [class*="ativ-card"],
+body.dark-mode [class*="ativ-header"],
+body.dark-mode [class*="ativ-body"],
+body.dark-mode .periodo-body,
+body.dark-mode [class*="periodo-body"] { background: var(--pe-card); border-color: var(--pe-border); color: var(--pe-text); }
+
+body.dark-mode [class*="ativ-header"] { background: #222; border-color: #444; }
+body.dark-mode [class*="ativ-titulo"],
+body.dark-mode [class*="ativ-nome"] { color: var(--pe-text); }
+
+/* Tabela de notas */
+body.dark-mode table { border-color: #444; }
+body.dark-mode th { background: #002b5c; color: #fff; border-color: #444; }
+body.dark-mode td { background: var(--pe-card); color: var(--pe-text); border-color: #444; }
+body.dark-mode tr:nth-child(even) td { background: #252525; }
+body.dark-mode .aluno-row { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .aluno-row:hover { background: #333; }
+body.dark-mode .aluno-name,
+body.dark-mode .aluno-num  { color: var(--pe-text); }
+body.dark-mode .aluno-row.inativo { opacity: .6; }
+
+/* Inputs de nota */
+body.dark-mode .nota-input {
+  background: #333; color: var(--pe-text); border-color: #555;
+}
+body.dark-mode .nota-input:focus { background: #3a3a3a; border-color: var(--pe-cyan); }
+body.dark-mode .nota-input-rec   { background: #2a2010; border-color: #6b4c00; }
+body.dark-mode .nota-input-extra { background: #251a2e; border-color: #5c3270; }
+body.dark-mode select,
+body.dark-mode input[type="number"],
+body.dark-mode input[type="text"] { background: #333; color: var(--pe-text); border-color: #555; }
+
+/* Somatório / consolidação / diagnóstico */
+body.dark-mode [class*="somatorio"],
+body.dark-mode [class*="consolidacao"],
+body.dark-mode [class*="diagnostico"],
+body.dark-mode [class*="resumo-bim"],
+body.dark-mode [class*="score-"] { background: var(--pe-card); color: var(--pe-text); border-color: var(--pe-border); }
+
+/* Grupos */
+body.dark-mode .grp-wizard-header,
+body.dark-mode .grp-feito-header  { background: #222; border-color: #444; color: var(--pe-text); }
+body.dark-mode .grp-feito-body,
+body.dark-mode .grp-tabela-box,
+body.dark-mode .grp-montar-box    { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .grp-feito-nome,
+body.dark-mode .grp-tabela-geral-titulo,
+body.dark-mode .grp-integrante-row { color: var(--pe-text); }
+body.dark-mode .grp-sub-step-dot  { background: #444; }
+body.dark-mode .grp-sub-step-dot.ativo { background: var(--pe-blue); }
+
+/* Modal de turma (overlay de edição) */
+body.dark-mode .modal-box,
+body.dark-mode [class*="turma-modal"],
+body.dark-mode [class*="nova-turma"],
+body.dark-mode [class*="nova-escola"],
+body.dark-mode [class*="escola-tipo"] { background: var(--pe-card); border-color: var(--pe-border); color: var(--pe-text); }
+body.dark-mode [class*="modal-header"] { background: #222; border-color: #444; }
+body.dark-mode [class*="modal-title"]  { color: var(--pe-text); }
+
+/* Botões secundários e ações */
+body.dark-mode .btn-add-escola,
+body.dark-mode .btn-add-turma,
+body.dark-mode .btn-cancel { background: #333; color: var(--pe-text); border-color: #555; }
+body.dark-mode .aluno-btn  { background: #2a2a2a; color: var(--pe-muted); border-color: #555; }
+body.dark-mode .aluno-btn:hover { background: #333; }
+
+/* Navbar dentro de telas internas */
+body.dark-mode .navbar { background: var(--pe-navy); }
+
+/* Badges e chips na tela de turma */
+body.dark-mode .turma-header-badge { background: rgba(255,255,255,.12); color: #ccc; }
+body.dark-mode .turma-mini { background: var(--pe-card); border-color: var(--pe-border); }
+
+/* Trab (trabalho acadêmico) */
+body.dark-mode .trab-aluno-row { color: var(--pe-text); }
+body.dark-mode .trab-aluno-row > select { background: #333; color: var(--pe-text); border-color: #555; }
+
+/* Print overlay (não afeta o dark mode, mas garante legibilidade) */
+body.dark-mode #nm-print-overlay { background: #fff; color: #212529; }
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--pe-bg);color:var(--pe-text);overflow-x:hidden;}
 /* Safe area para APK — respeita barra de status e navegação do Android */
@@ -9383,7 +9482,7 @@ window.doLogout = async function(){
 
 // ─────────────────────────────────────────────────────────────
 // BOTÃO VOLTAR DO ANDROID — cole este bloco dentro do <script>
-// principal do index.html, perto do final (antes do </script>).
+// principal do index.html, perto do final (antes do <\/script>).
 // ─────────────────────────────────────────────────────────────
 window.androidBackPressed = function () {
 
