@@ -1712,9 +1712,36 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 }
 
 /* ─── Stat cards clicáveis ─── */
-.stat-card-btn{cursor:pointer;transition:transform .15s,box-shadow .15s,background .15s;}
-.stat-card-btn:hover{transform:translateY(-3px);box-shadow:0 8px 24px rgba(0,0,0,.15);background:linear-gradient(135deg,var(--pe-navy),#004fa3);}
+.stat-card-btn{cursor:pointer;transition:transform .18s,box-shadow .18s,background .18s,border-color .18s;}
+.stat-card-btn:hover{
+  transform:translateY(-3px);
+  box-shadow:0 8px 24px rgba(0,0,0,.15);
+  background:linear-gradient(135deg,var(--pe-navy),#004fa3);
+}
 .stat-card-btn:active{transform:translateY(0);}
+
+/* Modo escuro: glow branco/azulado atrás dos cards */
+body.dark-mode .stat-card-btn{
+  transition:transform .18s,box-shadow .18s,background .18s,border-color .18s;
+}
+body.dark-mode .stat-card-btn:hover{
+  background: #1e2a3a;
+  border-color: rgba(100,180,255,.5);
+  box-shadow:
+    0 0 0 1px rgba(100,180,255,.25),
+    0 0 18px 4px rgba(80,160,255,.18),
+    0 8px 24px rgba(0,0,0,.35);
+  transform: translateY(-3px);
+}
+body.dark-mode .stat-card-btn:active{
+  transform: translateY(0);
+  box-shadow:
+    0 0 0 1px rgba(100,180,255,.35),
+    0 0 28px 8px rgba(80,160,255,.28),
+    0 2px 8px rgba(0,0,0,.4);
+  background: #1a2535;
+  border-color: rgba(100,180,255,.7);
+}
 .stat-hint{font-size:.65rem;color:rgba(255,255,255,.5);margin-top:4px;letter-spacing:.3px;}
 
 /* ─── Modais flutuantes de dashboard ─── */
