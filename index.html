@@ -3158,7 +3158,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -4242,7 +4242,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════��══════════════════════════════════���══════
+// ════  ══════════════════════════════════   ══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -4720,7 +4720,7 @@ window.renderModalAlunos = function(){
   body.innerHTML = html;
 };
 
-// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -5095,7 +5095,7 @@ window.saveEscolaTipoModal = async function(){
     if(!sistIgual){
       for(const turma of turmasAfetadas){
         await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
-        // Limpa cache para for��ar releitura na próxima abertura
+        // Limpa cache para for  ar releitura na próxima abertura
         delete _unidades[turma.id];
       }
     }
@@ -5225,7 +5225,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -5329,7 +5329,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -5873,7 +5873,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────���────────────────────────
+// ── Toggle de seção colapsável ─────────────   ────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -7634,7 +7634,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════��═════════════════════════════════════════════════════════════════
+// ════  ═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -7883,7 +7883,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────��────────────────────────
+// ── Helpers de vistos ─────────────  ────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
@@ -9545,8 +9545,7 @@ return true;
 // retorna false → o Kotlin chama super.onBackPressed() → minimiza o app
 default:
 return false;
-}
-}; // fim do switch
+} // fim do switch
 }; // fim da função androidBackPressed
 </script>
 
