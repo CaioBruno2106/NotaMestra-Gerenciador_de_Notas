@@ -38,7 +38,75 @@
   --shadow-md:  0 8px 28px rgba(0,0,0,.14);
   --shadow-lg:  0 20px 60px rgba(0,0,0,.22);
   --transition: all .2s ease;
+  /* APK safe-area bars */
+  --apk-bar-top-color:    #002b5c;
+  --apk-bar-bottom-color: #f4f6f9;
 }
+/* ── MODO ESCURO ── */
+body.dark-mode {
+  --pe-bg:     #1a1a1a;
+  --pe-card:   #2a2a2a;
+  --pe-text:   #e8e8e8;
+  --pe-muted:  #aaaaaa;
+  --pe-border: #404040;
+  --apk-bar-bottom-color: #1a1a1a;
+}
+body.dark-mode .auth-card,
+body.dark-mode .ob-card,
+body.dark-mode .profile-section,
+body.dark-mode .stat-card,
+body.dark-mode .turma-card,
+body.dark-mode .dash-modal,
+body.dark-mode .modal-box {
+  background: var(--pe-card);
+  color: var(--pe-text);
+  border-color: var(--pe-border);
+}
+body.dark-mode .auth-tabs { background: #222; }
+body.dark-mode .auth-tab  { color: var(--pe-muted); }
+body.dark-mode .auth-tab.active { background: #2a2a2a; color: var(--pe-cyan); }
+body.dark-mode .auth-field input,
+body.dark-mode .auth-field select,
+body.dark-mode .ob-field input,
+body.dark-mode .ob-field select,
+body.dark-mode .ob-field textarea,
+body.dark-mode .profile-field input,
+body.dark-mode .profile-field select {
+  background: #333; color: var(--pe-text); border-color: #555;
+}
+body.dark-mode .auth-field input:focus,
+body.dark-mode .ob-field input:focus,
+body.dark-mode .profile-field input:focus { background: #3a3a3a; border-color: var(--pe-cyan); }
+body.dark-mode .auth-field label,
+body.dark-mode .ob-field label,
+body.dark-mode .profile-field label { color: var(--pe-muted); }
+body.dark-mode .auth-footer { background: #222; border-color: #333; }
+body.dark-mode .auth-footer a,
+body.dark-mode .auth-footer span { color: var(--pe-muted); }
+body.dark-mode .google-btn {
+  background: #2a2a2a; color: var(--pe-text); border-color: #555;
+}
+body.dark-mode .pf-value { background: #333; border-color: #555; color: var(--pe-text); }
+body.dark-mode .profile-escola-item { background: #333; border-color: #555; }
+body.dark-mode .profile-escola-name { color: var(--pe-text); }
+body.dark-mode .escola-chip { background: #333; border-color: #555; }
+body.dark-mode .escola-chip-name { color: var(--pe-text); }
+body.dark-mode .add-escola-box { background: #222; border-color: #555; }
+body.dark-mode .add-escola-box input,
+body.dark-mode .add-escola-box select { background: #333; color: var(--pe-text); border-color: #555; }
+body.dark-mode .section-title,
+body.dark-mode .welcome-badge { color: var(--pe-text); }
+body.dark-mode .ob-btn-ghost { background: #333; color: var(--pe-muted); border-color: #555; }
+body.dark-mode .ob-footer { border-color: #444; }
+body.dark-mode .ob-card-body { background: var(--pe-card); }
+body.dark-mode .dash-modal-toolbar { background: #222; border-color: #444; }
+body.dark-mode .dash-modal-body { background: var(--pe-card); }
+body.dark-mode .dm-filter-btn { background: #333; color: var(--pe-muted); border-color: #555; }
+body.dark-mode .dm-filter-btn.active { background: var(--pe-blue); color: #fff; }
+body.dark-mode .turma-card { background: var(--pe-card); }
+body.dark-mode .turma-card .tc-name,
+body.dark-mode .turma-card .tc-meta { color: var(--pe-text); }
+body.dark-mode .ob-empty { color: var(--pe-muted); }
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--pe-bg);color:var(--pe-text);overflow-x:hidden;}
@@ -49,6 +117,10 @@ body{
   padding-left:env(safe-area-inset-left,0px);
   padding-right:env(safe-area-inset-right,0px);
   box-sizing:border-box;
+}
+/* Quando APK bars estão ativas, as barras fixas já cobrem as safe-areas */
+html[data-apk="1"] body {
+  padding-top:0;padding-bottom:0;padding-left:0;padding-right:0;
 }
 #login-screen,#register-screen,#forgot-screen{width:100%;box-sizing:border-box;}
 
@@ -1540,6 +1612,25 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 </head>
 <body>
 
+<!-- ═══════════════════════ APK BARS ═══════════════════════ -->
+<div id="apk-bar-top" style="
+  display:none;position:fixed;top:0;left:0;right:0;z-index:99999;
+  background:var(--apk-bar-top-color);height:env(safe-area-inset-top,0px);
+  min-height:0;pointer-events:none;"></div>
+<div id="apk-bar-bottom" style="
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:99999;
+  background:var(--apk-bar-bottom-color);height:env(safe-area-inset-bottom,0px);
+  min-height:0;pointer-events:none;"></div>
+
+<!-- ═══════════════════════ BOTÃO MODO ESCURO ═══════════════════════ -->
+<button id="dark-mode-btn" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Modo escuro" style="
+  display:none;position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 72px);
+  right:16px;z-index:9990;width:42px;height:42px;border-radius:50%;
+  border:none;cursor:pointer;font-size:1.1rem;
+  background:var(--pe-navy);color:#fff;
+  box-shadow:0 2px 10px rgba(0,0,0,.25);transition:background .2s;
+  align-items:center;justify-content:center;">🌙</button>
+
 <!-- ═══════════════════════════════════════════
      TELA 1A: LOGIN
      ═══════════════════════════════════════════ -->
@@ -2705,6 +2796,62 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 <!-- ═══════════════════════════════════════════
      FIREBASE + LÓGICA
      ═══════════════════════════════════════════ -->
+<script>
+// ── APK DETECTION & BARS ─────────────────────────────────────────────
+(function() {
+  var isApk = !!(window.AndroidApp);
+  if (!isApk) {
+    // Também detecta pelo user-agent como fallback
+    isApk = /wv/.test(navigator.userAgent) && /Android/.test(navigator.userAgent);
+  }
+  if (isApk) {
+    document.documentElement.setAttribute('data-apk', '1');
+    // Mostra barras e botão assim que o DOM estiver pronto
+    function activateBars() {
+      var top = document.getElementById('apk-bar-top');
+      var bot = document.getElementById('apk-bar-bottom');
+      var btn = document.getElementById('dark-mode-btn');
+      if (top) top.style.display = 'block';
+      if (bot) { bot.style.display = 'block'; bot.style.background = getComputedStyle(document.documentElement).getPropertyValue('--apk-bar-bottom-color') || '#f4f6f9'; }
+      if (btn) btn.style.display = 'flex';
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', activateBars);
+    } else {
+      activateBars();
+    }
+  }
+})();
+
+// ── DARK MODE ─────────────────────────────────────────────────────────
+function toggleDarkMode() {
+  var body = document.body;
+  var btn = document.getElementById('dark-mode-btn');
+  var isDark = body.classList.toggle('dark-mode');
+  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+  // Atualiza cor da barra inferior
+  var bot = document.getElementById('apk-bar-bottom');
+  if (bot) {
+    bot.style.background = isDark ? '#1a1a1a' : '#f4f6f9';
+  }
+  try { localStorage.setItem('nm_dark', isDark ? '1' : '0'); } catch(e) {}
+}
+// Restaura preferência salva
+(function() {
+  try {
+    if (localStorage.getItem('nm_dark') === '1') {
+      document.body.classList.add('dark-mode');
+      document.addEventListener('DOMContentLoaded', function() {
+        var btn = document.getElementById('dark-mode-btn');
+        if (btn) btn.textContent = '☀️';
+        var bot = document.getElementById('apk-bar-bottom');
+        if (bot) bot.style.background = '#1a1a1a';
+      });
+    }
+  } catch(e) {}
+})();
+</script>
+
 <script type="module">
 // ── CONFIGURAÇÃO FIREBASE ────────────────────────────────────────────
 // IMPORTANTE: Substitua estes valores pelas suas credenciais do Firebase Console
@@ -9233,6 +9380,73 @@ window.doLogout = async function(){
   hideLoading();
 };
 
+// ─────────────────────────────────────────────────────────────
+// BOTÃO VOLTAR DO ANDROID — cole este bloco dentro do <script>
+// principal do index.html, perto do final (antes do </script>).
+// ─────────────────────────────────────────────────────────────
+window.androidBackPressed = function () {
+
+// ── 1. Fecha qualquer modal visível (em ordem de prioridade) ──
+
+// Modais que usam classList.contains('active')
+const modaisClasse = ['confirm-modal', 'turma-modal-overlay'];
+for (const id of modaisClasse) {
+const el = document.getElementById(id);
+if (el && el.classList.contains('active')) {
+el.classList.remove('active');
+return true;
+}
+}
+
+// Modais que usam style.display = 'flex' / 'block'
+const modaisDisplay = [
+'bkp-modal-overlay',
+'dm-escolas-overlay',
+'dm-turmas-overlay',
+'dm-alunos-overlay',
+'phone-modal-overlay',
+'escola-tipo-modal',
+'nova-escola-modal',
+'nova-turma-modal',
+];
+for (const id of modaisDisplay) {
+const el = document.getElementById(id);
+if (el && el.style.display && el.style.display !== 'none') {
+el.style.display = 'none';
+return true;
+}
+}
+
+// ── 2. Navega para a tela anterior conforme a tela ativa ──
+
+const telaAtual = [
+'login-screen', 'register-screen', 'forgot-screen',
+'onboarding-screen', 'dashboard-screen', 'profile-screen', 'turma-screen'
+].find(s => {
+const el = document.getElementById(s);
+return el && el.classList.contains('active');
+});
+
+switch (telaAtual) {
+case 'turma-screen':
+window.closeTurmaScreen();   // volta para dashboard e limpa estado da turma
+return true;
+
+case 'profile-screen':
+showDashboard();
+return true;
+
+case 'register-screen':
+case 'forgot-screen':
+window.showLogin();
+return true;
+
+// login-screen / dashboard-screen / onboarding-screen:
+// retorna false → o Kotlin chama super.onBackPressed() → minimiza o app
+default:
+return false;
+}
+};
 </script>
 
 <!-- ══════════════════════════════════════════════════
