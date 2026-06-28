@@ -456,7 +456,7 @@ body{
 
 /* ── DASHBOARD placeholder ── */
 #dashboard-screen{
-  display:none;height:100dvh;max-height:100dvh;flex-direction:column;overflow:hidden;
+  display:none;height:100dvh;max-height:100dvh;flex-direction:column;overflow-y:auto;
 }
 #dashboard-screen.active{display:flex;}
 
@@ -502,7 +502,7 @@ body{
 .bl-red{background:var(--pe-red);flex:1;}
 .bl-cyan{background:var(--pe-cyan);flex:1;}
 
-.dashboard-body{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:24px 16px;overflow-y:auto;}
+.dashboard-body{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:24px 16px;}
 
 .welcome-banner{
   background:linear-gradient(135deg,var(--pe-navy),var(--pe-blue));
@@ -710,8 +710,8 @@ body{
 
 /* ── TELA DE PERFIL ── */
 #profile-screen{
-  display:none;flex-direction:column;min-height:100vh;
-  background:var(--pe-bg);
+  display:none;flex-direction:column;height:100dvh;max-height:100dvh;
+  background:var(--pe-bg);overflow-y:auto;
 }
 #profile-screen.active{display:flex;}
 .profile-body{
@@ -828,7 +828,7 @@ body{
    ══════════════════════════════════════════════ */
 #turma-screen{
   display:none;flex-direction:column;height:100dvh;max-height:100dvh;
-  background:var(--pe-bg);overflow:hidden;
+  background:var(--pe-bg);overflow-y:auto;
 }
 #turma-screen.active{display:flex;}
 
@@ -872,7 +872,6 @@ body{
 .turma-body{
   flex:1;padding:20px 16px 40px;
   max-width:900px;margin:0 auto;width:100%;
-  overflow-y:auto;
 }
 
 /* ── Cabeçalho da unidade ── */
