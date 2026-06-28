@@ -1622,14 +1622,7 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
   background:var(--apk-bar-bottom-color);height:env(safe-area-inset-bottom,0px);
   min-height:0;pointer-events:none;"></div>
 
-<!-- ═══════════════════════ BOTÃO MODO ESCURO ═══════════════════════ -->
-<button id="dark-mode-btn" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Modo escuro" style="
-  display:none;position:fixed;bottom:calc(env(safe-area-inset-bottom,0px) + 72px);
-  right:16px;z-index:9990;width:42px;height:42px;border-radius:50%;
-  border:none;cursor:pointer;font-size:1.1rem;
-  background:var(--pe-navy);color:#fff;
-  box-shadow:0 2px 10px rgba(0,0,0,.25);transition:background .2s;
-  align-items:center;justify-content:center;">🌙</button>
+<!-- BOTÃO MODO ESCURO: movido para a tela de perfil (veja #profile-screen) -->
 
 <!-- ═══════════════════════════════════════════
      TELA 1A: LOGIN
@@ -2221,6 +2214,10 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
     <div style="position:absolute;left:50%;transform:translateX(-50%);">
       <div class="navbar-title">Meu <span style="color:var(--pe-yellow)">Perfil</span></div>
     </div>
+    <!-- Botão modo escuro (sempre visível no perfil) -->
+    <button id="dark-mode-btn" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Modo escuro"
+      style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 13px;border-radius:6px;
+             font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;">🌙 Modo escuro</button>
     <div class="brand-line">
       <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
     </div>
@@ -2810,10 +2807,8 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
     function activateBars() {
       var top = document.getElementById('apk-bar-top');
       var bot = document.getElementById('apk-bar-bottom');
-      var btn = document.getElementById('dark-mode-btn');
       if (top) top.style.display = 'block';
       if (bot) { bot.style.display = 'block'; bot.style.background = getComputedStyle(document.documentElement).getPropertyValue('--apk-bar-bottom-color') || '#f4f6f9'; }
-      if (btn) btn.style.display = 'flex';
     }
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', activateBars);
@@ -2824,11 +2819,17 @@ hr.ob-sep{border:none;border-top:1px solid var(--pe-border);margin:18px 0;}
 })();
 
 // ── DARK MODE ─────────────────────────────────────────────────────────
+function syncDarkModeBtn() {
+  var btn = document.getElementById('dark-mode-btn');
+  if (btn) {
+    var isDark = document.body.classList.contains('dark-mode');
+    btn.textContent = isDark ? '☀️ Modo claro' : '🌙 Modo escuro';
+  }
+}
 function toggleDarkMode() {
   var body = document.body;
-  var btn = document.getElementById('dark-mode-btn');
   var isDark = body.classList.toggle('dark-mode');
-  if (btn) btn.textContent = isDark ? '☀️' : '🌙';
+  syncDarkModeBtn();
   // Atualiza cor da barra inferior
   var bot = document.getElementById('apk-bar-bottom');
   if (bot) {
@@ -2842,8 +2843,7 @@ function toggleDarkMode() {
     if (localStorage.getItem('nm_dark') === '1') {
       document.body.classList.add('dark-mode');
       document.addEventListener('DOMContentLoaded', function() {
-        var btn = document.getElementById('dark-mode-btn');
-        if (btn) btn.textContent = '☀️';
+        syncDarkModeBtn();
         var bot = document.getElementById('apk-bar-bottom');
         if (bot) bot.style.background = '#1a1a1a';
       });
@@ -3059,7 +3059,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -4143,7 +4143,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════  ══════════════════════════════════   ══════
+// ════��══════════════════════════════════���══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -4621,7 +4621,7 @@ window.renderModalAlunos = function(){
   body.innerHTML = html;
 };
 
-// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -4743,6 +4743,7 @@ window.saveTurmaModal = async function(){
 window.showProfile = function(){
   showScreen('profile-screen');
   renderProfile();
+  syncDarkModeBtn(); // sincroniza texto do botão de modo escuro
 };
 
 window.closeProfile = function(){
@@ -4995,7 +4996,7 @@ window.saveEscolaTipoModal = async function(){
     if(!sistIgual){
       for(const turma of turmasAfetadas){
         await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
-        // Limpa cache para for  ar releitura na próxima abertura
+        // Limpa cache para for��ar releitura na próxima abertura
         delete _unidades[turma.id];
       }
     }
@@ -5125,7 +5126,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -5229,7 +5230,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -5773,7 +5774,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────   ────────────────────────
+// ── Toggle de seção colapsável ─────────────���────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -7534,7 +7535,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════  ═════════════════════════════════════════════════════════════════
+// ════��═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -7783,7 +7784,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────  ────────────────────────
+// ── Helpers de vistos ─────────────��────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
@@ -9446,7 +9447,8 @@ return true;
 default:
 return false;
 }
-};
+}; // fim do switch
+}; // fim da função androidBackPressed
 </script>
 
 <!-- ══════════════════════════════════════════════════
