@@ -100,6 +100,12 @@ body.dark-mode .navbar { background: var(--pe-navy); }
 
 /* ── DASHBOARD: stat cards ── */
 body.dark-mode .stat-card { background: var(--pe-card); color: var(--pe-text); border-color: var(--pe-border); }
+/* Número dos stat cards: cor clara no modo escuro */
+body.dark-mode .stat-num { color: var(--pe-cyan); }
+body.dark-mode .section-title { color: var(--pe-text); }
+/* Modo claro: numero muda de cor ao hover/active do card */
+.stat-card-btn:hover .stat-num,
+.stat-card-btn:active .stat-num { color: #fff; }
 
 /* ── DASHBOARD: chips de escola/ano ── */
 body.dark-mode .escola-chip { background: #2a2a2a; border-color: #444; }
@@ -111,6 +117,9 @@ body.dark-mode .escola-chip-filter {
 body.dark-mode .escola-chip-filter.active {
   background: var(--pe-navy); color: #fff; border-color: var(--pe-navy);
 }
+/* Badges Municipal/Estadual nas turma-mini e chips — modo escuro */
+body.dark-mode .tag-municipal { background: #0a2a10; color: #81c784; }
+body.dark-mode .tag-estadual  { background: #0a1a3a; color: #90caf9; }
 
 /* ── DASHBOARD: cards de turma ── */
 body.dark-mode .turma-card { background: var(--pe-card); border-color: var(--pe-border); }
@@ -118,6 +127,15 @@ body.dark-mode .turma-card .tc-name { color: var(--pe-text); }
 body.dark-mode .turma-card .tc-meta { color: var(--pe-muted); }
 body.dark-mode .turma-mini { background: var(--pe-card); border-color: var(--pe-border); }
 body.dark-mode .turma-mini-inativa-tag { opacity: .6; }
+body.dark-mode .turma-mini-name { color: var(--pe-text); }
+body.dark-mode .turma-mini-escola { color: var(--pe-muted); }
+body.dark-mode .turma-mini-meta { color: var(--pe-muted); }
+body.dark-mode .turma-mini-meta strong { color: var(--pe-text); }
+/* Botões de ação dos turma-mini — modo escuro */
+body.dark-mode .turma-act-edit  { background: #0a1a3a; color: #90caf9; }
+body.dark-mode .turma-act-deact { background: #2a1500; color: #ffb74d; }
+body.dark-mode .turma-act-react { background: #0a2a10; color: #81c784; }
+body.dark-mode .turma-act-del   { background: #2a0a0a; color: #ef9a9a; }
 
 /* ── MODAIS DO DASHBOARD (escolas / turmas / alunos) ── */
 body.dark-mode .dash-modal { background: var(--pe-card); border-color: var(--pe-border); }
@@ -125,6 +143,47 @@ body.dark-mode .dash-modal-toolbar { background: #1a1a1a; border-color: #333; }
 body.dark-mode .dash-modal-body { background: var(--pe-card); }
 body.dark-mode .dm-filter-btn { background: #2a2a2a; color: var(--pe-muted); border-color: #444; }
 body.dark-mode .dm-filter-btn.active { background: var(--pe-blue); color: #fff; border-color: var(--pe-blue); }
+/* Backup FAB modal — modo escuro */
+body.dark-mode #bkp-modal-overlay > div { background: var(--pe-card) !important; }
+body.dark-mode #bkp-modal-overlay label[style*="color:var(--pe-navy)"] { color: var(--pe-muted) !important; }
+body.dark-mode #dash-bkp-escola-sel { background: #2a2a2a !important; color: var(--pe-text) !important; border-color: #444 !important; }
+/* Painel de edição de escola (nova-escola-modal, nova-turma-modal, escola-tipo-modal) — modo escuro */
+body.dark-mode #nova-escola-modal > div,
+body.dark-mode #nova-turma-modal > div,
+body.dark-mode #escola-tipo-modal > div { background: var(--pe-card) !important; }
+body.dark-mode #nova-escola-modal [style*="background:#fff"],
+body.dark-mode #nova-turma-modal [style*="background:#fff"],
+body.dark-mode #escola-tipo-modal [style*="background:#fff"] { background: var(--pe-card) !important; }
+body.dark-mode #nova-escola-modal [style*="background:#fafafa"],
+body.dark-mode #nova-turma-modal [style*="background:#fafafa"],
+body.dark-mode #escola-tipo-modal [style*="background:#fafafa"] { background: #2a2a2a !important; }
+body.dark-mode #nova-escola-modal input,
+body.dark-mode #nova-escola-modal select,
+body.dark-mode #nova-turma-modal input,
+body.dark-mode #nova-turma-modal select,
+body.dark-mode #escola-tipo-modal input,
+body.dark-mode #escola-tipo-modal select { background: #2a2a2a !important; color: var(--pe-text) !important; border-color: #444 !important; }
+body.dark-mode #nova-escola-modal label,
+body.dark-mode #nova-turma-modal label,
+body.dark-mode #escola-tipo-modal label { color: var(--pe-muted) !important; }
+body.dark-mode #nova-escola-modal [style*="color:var(--pe-navy)"],
+body.dark-mode #nova-turma-modal [style*="color:var(--pe-navy)"],
+body.dark-mode #escola-tipo-modal [style*="color:var(--pe-navy)"] { color: var(--pe-text) !important; }
+body.dark-mode #nova-escola-modal [style*="color:var(--pe-muted)"],
+body.dark-mode #nova-turma-modal [style*="color:var(--pe-muted)"] { color: var(--pe-muted) !important; }
+body.dark-mode #nova-escola-modal [style*="border:1.5px solid var(--pe-border)"],
+body.dark-mode #nova-turma-modal [style*="border:1.5px solid var(--pe-border)"] { border-color: #444 !important; color: var(--pe-muted) !important; }
+/* Itens de dm-item no modal de escolas/turmas */
+body.dark-mode .dm-item { border-bottom-color: var(--pe-border); }
+body.dark-mode .dm-item:hover { background: #252525; }
+body.dark-mode .dm-item-name { color: var(--pe-text); }
+body.dark-mode .dm-item-sub { color: var(--pe-muted); }
+body.dark-mode .dm-act-btn { background: #2a2a2a; color: var(--pe-muted); border-color: #444; }
+body.dark-mode .dm-act-btn:hover { background: #333; }
+body.dark-mode .dm-act-btn.danger { color: #ef9a9a; border-color: #4a1a1a; }
+body.dark-mode .dm-act-btn.danger:hover { background: #2a0a0a; }
+body.dark-mode .dm-act-btn.success { color: #81c784; border-color: #1a4a1a; }
+body.dark-mode .dm-act-btn.success:hover { background: #0a2a10; }
 
 /* Modal de alunos: itens da lista */
 body.dark-mode .dm-aluno-item {
@@ -175,6 +234,15 @@ body.dark-mode .atv-card-body  { background: var(--pe-card); }
 body.dark-mode .tipo-badge-direto   { background: #1a2a4a; color: #90caf9; }
 body.dark-mode .tipo-badge-vistos   { background: #2a1a0a; color: #ffb74d; }
 body.dark-mode .tipo-badge-trabalho { background: #2a1a3a; color: #ce93d8; }
+/* Painel de vistos — modo escuro */
+body.dark-mode .vistos-config { background: #1e1500; border-color: #4a3000; }
+body.dark-mode .vistos-config-title { color: #ffb74d; }
+body.dark-mode .vistos-row input[type=text],
+body.dark-mode .vistos-row input[type=date] { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode .vistos-row input:focus { border-color: var(--pe-cyan); }
+body.dark-mode .visto-num { color: var(--pe-muted); }
+body.dark-mode .btn-add-visto { background: #0a1a3a; color: #90caf9; }
+body.dark-mode .btn-rem-visto { background: #2a0a0a; color: #ef9a9a; }
 
 /* ── TELA DE TURMA: seções colapsáveis (Somatório, Prova, Extra) ── */
 body.dark-mode .secao-colapsavel { background: var(--pe-card); border-color: var(--pe-border); }
@@ -4520,14 +4588,6 @@ function renderDashboard(){
       <div class="turma-mini-meta">
         <span>👤 <strong>${alunosAtivos}</strong>/${alunosTotal} alunos</span>
         <span>📝 <strong>${t.atividades||0}</strong> atividades</span>
-      </div>
-      <div class="turma-mini-actions" onclick="event.stopPropagation()">
-        <button class="turma-act-btn turma-act-edit" onclick="openEditTurma('${t.id}')">✏️ Editar</button>
-        ${isInativa
-          ? `<button class="turma-act-btn turma-act-react" onclick="reativarTurma('${t.id}')">▶️ Reativar</button>
-             <button class="turma-act-btn turma-act-del"   onclick="excluirTurmaDefinitivo('${t.id}')">🗑 Excluir</button>`
-          : `<button class="turma-act-btn turma-act-deact" onclick="desativarTurma('${t.id}')">⏸ Desativar</button>`
-        }
       </div>
     </div>`;
   };
