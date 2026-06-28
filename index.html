@@ -8077,8 +8077,8 @@ ${style}
 </head>
 <body class="${o}">
 ${html}
-</body>
-</html>`;
+<\/body>
+<\/html>`;
   };
 
   // ── Modo APK ─────────────────────────────────────────────────────────
@@ -8172,13 +8172,13 @@ ${html}
   }
 
   // ── Modo web/GitHub: nova janela ──────────────────────────────────────
-  const fullHtml = buildFullHtml().replace('</body>', `
+  const fullHtml = buildFullHtml().replace('<\/body>', `
 <div class="no-print" style="position:fixed;top:10px;right:10px;display:flex;gap:8px;z-index:9999;">
   <button onclick="window.print()" style="background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">🖨️ Imprimir / Salvar PDF</button>
   <button onclick="window.close()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">✕ Fechar</button>
 </div>
 <script>window.onload=function(){setTimeout(function(){window.print();},500);};<\/script>
-</body>`);
+<\/body>`);
 
   const win = window.open('', '_blank', 'width=900,height=700');
   if(!win){
