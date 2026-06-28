@@ -260,6 +260,77 @@ body.dark-mode .btn-cancel { background: #2a2a2a; color: var(--pe-text); border-
 /* ── PRINT (sempre claro) ── */
 body.dark-mode #nm-print-overlay { background: #fff; color: #212529; }
 
+/* ── CONSOLIDAÇÃO / DIAGNÓSTICO / EXPORTAÇÃO / BACKUP ── */
+/* medias-card: container principal de todas essas abas */
+body.dark-mode .medias-card {
+  background: var(--pe-card);
+  border-color: var(--pe-border);
+}
+body.dark-mode .medias-card h4 { color: var(--pe-text); }
+
+/* Badges de situação na consolidação (inline style com bg claro) */
+body.dark-mode #unidade-content [style*="background:#e8f5e9"] {
+  background: #0a2a0a !important; color: #81c784 !important;
+}
+body.dark-mode #unidade-content [style*="background:#fff3e0"] {
+  background: #2a1a00 !important; color: #ffb74d !important;
+}
+body.dark-mode #unidade-content [style*="background:#ffebee"] {
+  background: #2a0a0a !important; color: #ef9a9a !important;
+}
+body.dark-mode #unidade-content [style*="background:#f1f3f5"] {
+  background: #222 !important; color: var(--pe-muted) !important;
+}
+body.dark-mode #unidade-content [style*="background:#e3f2fd"] {
+  background: #0a1a2a !important; color: #90caf9 !important;
+}
+
+/* Cards de pizza do diagnóstico (background:#fff inline) */
+body.dark-mode #unidade-content [style*="background:#fff"] {
+  background: var(--pe-card) !important;
+  border-color: var(--pe-border) !important;
+  color: var(--pe-text) !important;
+}
+
+/* SVG de barras: fundo e linhas de grade */
+body.dark-mode #unidade-content svg[style*="background:#fafafa"] {
+  background: #1a1a1a !important;
+}
+body.dark-mode #unidade-content svg line[stroke="#e9ecef"] { stroke: #333; }
+body.dark-mode #unidade-content svg text[fill="#888"],
+body.dark-mode #unidade-content svg text[fill="#444"] { fill: var(--pe-muted); }
+
+/* Textos com color:#888 ou color:#444 inline no diagnóstico */
+body.dark-mode #unidade-content [style*="color:#888"] { color: var(--pe-muted) !important; }
+body.dark-mode #unidade-content [style*="color:#444"] { color: var(--pe-muted) !important; }
+body.dark-mode #unidade-content [style*="color:#495057"] { color: var(--pe-muted) !important; }
+
+/* Textos de legenda e labels */
+body.dark-mode #unidade-content p { color: var(--pe-muted); }
+body.dark-mode #unidade-content strong { color: var(--pe-text); }
+
+/* notas-table dentro do consolidação */
+body.dark-mode .notas-table { border-color: var(--pe-border); }
+body.dark-mode .notas-table th { background: #002b5c; color: #fff; border-color: #1a3a6a; }
+body.dark-mode .notas-table td { background: var(--pe-card); color: var(--pe-text); border-color: var(--pe-border); }
+body.dark-mode .notas-table tr:nth-child(even) td { background: #222; }
+body.dark-mode .notas-table td:first-child { color: var(--pe-text); }
+/* Situações coloridas na tabela — mantém as cores mas ajusta fundo */
+body.dark-mode .notas-table td[style*="color:#2e7d32"] { color: #81c784 !important; }
+body.dark-mode .notas-table td[style*="color:#c62828"] { color: #ef9a9a !important; }
+body.dark-mode .notas-table td[style*="color:#e65100"] { color: #ffb74d !important; }
+body.dark-mode .notas-table td[style*="color:#6c757d"] { color: var(--pe-muted) !important; }
+
+/* Exportação: btn-aplicar-qtd já tem cor do pe-blue, só ajustar se necessário */
+body.dark-mode .btn-aplicar-qtd { background: var(--pe-blue); color: #fff; }
+body.dark-mode .btn-aplicar-qtd[style*="background:#002b5c"] { background: var(--pe-navy) !important; }
+
+/* Input file no backup */
+body.dark-mode input[type="file"] { color: var(--pe-muted); }
+
+/* Preview de importação do backup */
+body.dark-mode #bkp-preview { background: var(--pe-card); color: var(--pe-text); border-color: var(--pe-border); }
+
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--pe-bg);color:var(--pe-text);overflow-x:hidden;}
 /* Safe area para APK — alturas injetadas pelo Kotlin via setAndroidInsets() */
@@ -899,7 +970,7 @@ body{ box-sizing:border-box; }
 
 /* ── FAB Backup ── */
 #dash-bkp-fab{
-  position:fixed;bottom:22px;left:18px;z-index:4000;
+  position:fixed;bottom:calc(var(--apk-bottom-h, 0px) + 22px);left:18px;z-index:4000;
   background:var(--pe-navy);color:#fff;border:none;
   border-radius:28px;padding:10px 16px;
   display:none; /* mostrado só no dashboard-screen.active */
