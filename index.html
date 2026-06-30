@@ -8603,8 +8603,104 @@ function _renderTelaExportacao(turma, unidades){
       </div>
     </div>
 
+    <!-- 4. Exportar para a extensão (preenchimento no SIEPE) -->
+    <div class="medias-card">
+      <h4>🧩 Exportar para o SIEPE</h4>
+      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
+        Gera um JSON da unidade selecionada, pronto pra carregar na extensão
+        que preenche as notas no SIEPE.
+      </p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <select id="exp-siepe-unid-sel" class="nota-input" style="width:100%;">
+          ${optUnid}
+        </select>
+        <button class="btn-aplicar-qtd" style="background:#0f6e56;"
+          onclick="exportarUnidadeParaSiepe(document.getElementById('exp-siepe-unid-sel').value)">
+          🧩 Baixar JSON para o SIEPE
+        </button>
+      </div>
+    </div>
+
   </div>`;
 }
+
+// ── Exportar unidade para a extensão "Nota Mestra → SIEPE" ──────────
+// Gera um JSON enxuto (1 objeto por aluno) com os campos que a extensão
+// vai usar pra preencher nota_1..nota_5 (atividades), nota_7 (prova) e
+// marcar "não compareceu" quando o valor estiver em branco. nota_8 (RP),
+// faltas e a média (calculados pelo próprio SIEPE) ficam de fora.
+window.exportarUnidadeParaSiepe = function(uidStr){
+  const turma = _turmaAtual;
+  if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
+  const unidades = _unidades[turma.id] || [];
+  const u = unidades.find(x=>x.id===uidStr);
+  if(!u){ showToast('Selecione uma unidade','error'); return; }
+
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  const cfg = _atvConfig[u.id] || { atividades: [] };
+  const nc  = _notasCache[u.id] || { atv:{}, prova:{}, extras:{}, rec:{} };
+
+  function valorAtividade(idx, ai){
+    const atv = cfg.atividades[idx];
+    if(!atv) return null;
+    const raw = nc.atv[idx]?.[ai];
+    if(raw==null || raw===''){ return null; }
+    let val;
+    if(atv.tipo==='vistos'){
+      const marc = (raw && typeof raw==='object') ? raw : {};
+      val = parseFloat(calcNotaVistos(atv, marc));
+    } else if(atv.tipo==='trabalho'){
+      const crits = (raw && typeof raw==='object') ? raw : {};
+      val = calcNotaTrabalhoNum(atv, crits);
+    } else {
+      val = parseFloat(raw);
+    }
+    return isNaN(val) ? null : val;
+  }
+
+  const alunosOut = alunos.map((al, ai)=>{
+    const out = { nome: _exp_nomeAluno(al) };
+    for(let idx=0; idx<5; idx++){
+      out['atv'+(idx+1)] = valorAtividade(idx, ai);
+    }
+    const provaRaw = nc.prova ? nc.prova[ai] : null;
+    out.prova = (provaRaw==null || provaRaw==='') ? null : (parseFloat(provaRaw));
+    if(isNaN(out.prova)) out.prova = null;
+    // Guardado para uso futuro (recuperação paralela), a extensão ainda não usa:
+    const recRaw = nc.rec ? nc.rec[ai] : null;
+    out.rec = (recRaw==null || recRaw==='') ? null : (parseFloat(recRaw));
+    if(isNaN(out.rec)) out.rec = null;
+    return out;
+  });
+
+  const payload = {
+    origem: 'nota-mestra',
+    versaoExport: 'siepe-v1',
+    geradoEm: new Date().toISOString(),
+    turma: {
+      nome: turma.nome||'', serie: turma.serie||'', turma: turma.turma||'',
+      disciplina: turma.disciplina||''
+    },
+    unidade: { id: u.id, label: u.label },
+    alunos: alunosOut
+  };
+
+  try {
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    const nomeSafe = (turma.nome||'turma').replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_');
+    const unidSafe = (u.label||'unidade').replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_');
+    a.download = `SIEPE_${nomeSafe}_${unidSafe}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;
+    a.href = url;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast(`Exportado para o SIEPE: ${alunosOut.length} aluno(s) ✅`, 'success');
+  } catch(e){
+    showToast('Erro ao exportar: '+e.message, 'error');
+  }
+};
 
 // ── 1) Boletim individual ──────────────────────────────────────────
 function _exp_boletimHTMLAluno(turma, unidades, regras, alunoIdx){
