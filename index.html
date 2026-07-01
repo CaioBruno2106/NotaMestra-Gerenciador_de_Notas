@@ -7866,7 +7866,7 @@ function setSaveStatus(estado, txt){
   if(!btn) return;
   btn.className  = `${estado}`;
   dot.className  = `save-dot ${estado}`;
-  if(label) label.textContent = txt;
+  if(label) label.innerHTML = txt;
 }
 
 function atualizarOfflineBadge(){
