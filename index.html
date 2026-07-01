@@ -2446,7 +2446,7 @@ body.dark-mode .stat-card-btn:active{
   <!-- FAB: Backup por escola (canto inferior esquerdo) -->
   <button id="dash-bkp-fab" onclick="abrirBkpModal()" title="Backup por escola"
     aria-label="Backup por escola">
-    <svg class="icon"><use href="#i-save"></use></svg>
+    💾
     <span class="fab-label">Backup</span>
   </button>
 
@@ -2464,7 +2464,7 @@ body.dark-mode .stat-card-btn:active{
     <div style="background:var(--pe-navy);padding:16px 20px;border-radius:var(--radius-lg) var(--radius-lg) 0 0;
          display:flex;align-items:center;justify-content:space-between;position:relative;">
       <div>
-        <div style="color:#fff;font-size:.95rem;font-weight:800;"><svg class="icon"><use href="#i-save"></use></svg> Backup por escola</div>
+        <div style="color:#fff;font-size:.95rem;font-weight:800;">💾 Backup por escola</div>
         <div style="color:var(--pe-cyan);font-size:.72rem;margin-top:2px;">
           Exportar ou importar turmas e alunos
         </div>
@@ -2473,7 +2473,7 @@ body.dark-mode .stat-card-btn:active{
         style="background:rgba(255,255,255,.15);border:none;color:#fff;
                width:32px;height:32px;border-radius:50%;cursor:pointer;
                font-size:1rem;display:flex;align-items:center;justify-content:center;
-               -webkit-tap-highlight-color:transparent;"><svg class="icon"><use href="#i-error"></use></svg></button>
+               -webkit-tap-highlight-color:transparent;">✕</button>
       <div class="brand-line" style="bottom:0;left:0;right:0;height:3px;display:flex;position:absolute;">
         <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
       </div>
@@ -2503,7 +2503,7 @@ body.dark-mode .stat-card-btn:active{
                border-radius:var(--radius-sm);font-size:.92rem;font-weight:700;cursor:pointer;
                display:flex;align-items:center;justify-content:center;gap:8px;
                -webkit-tap-highlight-color:transparent;box-sizing:border-box;">
-        <svg class="icon"><use href="#i-folder"></use></svg> Importar JSON da escola
+        📂 Importar JSON da escola
         <input type="file" accept=".json" style="display:none;"
           onchange="dashImportarEscola(this)">
       </label>
@@ -2556,7 +2556,7 @@ body.dark-mode .stat-card-btn:active{
     <!-- Dados pessoais -->
     <div class="profile-section">
       <div class="profile-section-header">
-        <h3><svg class="icon"><use href="#i-user"></use></svg> Dados pessoais</h3>
+        <h3>👤 Dados pessoais</h3>
         <button class="ps-edit-btn" id="btn-edit-pessoal" onclick="toggleEditPessoal()">✏️ Editar</button>
       </div>
       <div class="profile-section-body" id="pessoal-view-mode">
@@ -2606,7 +2606,7 @@ body.dark-mode .stat-card-btn:active{
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
           <button class="ob-btn ob-btn-ghost" onclick="cancelEditPessoal()">Cancelar</button>
-          <button class="ob-btn ob-btn-primary" onclick="saveEditPessoal()"><svg class="icon"><use href="#i-save"></use></svg> Salvar</button>
+          <button class="ob-btn ob-btn-primary" onclick="saveEditPessoal()">💾 Salvar</button>
         </div>
         <div class="ob-msg" id="pessoal-msg" style="margin-top:8px;"></div>
       </div>
@@ -2644,7 +2644,7 @@ body.dark-mode .stat-card-btn:active{
         </div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
           <button class="ob-btn ob-btn-ghost" onclick="cancelEditAcesso()">Cancelar</button>
-          <button class="ob-btn ob-btn-primary" onclick="saveEditAcesso()"><svg class="icon"><use href="#i-save"></use></svg> Salvar</button>
+          <button class="ob-btn ob-btn-primary" onclick="saveEditAcesso()">💾 Salvar</button>
         </div>
         <div class="ob-msg" id="acesso-msg" style="margin-top:8px;"></div>
       </div>
@@ -2653,7 +2653,7 @@ body.dark-mode .stat-card-btn:active{
     <!-- Escolas -->
     <div class="profile-section">
       <div class="profile-section-header">
-        <h3><svg class="icon"><use href="#i-school"></use></svg> Escolas cadastradas</h3>
+        <h3>🏫 Escolas cadastradas</h3>
       </div>
       <div class="profile-section-body">
         <div id="profile-escolas-list">
@@ -2701,7 +2701,7 @@ body.dark-mode .stat-card-btn:active{
       <button onclick="showProfile()"
         style="background:rgba(255,255,255,.12);border:none;color:#fff;
                padding:6px 12px;border-radius:16px;font-size:.78rem;font-weight:600;cursor:pointer;">
-        <svg class="icon"><use href="#i-user"></use></svg>
+        👤
       </button>
     </div>
     <div class="brand-line">
@@ -2727,7 +2727,7 @@ body.dark-mode .stat-card-btn:active{
   <div class="turma-body">
     <div id="unidade-content">
       <div class="unidade-empty">
-        <span><svg class="icon"><use href="#i-doc"></use></svg></span>Carregando unidades...
+        <span>📋</span>Carregando unidades...
       </div>
     </div>
   </div>
@@ -2748,7 +2748,7 @@ body.dark-mode .stat-card-btn:active{
   <div class="turma-modal">
     <div class="turma-modal-header">
       <h3 id="turma-modal-title">Editar turma</h3>
-      <button class="turma-modal-close" onclick="closeTurmaModal()"><svg class="icon"><use href="#i-error"></use></svg></button>
+      <button class="turma-modal-close" onclick="closeTurmaModal()">✕</button>
     </div>
     <div class="turma-modal-body">
       <input type="hidden" id="tm-turma-id">
@@ -2793,7 +2793,7 @@ body.dark-mode .stat-card-btn:active{
     <div class="turma-modal-footer">
       <button class="ob-btn ob-btn-ghost" onclick="closeTurmaModal()">Cancelar</button>
       <button class="ob-btn ob-btn-primary" onclick="saveTurmaModal()">
-        <svg class="icon"><use href="#i-save"></use></svg> Salvar alterações
+        💾 Salvar alterações
       </button>
     </div>
   </div>
@@ -3016,7 +3016,7 @@ body.dark-mode .stat-card-btn:active{
       <input type="hidden" id="escola-tipo-modal-id">
       <p style="font-size:.82rem;color:var(--pe-muted);margin-bottom:14px;line-height:1.45;">
         Alterações de rede e sistema serão propagadas para <strong>todas as turmas</strong> vinculadas a esta escola.<br>
-        <span style="color:var(--pe-warn);font-size:.75rem;"><svg class="icon"><use href="#i-warning"></use></svg>️ Mudar o sistema (bimestral/trimestral) não recria unidades já lançadas.</span>
+        <span style="color:var(--pe-warn);font-size:.75rem;">⚠️ Mudar o sistema (bimestral/trimestral) não recria unidades já lançadas.</span>
       </p>
       <div class="ob-field" style="margin-bottom:14px;">
         <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
@@ -3044,7 +3044,7 @@ body.dark-mode .stat-card-btn:active{
         </button>
         <button type="button" onclick="saveEscolaTipoModal()"
           style="flex:2;padding:11px;background:var(--pe-blue);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.88rem;font-weight:700;cursor:pointer;">
-          <svg class="icon"><use href="#i-save"></use></svg> Salvar e atualizar turmas
+          💾 Salvar e atualizar turmas
         </button>
       </div>
     </div>
@@ -3652,7 +3652,7 @@ async function saveFullSetup(perfil, escolas, turmas){
       syncTelefoneIndex(perfil.telefone).catch(e=>console.warn('syncTelefoneIndex:', e.code, e.message));
     }
     showDashboard();
-    showToast('<svg class="icon"><use href="#i-check"></use></svg> Conta configurada com sucesso!','success');
+    showToast('✅ Conta configurada com sucesso!','success');
   } catch(e){
     console.error(e);
     showMsg('step4-msg','Erro ao salvar: '+e.message,'error');
@@ -3947,7 +3947,7 @@ window.requestForgotCode = async function(isResend=false){
         if(semServidor){
           hideLoading();
           showForgotMsg(
-            '<svg class="icon"><use href="#i-warning"></use></svg>️ O serviço de SMS ainda não está configurado neste ambiente. ' +
+            '⚠️ O serviço de SMS ainda não está configurado neste ambiente. ' +
             'Use a opção "Por e-mail" para recuperar sua senha agora.',
             'error'
           );
@@ -4122,13 +4122,13 @@ function renderEscolas(){
     return `
     <div class="escola-chip">
       <div class="escola-chip-info">
-        <div class="escola-chip-name"><svg class="icon"><use href="#i-school"></use></svg> ${e.nome}</div>
+        <div class="escola-chip-name">🏫 ${e.nome}</div>
         <div class="escola-chip-type">${e.tipo==='municipal'?'Rede Municipal':'Rede Estadual'} · ${sisLabel}</div>
       </div>
       <span class="escola-chip-tag ${e.tipo==='municipal'?'tag-municipal':'tag-estadual'}">
         ${e.tipo==='municipal'?'Municipal':'Estadual'}
       </span>
-      <button class="chip-del" onclick="removeEscola(${i})" title="Remover"><svg class="icon"><use href="#i-error"></use></svg></button>
+      <button class="chip-del" onclick="removeEscola(${i})" title="Remover">✕</button>
     </div>`;
   }).join('');
 }
@@ -4148,7 +4148,7 @@ function renderTurmasStep(){
     return `
     <div class="turma-escola-section">
       <div class="turma-escola-label">
-        <svg class="icon"><use href="#i-school"></use></svg> ${e.nome}
+        🏫 ${e.nome}
         <span class="escola-chip-tag ${tagClass}">${tagLabel}</span>
         <span class="escola-chip-tag" style="background:#e8f0fe;color:var(--pe-blue);">📅 ${sisLabel}</span>
       </div>
@@ -4194,7 +4194,7 @@ function renderTurmaCard(ei, ti, t, escola){
         <div class="turma-card-title">${t.serie} ${t.turma} &mdash; ${nivelLabel(t.nivel)}</div>
         <div class="turma-card-meta">${turnoLabel(t.turno)} &nbsp;·&nbsp; ${sisLabel} &nbsp;·&nbsp; ${t.atividades||0} ativ.${t.disciplina?' &nbsp;·&nbsp; '+t.disciplina:''}</div>
       </div>
-      <button class="btn-del-turma" onclick="removeTurma(${ei},${ti})"><svg class="icon"><use href="#i-error"></use></svg> Remover</button>
+      <button class="btn-del-turma" onclick="removeTurma(${ei},${ti})">✕ Remover</button>
     </div>
     <div class="turma-card-body">
       <div class="turma-students-box">
@@ -4206,7 +4206,7 @@ function renderTurmaCard(ei, ti, t, escola){
           onchange="saveTurmaAlunos(${ei},${ti})">${t.alunosRaw||''}</textarea>
         <div class="students-hint">Cole diretamente de uma coluna do Excel ou Google Sheets — cada linha = 1 aluno.</div>
         <div class="students-count" id="sc-${ei}-${ti}">
-          <svg class="icon"><use href="#i-user"></use></svg> <span id="snum-${ei}-${ti}">${countStudents(t.alunosRaw)}</span> estudantes detectados
+          👤 <span id="snum-${ei}-${ti}">${countStudents(t.alunosRaw)}</span> estudantes detectados
         </div>
       </div>
       <div class="turma-activities-row">
@@ -4440,7 +4440,7 @@ function renderReview(){
   const html = `
     <div style="display:grid;gap:14px;">
       <div style="background:#f8f9fa;border-radius:8px;padding:14px;border:1px solid var(--pe-border);">
-        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--pe-muted);margin-bottom:9px;"><svg class="icon"><use href="#i-user"></use></svg> Professor(a)</div>
+        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--pe-muted);margin-bottom:9px;">👤 Professor(a)</div>
         <div style="font-size:.92rem;font-weight:700;color:var(--pe-navy);">${nome}</div>
         ${cargo?`<div style="font-size:.78rem;color:var(--pe-muted);">${cargo}${disc?' · '+disc:''}</div>`:''}
         ${cidade?`<div style="font-size:.78rem;color:var(--pe-muted);">📍 ${cidade}</div>`:''}
@@ -4455,7 +4455,7 @@ function renderReview(){
       </div>
 
       <div style="background:#f8f9fa;border-radius:8px;padding:14px;border:1px solid var(--pe-border);">
-        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--pe-muted);margin-bottom:9px;"><svg class="icon"><use href="#i-school"></use></svg> Escolas (${_obEscolas.length})</div>
+        <div style="font-size:.72rem;font-weight:800;text-transform:uppercase;color:var(--pe-muted);margin-bottom:9px;">🏫 Escolas (${_obEscolas.length})</div>
         ${_obEscolas.map((e,ei)=>{
           const ts = _obTurmas[ei]||[];
           const tagC = e.tipo==='municipal'?'tag-municipal':'tag-estadual';
@@ -4638,15 +4638,15 @@ function renderDashboard(){
     return `
     <div class="turma-mini${isInativa?' inativa':''}" onclick="openTurmaScreen('${t.id}')" style="cursor:pointer">
       <div class="turma-mini-badge ${tagC}">
-        <svg class="icon"><use href="#i-school"></use></svg> ${t.escolaNome||'Escola'}
+        🏫 ${t.escolaNome||'Escola'}
         <span style="background:rgba(0,0,0,.1);padding:1px 6px;border-radius:8px;margin-left:4px;">${tagL}</span>
       </div>
       <div class="turma-mini-name">${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}</div>
       <div class="turma-mini-escola">${turnoLabel(t.turno)} · ${t.anoLetivo||'—'} · ${t.sistema==='trimestral'?'Trimestral':'Bimestral'}${t.disciplina?' · '+t.disciplina:''}</div>
       ${isInativa?'<div class="turma-mini-inativa-tag">⏸ Turma inativa</div>':''}
       <div class="turma-mini-meta">
-        <span><svg class="icon"><use href="#i-user"></use></svg> <strong>${alunosAtivos}</strong>/${alunosTotal} alunos</span>
-        <span><svg class="icon"><use href="#i-edit"></use></svg> <strong>${t.atividades||0}</strong> atividades</span>
+        <span>👤 <strong>${alunosAtivos}</strong>/${alunosTotal} alunos</span>
+        <span>📝 <strong>${t.atividades||0}</strong> atividades</span>
       </div>
     </div>`;
   };
@@ -4696,7 +4696,7 @@ window.renomearEscola = async function(id){
     if(document.getElementById('profile-screen')?.classList.contains('active')){
       renderProfileEscolas();
     }
-    showToast('<svg class="icon"><use href="#i-check"></use></svg> Escola renomeada.', 'success');
+    showToast('✅ Escola renomeada.', 'success');
   } catch(e){
     showToast('Erro ao renomear: '+e.message, 'error');
   } finally { hideLoading(); }
@@ -4723,7 +4723,7 @@ window.reativarTurma = async function(id){
     const idx = _turmas.findIndex(t=>t.id===id);
     if(idx!==-1) _turmas[idx].ativo=true;
     renderDashboard();
-    showToast('Turma reativada! <svg class="icon"><use href="#i-check"></use></svg>','success');
+    showToast('Turma reativada! ✅','success');
   } catch(e){ showToast('Erro ao reativar: '+e.message,'error'); }
   finally{ hideLoading(); }
 };
@@ -4773,7 +4773,7 @@ window.renderModalEscolas = function(){
     const tipo = e.tipo === 'municipal' ? 'Municipal' : (e.tipo === 'estadual' ? 'Estadual' : (e.tipo || ''));
     return `
     <div class="dm-item ${ativa ? '' : 'inativo'}">
-      <div class="dm-item-icon">${ativa ? '<svg class="icon"><use href="#i-school"></use></svg>' : '🔒'}</div>
+      <div class="dm-item-icon">${ativa ? '🏫' : '🔒'}</div>
       <div class="dm-item-info">
         <div class="dm-item-name">${e.nome || 'Escola sem nome'}</div>
         <div class="dm-item-sub">${tipo}${tipo && turmasCount ? ' · ' : ''}${turmasCount} turma(s)</div>
@@ -5049,8 +5049,8 @@ function renderAlunosModal(){
           value="${nome.replace(/"/g,'&quot;')}" style="border:1.5px solid var(--pe-blue);border-radius:4px;padding:2px 6px;"
           onkeydown="if(event.key==='Enter'){salvarNomeAluno(${i});} if(event.key==='Escape'){cancelarEdicaoNome();}">
         <div class="aluno-actions">
-          <button class="aluno-btn" onclick="salvarNomeAluno(${i})" title="Salvar nome"><svg class="icon"><use href="#i-check"></use></svg>️</button>
-          <button class="aluno-btn" onclick="cancelarEdicaoNome()" title="Cancelar"><svg class="icon"><use href="#i-error"></use></svg></button>
+          <button class="aluno-btn" onclick="salvarNomeAluno(${i})" title="Salvar nome">✔️</button>
+          <button class="aluno-btn" onclick="cancelarEdicaoNome()" title="Cancelar">✕</button>
         </div>
       </div>`;
     }
@@ -5065,7 +5065,7 @@ function renderAlunosModal(){
           ? `<button class="aluno-btn aluno-btn-deact" onclick="toggleAluno(${i},false)" title="Desativar">⏸</button>`
           : `<button class="aluno-btn aluno-btn-react" onclick="toggleAluno(${i},true)"  title="Reativar">▶️</button>`
         }
-        <button class="aluno-btn aluno-btn-del" onclick="removeAluno(${i})" title="Excluir"><svg class="icon"><use href="#i-error"></use></svg></button>
+        <button class="aluno-btn aluno-btn-del" onclick="removeAluno(${i})" title="Excluir">✕</button>
       </div>
     </div>`;
   }).join('');
@@ -5250,8 +5250,8 @@ window.saveTurmaModal = async function(){
     renderDashboard();
     showToast(
       precisaRemapear
-        ? 'Turma atualizada e notas já lançadas reajustadas pra nova ordem! <svg class="icon"><use href="#i-check"></use></svg>'
-        : 'Turma atualizada com sucesso! <svg class="icon"><use href="#i-check"></use></svg>',
+        ? 'Turma atualizada e notas já lançadas reajustadas pra nova ordem! ✅'
+        : 'Turma atualizada com sucesso! ✅',
       'success'
     );
   } catch(e){
@@ -5395,7 +5395,7 @@ window.saveEditPessoal = async function(){
       const dashAvatar = document.getElementById('dash-avatar');
       if(dashAvatar){ dashAvatar.style.background='var(--pe-cyan)'; dashAvatar.innerHTML=nome[0]?.toUpperCase()||'?'; }
     }
-    showToast('Dados pessoais atualizados! <svg class="icon"><use href="#i-check"></use></svg>','success');
+    showToast('Dados pessoais atualizados! ✅','success');
   } catch(e){ showMsgEl('pessoal-msg','Erro ao salvar: '+e.message,'error'); }
   finally{ hideLoading(); }
 };
@@ -5425,7 +5425,7 @@ window.saveEditAcesso = async function(){
     if(tel) syncTelefoneIndex(tel).catch(e=>console.warn('syncTelefoneIndex:', e.code));
     cancelEditAcesso();
     renderProfile();
-    showToast('Celular atualizado! <svg class="icon"><use href="#i-check"></use></svg>','success');
+    showToast('Celular atualizado! ✅','success');
   } catch(e){ showMsgEl('acesso-msg','Erro ao salvar: '+e.message,'error'); }
   finally{ hideLoading(); }
 };
@@ -5475,7 +5475,7 @@ window.saveEscolaTipoModal = async function(){
     // Aviso extra: bimestral → trimestral (4º Bimestre será apagado)
     if(sistAtual === 'bimestral' && novoSist === 'trimestral'){
       const confirmaExtra = confirm(
-        `<svg class="icon"><use href="#i-warning"></use></svg>️ ATENÇÃO — DADOS SERÃO APAGADOS\n\n` +
+        `⚠️ ATENÇÃO — DADOS SERÃO APAGADOS\n\n` +
         `Você está mudando de "${de}" para "${para}".\n\n` +
         `O 4º Bimestre e TODAS as notas lançadas nele (atividades, prova, extras) ` +
         `serão PERMANENTEMENTE APAGADOS em ${nTurmas} turma(s).\n\n` +
@@ -5536,7 +5536,7 @@ window.saveEscolaTipoModal = async function(){
     if(!tipoIgual) msg.push(`rede → ${escolaTipoLabel(novoTipo)}`);
     if(!sistIgual) msg.push(`sistema → ${novoSist==='trimestral'?'Trimestral':'Bimestral'}`);
     showToast(
-      `<svg class="icon"><use href="#i-check"></use></svg> Escola atualizada (${msg.join(', ')}). ${turmasAfetadas.length} turma(s) sincronizadas.`,
+      `✅ Escola atualizada (${msg.join(', ')}). ${turmasAfetadas.length} turma(s) sincronizadas.`,
       'success'
     );
   } catch(e){
@@ -5641,7 +5641,7 @@ window.reativarEscola = async function(id){
     const idx = _escolas.findIndex(e=>e.id===id);
     if(idx!==-1) _escolas[idx].ativo=true;
     renderProfileEscolas();
-    showToast('Escola reativada! <svg class="icon"><use href="#i-check"></use></svg>','success');
+    showToast('Escola reativada! ✅','success');
   } catch(e){ showToast('Erro: '+e.message,'error'); }
   finally{ hideLoading(); }
 };
@@ -5892,13 +5892,13 @@ window.openTurmaScreen = async function(turmaId){
   document.getElementById('ts-titulo').textContent =
     `${turma.serie} ${turma.turma} — ${nivelLabel(turma.nivel)}`;
   document.getElementById('ts-escola').textContent =
-    `<svg class="icon"><use href="#i-school"></use></svg> ${turma.escolaNome||'—'}`;
+    `🏫 ${turma.escolaNome||'—'}`;
   document.getElementById('ts-rede').textContent =
     turma.escolaTipo==='municipal' ? 'Rede Municipal' : 'Rede Estadual';
   document.getElementById('ts-sistema').textContent =
     turma.sistema==='trimestral' ? 'Trimestral' : 'Bimestral';
   document.getElementById('ts-alunos').textContent =
-    `<svg class="icon"><use href="#i-user"></use></svg> ${alunosAtivos.length} alunos`;
+    `👤 ${alunosAtivos.length} alunos`;
 
   // Mostra a tela ANTES de ir ao Firestore — evita branco
   showScreen('turma-screen');
@@ -5967,13 +5967,13 @@ function renderUnidadesTabs(unidades){
        onclick="abrirConsolidacao()">🏁 Consolidação</button>
     <button class="unidade-tab" id="tab-btn-diagnostico"
        style="background:rgba(0,150,255,.18);"
-       onclick="abrirDiagnostico()"><svg class="icon"><use href="#i-chart"></use></svg> Diagnóstico</button>
+       onclick="abrirDiagnostico()">📊 Diagnóstico</button>
     <button class="unidade-tab" id="tab-btn-exportacao"
        style="background:rgba(40,167,69,.18);"
        onclick="abrirExportacao()">📤 Exportação</button>
     <button class="unidade-tab" id="tab-btn-backup"
        style="background:rgba(108,117,125,.18);"
-       onclick="abrirBackupImportacao()"><svg class="icon"><use href="#i-save"></use></svg> Backup</button>`;
+       onclick="abrirBackupImportacao()">💾 Backup</button>`;
 }
 
 window.abrirUnidadePorId = function(id){
@@ -6052,7 +6052,7 @@ function renderCardImportPendente(imp){
         <span style="font-size:.68rem;background:#fff3cd;color:#856404;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;">Pendente</span>
       </div>
       <button class="btn-aplicar-qtd" style="margin-top:10px;width:100%;" onclick="revisarImportPendente('${imp.id}')">
-        <svg class="icon"><use href="#i-search"></use></svg> Revisar e aplicar
+        🔍 Revisar e aplicar
       </button>
     </div>`;
 }
@@ -6204,7 +6204,7 @@ const TRABALHO_SUBTIPOS = {
     ]
   },
   escrito: {
-    label: '<svg class="icon"><use href="#i-doc"></use></svg> Trabalho Escrito',
+    label: '📄 Trabalho Escrito',
     criterios: [
       { id:'orgMat', label:'Organização do material', niveis:[
         '0 — Não entregou',
@@ -6361,7 +6361,7 @@ function renderUnidadeContent(unidade){
   <!-- Cabeçalho da unidade -->
   <div class="unidade-header">
     <div class="unidade-header-left">
-      <h3><svg class="icon"><use href="#i-doc"></use></svg> ${unidade.label}</h3>
+      <h3>📋 ${unidade.label}</h3>
       <p>Configure os tipos de atividade e lance as notas</p>
     </div>
     <div class="unidade-qtd-ctrl">
@@ -6376,7 +6376,7 @@ function renderUnidadeContent(unidade){
   <!-- Cards de atividade (colapsáveis) -->
   <div class="atividades-section" id="atividades-section-${uid}">
     ${qtd===0
-      ? `<div class="unidade-empty"><span><svg class="icon"><use href="#i-edit"></use></svg></span>Nenhuma atividade. Defina o número acima.</div>`
+      ? `<div class="unidade-empty"><span>📝</span>Nenhuma atividade. Defina o número acima.</div>`
       : cfg.atividades.map((atv,i)=>renderAtvCard(unidade, i, atv, alunos)).join('')
     }
   </div>
@@ -6398,7 +6398,7 @@ function renderUnidadeContent(unidade){
   <!-- Prova + Recuperação (colapsável) -->
   <div class="secao-colapsavel" id="secao-prova-${uid}">
     <div class="secao-header open" onclick="toggleSecao('prova-${uid}')">
-      <span class="secao-header-icon"><svg class="icon"><use href="#i-doc"></use></svg></span>
+      <span class="secao-header-icon">📄</span>
       <span class="secao-header-title">Prova da Unidade</span>
       <span class="secao-header-meta">teto: ${regras.tetoProva}</span>
       <span class="secao-chevron">▼</span>
@@ -6448,7 +6448,7 @@ function renderUnidadeContent(unidade){
   <!-- Prévia da unidade (colapsável) -->
   <div class="secao-colapsavel" id="secao-media-${uid}">
     <div class="secao-header open" onclick="toggleSecao('media-${uid}')">
-      <span class="secao-header-icon"><svg class="icon"><use href="#i-chart"></use></svg></span>
+      <span class="secao-header-icon">📊</span>
       <span class="secao-header-title">Prévia da Unidade</span>
       <span class="secao-header-meta">tempo real</span>
       <span class="secao-chevron">▼</span>
@@ -6473,7 +6473,7 @@ window.toggleSecao = function(id){
 
 // ── Tabela somatório de atividades ───────────────────────────────────
 function renderTabelaSoma(unidade, alunos, regras){
-  if(!alunos.length) return `<div class="unidade-empty" style="padding:12px 0;"><span><svg class="icon"><use href="#i-user"></use></svg></span>Nenhum aluno ativo.</div>`;
+  if(!alunos.length) return `<div class="unidade-empty" style="padding:12px 0;"><span>👤</span>Nenhum aluno ativo.</div>`;
   const uid = unidade.id;
   const cfg = _atvConfig[uid];
   if(!cfg||!cfg.atividades.length) return '';
@@ -6532,9 +6532,9 @@ function renderTabelaSoma(unidade, alunos, regras){
 // ── Card de atividade ────────────────────────────────────────────────
 function renderAtvCard(unidade, idx, atv, alunos){
   const tipoMap = {
-    direto:   ['tipo-badge-direto',  '<svg class="icon"><use href="#i-edit"></use></svg> Lançamento direto'],
-    vistos:   ['tipo-badge-vistos',  '<svg class="icon"><use href="#i-check"></use></svg> Vistos'],
-    trabalho: ['tipo-badge-trabalho','<svg class="icon"><use href="#i-folder"></use></svg> Trabalho'],
+    direto:   ['tipo-badge-direto',  '📝 Lançamento direto'],
+    vistos:   ['tipo-badge-vistos',  '✅ Vistos'],
+    trabalho: ['tipo-badge-trabalho','📁 Trabalho'],
   };
   const [badgeCls, badgeTxt] = tipoMap[atv.tipo]||tipoMap.direto;
   const uid = unidade.id;
@@ -6555,9 +6555,9 @@ function renderAtvCard(unidade, idx, atv, alunos){
           <label>Tipo</label>
           <select id="tipo-atv-${uid}-${idx}"
             onchange="onTipoAtvChange('${uid}',${idx})">
-            <option value="direto"   ${atv.tipo==='direto'  ?'selected':''}><svg class="icon"><use href="#i-edit"></use></svg> Lançamento direto</option>
-            <option value="vistos"   ${atv.tipo==='vistos'  ?'selected':''}><svg class="icon"><use href="#i-check"></use></svg> Vistos</option>
-            <option value="trabalho" ${atv.tipo==='trabalho'?'selected':''}><svg class="icon"><use href="#i-folder"></use></svg> Trabalho</option>
+            <option value="direto"   ${atv.tipo==='direto'  ?'selected':''}>📝 Lançamento direto</option>
+            <option value="vistos"   ${atv.tipo==='vistos'  ?'selected':''}>✅ Vistos</option>
+            <option value="trabalho" ${atv.tipo==='trabalho'?'selected':''}>📁 Trabalho</option>
           </select>
         </div>
         <div class="atv-config-field">
@@ -6585,7 +6585,7 @@ function renderAtvCard(unidade, idx, atv, alunos){
 // ══════════════════════════════════════════════════════════
 
 function renderTabelaAtv(unidade, idx, atv, alunos){
-  if(!alunos.length) return `<div class="unidade-empty" style="padding:12px 0;"><span><svg class="icon"><use href="#i-user"></use></svg></span>Nenhum aluno ativo nesta turma.</div>`;
+  if(!alunos.length) return `<div class="unidade-empty" style="padding:12px 0;"><span>👤</span>Nenhum aluno ativo nesta turma.</div>`;
   const uid   = unidade.id;
   const notas = _notasCache[uid]?.atv[idx] || {};
 
@@ -6599,7 +6599,7 @@ function renderTabelaAtv(unidade, idx, atv, alunos){
   // direto → campo numérico
   return `
   <div class="lancamento-tabela">
-    <div class="lancamento-tabela-title"><svg class="icon"><use href="#i-doc"></use></svg> Notas — ${atv.nome||`Atividade ${idx+1}`} (teto: ${atv.teto??10})</div>
+    <div class="lancamento-tabela-title">📋 Notas — ${atv.nome||`Atividade ${idx+1}`} (teto: ${atv.teto??10})</div>
     <table class="notas-table">
       <thead><tr>
         <th class="col-aluno">Aluno</th>
@@ -6640,14 +6640,14 @@ function renderTabelaVistos(uid, idx, atv, alunos, notas){
           title="${temMarca?'Esta coluna tem marcações — será pedida confirmação':'Excluir coluna'}"
           onclick="excluirColunaVisto('${uid}',${idx},${vi})"
           style="background:${temMarca?'#fff3cd':'#fdecea'};color:${temMarca?'#856404':'var(--pe-red)'};border:none;border-radius:3px;font-size:.6rem;padding:1px 5px;cursor:pointer;font-weight:700;line-height:1.4;white-space:nowrap;"
-        >${temMarca?'<svg class="icon"><use href="#i-warning"></use></svg> del':'<svg class="icon"><use href="#i-error"></use></svg> del'}</button>
+        >${temMarca?'⚠ del':'✕ del'}</button>
       </div>
     </th>`;
   }).join('');
 
   return `
   <div class="lancamento-tabela">
-    <div class="lancamento-tabela-title"><svg class="icon"><use href="#i-check"></use></svg> Vistos — ${atv.nome||`Atividade ${idx+1}`} (${atv.vistos.length} vistos · teto: ${atv.teto??10})</div>
+    <div class="lancamento-tabela-title">✅ Vistos — ${atv.nome||`Atividade ${idx+1}`} (${atv.vistos.length} vistos · teto: ${atv.teto??10})</div>
     <div style="overflow-x:auto;">
     <table class="notas-table">
       <thead><tr>
@@ -6789,9 +6789,9 @@ function renderTrabalhoConfig(uid, idx){
   const resumo = `
     <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;">
       <span class="trab-chip">📌 ${atv.tema ? atv.tema : 'Sem tema'}</span>
-      <span class="trab-chip"><svg class="icon"><use href="#i-chart"></use></svg> ${fmtTxt}</span>
+      <span class="trab-chip">📊 ${fmtTxt}</span>
       <span class="trab-chip">🧩 ${nSubs} subtipo${nSubs!==1?'s':''}</span>
-      <span class="trab-chip"><svg class="icon"><use href="#i-user"></use></svg> ${nGrupos} grupo${nGrupos!==1?'s':''}</span>
+      <span class="trab-chip">👥 ${nGrupos} grupo${nGrupos!==1?'s':''}</span>
     </div>`;
 
   // ── Indicador de passos ──
@@ -6817,7 +6817,7 @@ function renderTrabalhoConfig(uid, idx){
 
   panel.innerHTML = `
   <div class="vistos-config trab-config" style="border-left:3px solid #8e24aa;">
-    <div class="vistos-config-title" style="color:#6a1b9a;"><svg class="icon"><use href="#i-folder"></use></svg> Configuração do Trabalho Acadêmico</div>
+    <div class="vistos-config-title" style="color:#6a1b9a;">📁 Configuração do Trabalho Acadêmico</div>
     ${resumo}
     <div class="trab-steps-bar">${ind}</div>
     <div class="trab-step-body">${conteudo}</div>
@@ -6836,7 +6836,7 @@ function _trabStep1(uid, idx, atv){
         oninput="onTrabTema('${uid}',${idx},this.value)">
     </div>
     <div class="trab-field" style="margin-top:10px;">
-      <label><svg class="icon"><use href="#i-chart"></use></svg> Formato de avaliação</label>
+      <label>📊 Formato de avaliação</label>
       <div class="trab-toggle">
         <button type="button" class="${!caixa?'active':''}" onclick="onTrabFormato('${uid}',${idx},'escala')">
           Ficha conceitual <small>níveis 0 a 5</small>
@@ -7207,10 +7207,10 @@ function renderTabelaTrabalho(uid, idx, atv, alunos, notas){
   const formato = trabFormato(atv);
   const grupos  = atv.grupos || [];
   const tetoTxt = `teto ${atv.teto??10}` + (formato==='caixa'?` · máx. ficha ${atv.maxFolha??10}`:'');
-  const titulo  = `<div class="lancamento-tabela-title"><svg class="icon"><use href="#i-folder"></use></svg> Lançamento${atv.tema?` — <em style="font-weight:400;">${atv.tema}</em>`:''} <span style="font-weight:400;color:var(--pe-muted);font-size:.78rem;">(${tetoTxt})</span></div>`;
+  const titulo  = `<div class="lancamento-tabela-title">📁 Lançamento${atv.tema?` — <em style="font-weight:400;">${atv.tema}</em>`:''} <span style="font-weight:400;color:var(--pe-muted);font-size:.78rem;">(${tetoTxt})</span></div>`;
 
   if(!alunos.length)
-    return `<div class="lancamento-tabela">${titulo}<div class="unidade-empty" style="padding:12px 0;"><span><svg class="icon"><use href="#i-user"></use></svg></span>Nenhum aluno ativo.</div></div>`;
+    return `<div class="lancamento-tabela">${titulo}<div class="unidade-empty" style="padding:12px 0;"><span>👤</span>Nenhum aluno ativo.</div></div>`;
 
   // ── Sem grupos → tabela simples: Aluno | Nota (sem colunas de criterios) ──
   if(!grupos.length){
@@ -7606,7 +7606,7 @@ function renderTabelaMedias(unidade, alunos, regras){
   if(!alunos.length) return '';
   return `
   <div class="medias-card">
-    <h4><svg class="icon"><use href="#i-chart"></use></svg> Prévia da Unidade</h4>
+    <h4>📊 Prévia da Unidade</h4>
     <table class="notas-table">
       <thead><tr>
         <th class="col-aluno">Aluno</th>
@@ -7805,7 +7805,7 @@ async function sincronizarFilaOffline(){
   }
   salvarFilaLocalStorage();
   if(sincronizados>0){
-    showToast(`${sincronizados} unidade(s) sincronizadas com sucesso <svg class="icon"><use href="#i-check"></use></svg>`,'success');
+    showToast(`${sincronizados} unidade(s) sincronizadas com sucesso ✅`,'success');
     setSaveStatus('saved','Salvo ✓');
     setTimeout(()=>setSaveStatus('idle','Salvo'),3000);
   }
@@ -8083,7 +8083,7 @@ window.abrirConsolidacao = async function(){
     renderConsolidacao(turma, unidades);
   } catch(e){
     console.error(e);
-    el.innerHTML = `<div class="unidade-empty"><span><svg class="icon"><use href="#i-warning"></use></svg>️</span>Erro ao carregar consolidação.</div>`;
+    el.innerHTML = `<div class="unidade-empty"><span>⚠️</span>Erro ao carregar consolidação.</div>`;
   }
 };
 
@@ -8179,15 +8179,15 @@ function renderConsolidacao(turma, unidades){
     <h4>🏁 Consolidação Final da Turma</h4>
     <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 12px;">${regraInfo}</p>
     <div style="display:flex;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
-      <div style="background:#e8f5e9;color:#2e7d32;padding:8px 14px;border-radius:8px;font-weight:700;"><svg class="icon"><use href="#i-check"></use></svg> Aprovados: ${nAprov}</div>
+      <div style="background:#e8f5e9;color:#2e7d32;padding:8px 14px;border-radius:8px;font-weight:700;">✅ Aprovados: ${nAprov}</div>
       <div style="background:#fff3e0;color:#e65100;padding:8px 14px;border-radius:8px;font-weight:700;">🟠 Rec. Final: ${nRec}</div>
-      <div style="background:#ffebee;color:#c62828;padding:8px 14px;border-radius:8px;font-weight:700;"><svg class="icon"><use href="#i-error"></use></svg> Reprovados: ${nRep}</div>
+      <div style="background:#ffebee;color:#c62828;padding:8px 14px;border-radius:8px;font-weight:700;">❌ Reprovados: ${nRep}</div>
       <div style="background:#f1f3f5;color:#495057;padding:8px 14px;border-radius:8px;font-weight:700;">⏳ Pendentes: ${nPend}</div>
-      <div style="background:#e3f2fd;color:#0056b3;padding:8px 14px;border-radius:8px;font-weight:700;"><svg class="icon"><use href="#i-user"></use></svg> Total: ${totalAlunos}</div>
+      <div style="background:#e3f2fd;color:#0056b3;padding:8px 14px;border-radius:8px;font-weight:700;">👥 Total: ${totalAlunos}</div>
     </div>
   </div>
   <div class="medias-card">
-    <h4><svg class="icon"><use href="#i-doc"></use></svg> Resultado por Aluno</h4>
+    <h4>📋 Resultado por Aluno</h4>
     <div style="overflow-x:auto;">
       <table class="notas-table">
         <thead><tr>
@@ -8282,7 +8282,7 @@ window.abrirDiagnostico = async function(){
     renderDiagnostico(turma, unidades);
   } catch(e){
     console.error(e);
-    el.innerHTML = `<div class="unidade-empty"><span><svg class="icon"><use href="#i-warning"></use></svg>️</span>Erro ao carregar diagnóstico.</div>`;
+    el.innerHTML = `<div class="unidade-empty"><span>⚠️</span>Erro ao carregar diagnóstico.</div>`;
   }
 };
 
@@ -8376,7 +8376,7 @@ function renderDiagnostico(turma, unidades){
 
   el.innerHTML = `
   <div class="medias-card" style="margin-bottom:14px;">
-    <h4><svg class="icon"><use href="#i-chart"></use></svg> Diagnóstico por Unidade</h4>
+    <h4>📊 Diagnóstico por Unidade</h4>
     <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 12px;">
       Distribuição dos alunos em cada unidade.
       <strong>Aprovado</strong> = nota ≥ 6.
@@ -8386,7 +8386,7 @@ function renderDiagnostico(turma, unidades){
     <div style="display:flex;flex-wrap:wrap;gap:12px;">${pizzas}</div>
   </div>
   <div class="medias-card">
-    <h4><svg class="icon"><use href="#i-chart"></use></svg> Comparativo por Aluno</h4>
+    <h4>📈 Comparativo por Aluno</h4>
     <div style="margin:8px 0 10px;">${legenda}</div>
     <div style="overflow-x:auto;">${svg}</div>
     <p style="color:var(--pe-muted);font-size:.78rem;margin-top:8px;">
@@ -8395,14 +8395,14 @@ function renderDiagnostico(turma, unidades){
     </p>
   </div>
   <div class="medias-card" id="diag-manutencao-card">
-    <h4><svg class="icon"><use href="#i-settings"></use></svg> Manutenção de unidades</h4>
+    <h4>🔧 Manutenção de unidades</h4>
     <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 12px;">
       Verifica se essa turma tem unidades letivas duplicadas (ex.: dois
       "2º Trimestre") e, se tiver, junta as notas das cópias numa só,
       sem perder nada, e apaga a duplicata.
     </p>
     <button class="btn-aplicar-qtd" onclick="detectarUnidadesDuplicadas()">
-      <svg class="icon"><use href="#i-search"></use></svg> Verificar unidades duplicadas
+      🔍 Verificar unidades duplicadas
     </button>
     <div id="diag-duplicados-resultado" style="margin-top:12px;"></div>
   </div>`;
@@ -8503,7 +8503,7 @@ window.detectarUnidadesDuplicadas = async function(){
 
     if(!resEl) return;
     if(duplicados.length===0){
-      resEl.innerHTML = `<p style="color:#2e7d32;font-weight:600;"><svg class="icon"><use href="#i-check"></use></svg> Nenhuma duplicidade encontrada — ${docs.length} unidade(s), todas únicas.</p>`;
+      resEl.innerHTML = `<p style="color:#2e7d32;font-weight:600;">✅ Nenhuma duplicidade encontrada — ${docs.length} unidade(s), todas únicas.</p>`;
       return;
     }
 
@@ -8516,7 +8516,7 @@ window.detectarUnidadesDuplicadas = async function(){
 
     resEl.innerHTML = `
       <div style="background:#fff3cd;border:1px solid #ffe08a;border-radius:8px;padding:10px;margin-bottom:10px;">
-        <strong><svg class="icon"><use href="#i-warning"></use></svg>️ ${duplicados.length} grupo(s) duplicado(s) encontrado(s):</strong>
+        <strong>⚠️ ${duplicados.length} grupo(s) duplicado(s) encontrado(s):</strong>
       </div>
       ${listaHtml}
       <p style="font-size:.82rem;color:var(--pe-muted);margin:8px 0;">
@@ -8526,7 +8526,7 @@ window.detectarUnidadesDuplicadas = async function(){
         pra você revisar depois.
       </p>
       <button class="btn-aplicar-qtd" style="background:#c0392b;" onclick="corrigirUnidadesDuplicadas()">
-        <svg class="icon"><use href="#i-settings"></use></svg>️ Corrigir agora (mesclar e apagar duplicatas)
+        🛠️ Corrigir agora (mesclar e apagar duplicatas)
       </button>`;
   } catch(e){
     if(resEl) resEl.innerHTML = `<p style="color:#c0392b;">Erro ao verificar: ${e.message}</p>`;
@@ -8578,8 +8578,8 @@ window.corrigirUnidadesDuplicadas = async function(){
     hideLoading();
     showToast(
       totalConflitos>0
-        ? `Corrigido! <svg class="icon"><use href="#i-warning"></use></svg>️ ${totalConflitos} valor(es) tinham nota diferente entre as cópias — fiquei com a mais recente. Revise as notas pra confirmar.`
-        : 'Unidades duplicadas corrigidas — nenhuma nota conflitante encontrada. <svg class="icon"><use href="#i-check"></use></svg>',
+        ? `Corrigido! ⚠️ ${totalConflitos} valor(es) tinham nota diferente entre as cópias — fiquei com a mais recente. Revise as notas pra confirmar.`
+        : 'Unidades duplicadas corrigidas — nenhuma nota conflitante encontrada. ✅',
       'success'
     );
 
@@ -8612,9 +8612,9 @@ window.onTipoAtvChange = function(uid, idx){
   if(_atvConfig[uid]?.atividades[idx]) _atvConfig[uid].atividades[idx].tipo = tipo;
 
   const map = {
-    direto:   ['tipo-badge-direto',  '<svg class="icon"><use href="#i-edit"></use></svg> Lançamento direto'],
-    vistos:   ['tipo-badge-vistos',  '<svg class="icon"><use href="#i-check"></use></svg> Vistos'],
-    trabalho: ['tipo-badge-trabalho','<svg class="icon"><use href="#i-folder"></use></svg> Trabalho'],
+    direto:   ['tipo-badge-direto',  '📝 Lançamento direto'],
+    vistos:   ['tipo-badge-vistos',  '✅ Vistos'],
+    trabalho: ['tipo-badge-trabalho','📁 Trabalho'],
   };
   const badge = document.querySelector(`#atv-card-${uid}-${idx} .atv-card-tipo-badge`);
   if(badge){ badge.className=`atv-card-tipo-badge ${map[tipo][0]}`; badge.textContent=map[tipo][1]; }
@@ -8691,7 +8691,7 @@ function renderVistosConfig(uid, idx){
 
   panel.innerHTML = `
   <div class="vistos-config">
-    <div class="vistos-config-title"><svg class="icon"><use href="#i-check"></use></svg> Atividades de Visto</div>
+    <div class="vistos-config-title">✅ Atividades de Visto</div>
 
     <!-- Controle de quantidade -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;background:#f8f9fa;border-radius:6px;flex-wrap:wrap;">
@@ -8714,7 +8714,7 @@ function renderVistosConfig(uid, idx){
         style="width:60px;padding:5px 8px;border:1.5px solid var(--pe-border);border-radius:4px;font-size:.85rem;text-align:center;"
         onchange="definirQtdVistos('${uid}',${idx},this.value,${min})"
         title="Definir quantidade diretamente">
-      ${min > 1 ? `<span style="font-size:.7rem;color:var(--pe-warn);margin-left:4px;"><svg class="icon"><use href="#i-warning"></use></svg>️ Mínimo: ${min}</span>` : ''}
+      ${min > 1 ? `<span style="font-size:.7rem;color:var(--pe-warn);margin-left:4px;">⚠️ Mínimo: ${min}</span>` : ''}
     </div>
 
     <!-- Lista de vistos -->
@@ -8724,7 +8724,7 @@ function renderVistosConfig(uid, idx){
         return `
         <div class="vistos-row" style="${temMarca?'background:#fff3e0;border-left:3px solid var(--pe-warn);':''}">
           <span class="visto-num" title="${temMarca?'Este visto tem marcações':''}">
-            ${vi+1}${temMarca?' <svg class="icon"><use href="#i-check"></use></svg>':''}
+            ${vi+1}${temMarca?' ✔':''}
           </span>
           <input type="text" value="${v.label||''}" placeholder="Nome do visto ${vi+1}"
             onchange="onVistosChange('${uid}',${idx},${vi},'label',this.value)">
@@ -9012,8 +9012,8 @@ ${html}
     overlay.id = 'nm-print-overlay';
     overlay.innerHTML = `
       <div class="nm-bar">
-        <span><svg class="icon"><use href="#i-doc"></use></svg> Prévia — pronto para imprimir</span>
-        <button type="button" id="nm-close-btn" class="cinza"><svg class="icon"><use href="#i-error"></use></svg> Fechar</button>
+        <span>📄 Prévia — pronto para imprimir</span>
+        <button type="button" id="nm-close-btn" class="cinza">✕ Fechar</button>
         <button type="button" id="nm-print-btn">🖨️ Salvar PDF</button>
       </div>
       <div id="nm-preview-scroll">
@@ -9036,7 +9036,7 @@ ${html}
     document.getElementById('nm-print-btn').addEventListener('click', () => {
       try {
         if(window.AndroidApp && window.AndroidApp.gerarPDFIframe){
-          // <svg class="icon"><use href="#i-check"></use></svg> Correto: Kotlin recebe o HTML, cria WebView dedicada,
+          // ✅ Correto: Kotlin recebe o HTML, cria WebView dedicada,
           // aguarda onPageFinished e imprime com A4 + NO_MARGINS.
           window.AndroidApp.gerarPDFIframe(fullHtml);
         } else if(window.AndroidApp && window.AndroidApp.gerarPDF){
@@ -9054,7 +9054,7 @@ ${html}
   const fullHtml = buildFullHtml().replace('<\/body>', `
 <div class="no-print" style="position:fixed;top:10px;right:10px;display:flex;gap:8px;z-index:9999;">
   <button onclick="window.print()" style="background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">🖨️ Imprimir / Salvar PDF</button>
-  <button onclick="window.close()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;"><svg class="icon"><use href="#i-error"></use></svg> Fechar</button>
+  <button onclick="window.close()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">✕ Fechar</button>
 </div>
 <script>window.onload=function(){setTimeout(function(){window.print();},500);};<\/script>
 <\/body>`);
@@ -9069,7 +9069,7 @@ ${html}
     ov.style.cssText = 'position:fixed;inset:0;z-index:99999;background:#fff;overflow:auto;';
     ov.innerHTML = `<div style="padding:10px;background:#f4f6f9;border-bottom:1px solid #dee2e6;display:flex;gap:8px;justify-content:flex-end;position:sticky;top:0;">
       <button onclick="window.print()" style="background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;">🖨️ Imprimir / Salvar PDF</button>
-      <button onclick="document.getElementById('nm-print-overlay').remove()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;"><svg class="icon"><use href="#i-error"></use></svg> Fechar</button>
+      <button onclick="document.getElementById('nm-print-overlay').remove()" style="background:#6c757d;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;">✕ Fechar</button>
     </div>${_exp_estiloBase()}${html}`;
     document.body.style.overflow='hidden';
     document.body.appendChild(ov);
@@ -9098,7 +9098,7 @@ window.abrirExportacao = async function(){
     _renderTelaExportacao(turma, unidades);
   } catch(e){
     console.error(e);
-    el.innerHTML = `<div class="unidade-empty"><span><svg class="icon"><use href="#i-warning"></use></svg>️</span>Erro ao carregar dados.</div>`;
+    el.innerHTML = `<div class="unidade-empty"><span>⚠️</span>Erro ao carregar dados.</div>`;
   }
 };
 
@@ -9127,7 +9127,7 @@ function _renderTelaExportacao(turma, unidades){
 
     <!-- 1. Boletim individual -->
     <div class="medias-card">
-      <h4><svg class="icon"><use href="#i-doc"></use></svg> Boletim Individual</h4>
+      <h4>📄 Boletim Individual</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         PDF por aluno · todas as unidades + situação final.
       </p>
@@ -9136,7 +9136,7 @@ function _renderTelaExportacao(turma, unidades){
           ${optAlunos}
         </select>
         <button class="btn-aplicar-qtd" onclick="gerarBoletimAluno(document.getElementById('exp-aluno-sel').value)">
-          <svg class="icon"><use href="#i-doc"></use></svg> Gerar boletim do aluno
+          📄 Gerar boletim do aluno
         </button>
         <button class="btn-aplicar-qtd" style="background:#002b5c;"
           onclick="gerarBoletimTurmaCompleta()">
@@ -9147,7 +9147,7 @@ function _renderTelaExportacao(turma, unidades){
 
     <!-- 2. Planilha por unidade -->
     <div class="medias-card">
-      <h4><svg class="icon"><use href="#i-doc"></use></svg> Planilha por Unidade</h4>
+      <h4>📋 Planilha por Unidade</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         PDF da turma · atividades, prova, extras, média e situação.
       </p>
@@ -9156,7 +9156,7 @@ function _renderTelaExportacao(turma, unidades){
           ${optUnid}
         </select>
         <button class="btn-aplicar-qtd" onclick="gerarPlanilhaUnidade(document.getElementById('exp-unid-sel').value)">
-          <svg class="icon"><use href="#i-doc"></use></svg> Gerar planilha da unidade
+          📋 Gerar planilha da unidade
         </button>
       </div>
     </div>
@@ -9267,7 +9267,7 @@ window.exportarUnidadeParaSiepe = function(uidStr){
     a.href = url;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`Exportado para o SIEPE: ${alunosOut.length} aluno(s) <svg class="icon"><use href="#i-check"></use></svg>`, 'success');
+    showToast(`Exportado para o SIEPE: ${alunosOut.length} aluno(s) ✅`, 'success');
   } catch(e){
     showToast('Erro ao exportar: '+e.message, 'error');
   }
@@ -9448,11 +9448,11 @@ window.gerarPlanilhaUnidade = function(uidStr){
   const html = `
     ${_exp_cabHTML(turma, `Planilha por Unidade — ${u.label}`)}
     <div class="resumo">
-      <span class="a"><svg class="icon"><use href="#i-check"></use></svg> Aprovados: ${nA}</span>
+      <span class="a">✅ Aprovados: ${nA}</span>
       <span class="r">🟠 Em recuperação: ${nR}</span>
-      <span class="p"><svg class="icon"><use href="#i-error"></use></svg> Não recuperados: ${nN}</span>
+      <span class="p">❌ Não recuperados: ${nN}</span>
       <span class="n">⏳ Sem nota: ${nS}</span>
-      <span class="t"><svg class="icon"><use href="#i-user"></use></svg> Total: ${alunos.length}</span>
+      <span class="t">👥 Total: ${alunos.length}</span>
     </div>
     <table>
       <thead><tr>
@@ -9520,11 +9520,11 @@ window.gerarPlanilhaFinal = function(){
   const html = `
     ${_exp_cabHTML(turma, 'Planilha Final da Turma')}
     <div class="resumo">
-      <span class="a"><svg class="icon"><use href="#i-check"></use></svg> Aprovados: ${nA}</span>
+      <span class="a">✅ Aprovados: ${nA}</span>
       <span class="r">🟠 Rec. Final: ${nR}</span>
-      <span class="p"><svg class="icon"><use href="#i-error"></use></svg> Reprovados: ${nP}</span>
+      <span class="p">❌ Reprovados: ${nP}</span>
       <span class="n">⏳ Pendentes: ${nPend}</span>
-      <span class="t"><svg class="icon"><use href="#i-user"></use></svg> Total: ${alunos.length}</span>
+      <span class="t">👥 Total: ${alunos.length}</span>
     </div>
     <table>
       <thead><tr>
@@ -9568,7 +9568,7 @@ window.abrirBackupImportacao = async function(){
   el.innerHTML = `
   <!-- ── EXPORTAÇÃO ──────────────────────────────────────────── -->
   <div class="medias-card" style="margin-bottom:14px;">
-    <h4><svg class="icon"><use href="#i-save"></use></svg> Backup & Importação</h4>
+    <h4>💾 Backup & Importação</h4>
     <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
       Exporte todas as turmas de uma escola em JSON ou importe notas de um arquivo salvo no programa anterior.
     </p>
@@ -9594,7 +9594,7 @@ window.abrirBackupImportacao = async function(){
 
     <!-- Importar modelo antigo -->
     <div class="medias-card">
-      <h4><svg class="icon"><use href="#i-folder"></use></svg> Importar do modelo anterior</h4>
+      <h4>📂 Importar do modelo anterior</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         Carrega um arquivo JSON gerado pelo programa anterior e importa as notas para a
         unidade ativa (<strong>${_unidadeAtiva?.label||'—'}</strong>).
@@ -9607,7 +9607,7 @@ window.abrirBackupImportacao = async function(){
         <div id="bkp-preview" style="display:none;margin-top:6px;"></div>
         <button class="btn-aplicar-qtd" id="bkp-import-btn" style="display:none;background:var(--pe-success);"
           onclick="confirmarImportacaoBKP()">
-          <svg class="icon"><use href="#i-check"></use></svg> Confirmar importação
+          ✅ Confirmar importação
         </button>
       </div>
       <div id="bkp-msg" class="ob-msg" style="margin-top:8px;"></div>
@@ -9676,7 +9676,7 @@ window.exportarEscolaJSON = async function(){
     a.href = url;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`Backup de "${escola.nome}" baixado com sucesso! <svg class="icon"><use href="#i-check"></use></svg>`, 'success');
+    showToast(`Backup de "${escola.nome}" baixado com sucesso! ✅`, 'success');
   } catch(e){
     hideLoading();
     showToast('Erro ao exportar: '+e.message, 'error');
@@ -9895,7 +9895,7 @@ window.confirmarImportacaoBKP = function(){
     msgEl.textContent = `${importados} aluno(s) importado(s) com sucesso! As notas já aparecem na unidade. Clique em Salvar para persistir.`;
     msgEl.className='ob-msg success';
   }
-  showToast(`Importação concluída: ${importados} aluno(s). <svg class="icon"><use href="#i-check"></use></svg>`, 'success');
+  showToast(`Importação concluída: ${importados} aluno(s). ✅`, 'success');
   _bkpDados = null;
   const btnEl = document.getElementById('bkp-import-btn');
   if(btnEl) btnEl.style.display='none';
@@ -10097,7 +10097,7 @@ window.onFotoChange = async function(input){
       await setDoc(doc(db,'users',_uid,'perfil','dados'), { fotoPerfil: base64 }, { merge: true });
       _perfil = { ..._perfil, fotoPerfil: base64 };
       _atualizarAvatarUI(base64);
-      showToast('Foto de perfil atualizada! <svg class="icon"><use href="#i-check"></use></svg>', 'success');
+      showToast('Foto de perfil atualizada! ✅', 'success');
     } catch(e){
       showToast('Erro ao salvar foto: ' + e.message, 'error');
     } finally { hideLoading(); }
@@ -10186,7 +10186,7 @@ window.dashExportarEscola = async function(){
     const nomeSafe = escola.nome.replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_');
     a.download = `NM_Backup_${nomeSafe}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;
     a.href = url; a.click(); URL.revokeObjectURL(url);
-    showToast(`Backup de "${escola.nome}" baixado! <svg class="icon"><use href="#i-check"></use></svg>`,'success');
+    showToast(`Backup de "${escola.nome}" baixado! ✅`,'success');
   } catch(e){ hideLoading(); showToast('Erro ao exportar: '+e.message,'error'); }
 };
 
@@ -10262,7 +10262,7 @@ window.dashImportarEscola = async function(input){
       if(turmasCriadas)    msg.push(`${turmasCriadas} turma(s) criada(s)`);
       if(turmasAtualizadas)msg.push(`${turmasAtualizadas} turma(s) verificada(s)`);
       if(alunosAdicionados)msg.push(`${alunosAdicionados} aluno(s) adicionado(s)`);
-      showToast(`Importação concluída: ${msg.join(', ')||'sem alterações'}. <svg class="icon"><use href="#i-check"></use></svg>`,'success');
+      showToast(`Importação concluída: ${msg.join(', ')||'sem alterações'}. ✅`,'success');
     } catch(e){ hideLoading(); showToast('Erro na importação: '+e.message,'error'); }
   };
   reader.readAsText(file,'UTF-8');
@@ -10441,7 +10441,7 @@ return false;
   <div class="dash-modal">
     <div class="dash-modal-header">
       <h3>🔔 Importações pendentes</h3>
-      <button onclick="fecharPainelNotificacoesNM()" aria-label="Fechar"><svg class="icon"><use href="#i-error"></use></svg></button>
+      <button onclick="fecharPainelNotificacoesNM()" aria-label="Fechar">✕</button>
     </div>
     <div class="dash-modal-body" id="dm-notificacoes-body"></div>
   </div>
@@ -10451,8 +10451,8 @@ return false;
      onclick="if(event.target===this)fecharModalEscolas()">
   <div class="dash-modal">
     <div class="dash-modal-header">
-      <h3><svg class="icon"><use href="#i-school"></use></svg> Escolas</h3>
-      <button onclick="fecharModalEscolas()" aria-label="Fechar"><svg class="icon"><use href="#i-error"></use></svg></button>
+      <h3>🏫 Escolas</h3>
+      <button onclick="fecharModalEscolas()" aria-label="Fechar">✕</button>
     </div>
     <div class="dash-modal-toolbar">
       <button onclick="fecharModalEscolas();openNovaEscolaModal()">+ Nova Escola</button>
@@ -10472,7 +10472,7 @@ return false;
   <div class="dash-modal">
     <div class="dash-modal-header">
       <h3>📚 Turmas</h3>
-      <button onclick="fecharModalTurmasDash()" aria-label="Fechar"><svg class="icon"><use href="#i-error"></use></svg></button>
+      <button onclick="fecharModalTurmasDash()" aria-label="Fechar">✕</button>
     </div>
     <div class="dash-modal-toolbar">
       <button onclick="fecharModalTurmasDash();openNovaTurmaModal()">+ Nova Turma</button>
@@ -10491,8 +10491,8 @@ return false;
      onclick="if(event.target===this)fecharModalAlunos()">
   <div class="dash-modal">
     <div class="dash-modal-header">
-      <h3>👩‍<svg class="icon"><use href="#i-school"></use></svg> Estudantes</h3>
-      <button onclick="fecharModalAlunos()" aria-label="Fechar"><svg class="icon"><use href="#i-error"></use></svg></button>
+      <h3>👩‍🎓 Estudantes</h3>
+      <button onclick="fecharModalAlunos()" aria-label="Fechar">✕</button>
     </div>
     <div class="dash-modal-toolbar">
       <span style="font-size:.8rem;color:#666;font-weight:600;">Agrupar por:</span>
@@ -10506,24 +10506,5 @@ return false;
     <div class="dash-modal-body" id="dm-alunos-body"></div>
   </div>
 </div>
-
-<svg xmlns="http://www.w3.org/2000/svg" style="display:none">
-<symbol id="i-user" viewBox="0 0 24 24"><path d="M12 12c2.7 0 5-2.3 5-5s-2.3-5-5-5-5 2.3-5 5 2.3 5 5 5zm0 2c-3.3 0-10 1.7-10 5v3h20v-3c0-3.3-6.7-5-10-5z"/></symbol>
-<symbol id="i-school" viewBox="0 0 24 24"><path d="M12 3L2 9l10 6 8-4.8V17h2V9L12 3z"/></symbol>
-<symbol id="i-chart" viewBox="0 0 24 24"><path d="M3 17h2v4H3v-4zm4-6h2v10H7V11zm4 3h2v7h-2v-7zm4-8h2v15h-2V6zm4 5h2v10h-2V11z"/></symbol>
-<symbol id="i-doc" viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6z"/></symbol>
-<symbol id="i-edit" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.8 9.94l-3.75-3.75L3 17.25z"/></symbol>
-<symbol id="i-folder" viewBox="0 0 24 24"><path d="M10 4l2 2h8v14H4V4z"/></symbol>
-<symbol id="i-save" viewBox="0 0 24 24"><path d="M17 3H5a2 2 0 00-2 2v14h18V7l-4-4z"/></symbol>
-<symbol id="i-search" viewBox="0 0 24 24"><path d="M10 2a8 8 0 105.3 14l4.4 4.3 1.4-1.4-4.3-4.4A8 8 0 0010 2z"/></symbol>
-<symbol id="i-settings" viewBox="0 0 24 24"><path d="M19.4 13a7.8 7.8 0 000-2l2.1-1.6-2-3.4-2.5 1a7.7 7.7 0 00-1.7-1L13 2h-2l-.3 3a7.7 7.7 0 00-1.7 1l-2.5-1-2 3.4L4.6 11a7.8 7.8 0 000 2l-2.1 1.6 2 3.4 2.5-1c.5.4 1.1.7 1.7 1l.3 3h2l.3-3c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.4L19.4 13z"/></symbol>
-<symbol id="i-check" viewBox="0 0 24 24"><path d="M9 16l-4-4 1.4-1.4L9 13.2l8.6-8.6L19 6l-10 10z"/></symbol>
-<symbol id="i-error" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></symbol>
-<symbol id="i-warning" viewBox="0 0 24 24"><path d="M1 21h22L12 2 1 21z"/></symbol>
-</svg>
-<style>
-.icon { width:1em; height:1em; fill:currentColor; vertical-align:middle; }
-</style>
-
 </body>
 </html>
