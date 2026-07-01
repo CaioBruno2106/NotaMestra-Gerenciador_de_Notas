@@ -2384,6 +2384,11 @@ body.dark-mode .stat-card-btn:active{
       </div>
     </div>
     <div class="navbar-actions">
+      <button class="user-badge" id="dash-sino-btn" onclick="abrirPainelNotificacoesNM()" title="Importações pendentes"
+        style="position:relative;padding:8px 10px;">
+        🔔
+        <span id="dash-sino-badge" style="display:none;position:absolute;top:2px;right:2px;background:var(--pe-red,#dc3545);color:#fff;font-size:.65rem;font-weight:800;min-width:16px;height:16px;border-radius:999px;align-items:center;justify-content:center;padding:0 3px;"></span>
+      </button>
       <button class="user-badge" id="dash-user-btn" onclick="showProfile()">
         <div class="user-avatar" id="dash-avatar">?</div>
         <span id="dash-user-name">Usuário</span>
@@ -3235,6 +3240,8 @@ let _perfil = null;   // dados do Firestore: users/{uid}/perfil/dados
 let _escolas = [];    // array de {id, nome, tipo}
 let _turmas  = [];    // array de {id, nome, escolaId, nivel, turno, serie, turma, atividades, alunos:[]}
 let _unidades = {};  // cache: { [turmaId]: [{id, label, ordem, sistema, qtdAtividades}] }
+let _importsPendentesGlobal = [];   // Integração Leitor de Gabaritos — envios pendentes de TODAS as turmas (pro sino)
+let _importsPendentesGlobalEm = null;
 
 // Estado temporário do wizard
 let _obEscolas = []; // [{nome, tipo}]
@@ -4537,6 +4544,7 @@ function sortTurmas(arr){
 function showDashboard(){
   showScreen('dashboard-screen');
   renderDashboard();
+  carregarImportsPendentesGlobal(); // Integração Leitor de Gabaritos — Etapa 5 (sino)
   // Se o usuário não tem telefone cadastrado E não pulou nesta sessão, exibe o modal
   if(_perfil && !_perfil.telefone && !window._phoneModalSkippedThisSession){
     setTimeout(()=>{ openPhoneModal(); }, 600);
@@ -6054,6 +6062,78 @@ window.revisarImportPendente = function(id){
   const imp = _importsPendentes.find(i=>i.id===id);
   console.log('[Import NM] revisar (placeholder):', imp);
   showToast('A revisão e aplicação de verdade entra na próxima etapa', 'info');
+};
+
+// ── Sino de notificações (dashboard): olha TODAS as turmas, não só a aberta ──
+async function carregarImportsPendentesGlobal(forcar){
+  if(!forcar && _importsPendentesGlobalEm && (Date.now()-_importsPendentesGlobalEm) < 60*1000) return; // evita reconsultar toda hora
+  const turmasAtivas = _turmas.filter(t=>t.ativo!==false);
+  const resultado = [];
+  await Promise.all(turmasAtivas.map(async turma => {
+    try {
+      const q = query(
+        collection(db,'users',_uid,'turmas',turma.id,'importsPendentes'),
+        where('status','==','pendente')
+      );
+      const snap = await getDocs(q);
+      snap.docs.forEach(d => resultado.push({ id:d.id, turmaId:turma.id, turmaNome:turma.nome, ...d.data() }));
+    } catch(e){
+      console.warn('Erro ao checar importações pendentes da turma', turma.nome, e.message);
+    }
+  }));
+  _importsPendentesGlobal = resultado;
+  _importsPendentesGlobalEm = Date.now();
+  atualizarBadgeSinoNM();
+}
+
+function atualizarBadgeSinoNM(){
+  const badge = document.getElementById('dash-sino-badge');
+  if(!badge) return;
+  const qtd = _importsPendentesGlobal.length;
+  if(qtd > 0){
+    badge.textContent = qtd > 99 ? '99+' : String(qtd);
+    badge.style.display = 'flex';
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+window.abrirPainelNotificacoesNM = function(){
+  document.getElementById('dm-notificacoes-overlay').style.display = 'flex';
+  renderPainelNotificacoesNM();
+};
+window.fecharPainelNotificacoesNM = function(){
+  document.getElementById('dm-notificacoes-overlay').style.display = 'none';
+};
+function renderPainelNotificacoesNM(){
+  const body = document.getElementById('dm-notificacoes-body');
+  if(!body) return;
+  if(!_importsPendentesGlobal.length){
+    body.innerHTML = `<div class="dm-empty">Nenhuma importação pendente no momento. 🎉</div>`;
+    return;
+  }
+  body.innerHTML = _importsPendentesGlobal.map(imp => {
+    const tipoLabel = imp.tipo==='prova' ? 'Prova da unidade' : `Atividade ${String(imp.atividadeAlvo||'').replace('atv','')}`;
+    const dataEnvio = imp.criadoEm && typeof imp.criadoEm.toDate === 'function' ? imp.criadoEm.toDate() : null;
+    return `
+      <div class="dm-item" style="cursor:pointer;" onclick="fecharPainelNotificacoesNM();abrirNotificacaoNM('${imp.turmaId}')">
+        <div class="dm-item-icon">📥</div>
+        <div class="dm-item-info">
+          <div class="dm-item-name">${imp.turmaNome||'Turma'}</div>
+          <div class="dm-item-sub">
+            ${imp.provaNome||'Prova sem nome'} · ${tipoLabel}${imp.disciplina ? ' · '+imp.disciplina : ''} ·
+            ${(imp.alunos||[]).length} aluno(s)${dataEnvio ? ' · '+dataEnvio.toLocaleString('pt-BR') : ''}
+          </div>
+        </div>
+        <span class="dm-item-badge">Pendente</span>
+      </div>`;
+  }).join('');
+}
+
+/* Atalho: abre a turma já direto na aba de Importações pendentes */
+window.abrirNotificacaoNM = async function(turmaId){
+  await window.openTurmaScreen(turmaId);
+  abrirImportsPendentes();
 };
 
 // ── Abrir unidade ────────────────────────────────────────────────────
@@ -10301,6 +10381,7 @@ return true;
 // Modais que usam style.display = 'flex' / 'block'
 const modaisDisplay = [
 'bkp-modal-overlay',
+'dm-notificacoes-overlay',
 'dm-escolas-overlay',
 'dm-turmas-overlay',
 'dm-alunos-overlay',
@@ -10352,6 +10433,20 @@ return false;
 <!-- ══════════════════════════════════════════════════
      MODAL RÁPIDO — ESCOLAS
 ════════════════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════════════
+     MODAL RÁPIDO — NOTIFICAÇÕES (Importações do Leitor de Gabaritos)
+════════════════════════════════════════════════════ -->
+<div id="dm-notificacoes-overlay" class="dash-modal-overlay" style="display:none;"
+     onclick="if(event.target===this)fecharPainelNotificacoesNM()">
+  <div class="dash-modal">
+    <div class="dash-modal-header">
+      <h3>🔔 Importações pendentes</h3>
+      <button onclick="fecharPainelNotificacoesNM()" aria-label="Fechar">✕</button>
+    </div>
+    <div class="dash-modal-body" id="dm-notificacoes-body"></div>
+  </div>
+</div>
+
 <div id="dm-escolas-overlay" class="dash-modal-overlay" style="display:none;"
      onclick="if(event.target===this)fecharModalEscolas()">
   <div class="dash-modal">
