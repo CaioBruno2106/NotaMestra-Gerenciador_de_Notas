@@ -6057,11 +6057,175 @@ function renderCardImportPendente(imp){
     </div>`;
 }
 
-/* Placeholder — a Etapa 6 (segunda confirmação + aplicação de verdade) entra aqui. */
+// ══════════════════════════════════════════════════════════════════════
+// INTEGRAÇÃO LEITOR DE GABARITOS — ETAPA 6
+// Segunda confirmação (aqui no Nota Mestra) + aplicação de verdade das
+// notas no _notasCache, reaproveitando a MESMA lógica de casamento por
+// nome e escrita usada no import manual de backup (confirmarImportacaoBKP).
+// ══════════════════════════════════════════════════════════════════════
+
 window.revisarImportPendente = function(id){
   const imp = _importsPendentes.find(i=>i.id===id);
-  console.log('[Import NM] revisar (placeholder):', imp);
-  showToast('A revisão e aplicação de verdade entra na próxima etapa', 'info');
+  if(!imp){ showToast('Importação não encontrada — pode já ter sido processada.', 'error'); return; }
+  renderRevisaoImportPendente(imp);
+};
+
+function renderRevisaoImportPendente(imp){
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+
+  const unidade      = (_unidades[_turmaAtual?.id]||[]).find(u=>u.id===imp.unidadeId);
+  const alunosTurma  = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+  const tipoLabel    = imp.tipo==='prova' ? 'Prova da unidade' : `Atividade ${String(imp.atividadeAlvo||'').replace('atv','')}`;
+
+  const pares = (imp.alunos||[]).map(a=>{
+    const nNorm = _normNome(a.nome);
+    const match = alunosTurma.findIndex(at=>_normNome(typeof at==='string'?at:at.nome)===nNorm);
+    return { nome:a.nome, nota:a.nota, match };
+  });
+  const casados    = pares.filter(p=>p.match>=0).length;
+  const naoCasados = pares.length - casados;
+
+  const linhas = pares.map(p=>{
+    const nomeTurma = p.match>=0 ? (typeof alunosTurma[p.match]==='string'?alunosTurma[p.match]:alunosTurma[p.match].nome) : null;
+    return `
+    <tr>
+      <td style="font-size:.78rem;padding:4px 6px;">${p.nome}</td>
+      <td style="font-size:.78rem;padding:4px 6px;text-align:center;font-weight:700;">${p.nota}</td>
+      <td style="font-size:.78rem;padding:4px 6px;text-align:center;">
+        ${ p.match>=0
+          ? `<span style="color:#28a745;font-weight:700;">✓ ${nomeTurma}</span>`
+          : `<span style="color:var(--pe-red);font-size:.72rem;">Não encontrado</span>` }
+      </td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="medias-card" style="margin-bottom:14px;">
+      <h4>🔍 Revisar importação</h4>
+      <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
+        ${imp.provaNome||'Prova sem nome'} → ${unidade?.label||imp.unidadeLabel||'—'} · ${tipoLabel}${imp.disciplina?' · '+imp.disciplina:''}
+      </p>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <span style="font-size:.72rem;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-weight:700;">${casados} aluno(s) casado(s)</span>
+        ${naoCasados>0?`<span style="font-size:.72rem;background:#fdecea;color:var(--pe-red);padding:2px 8px;border-radius:10px;font-weight:700;">${naoCasados} não encontrado(s)</span>`:''}
+      </div>
+    </div>
+    <div class="medias-card" style="margin-bottom:14px;padding:8px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr>
+          <th style="background:#f1f3f5;font-size:.7rem;padding:4px 6px;text-align:left;">Aluno (enviado)</th>
+          <th style="background:#f1f3f5;font-size:.7rem;padding:4px 6px;text-align:center;">Nota</th>
+          <th style="background:#f1f3f5;font-size:.7rem;padding:4px 6px;text-align:center;">Casamento na turma</th>
+        </tr></thead>
+        <tbody>${linhas || `<tr><td colspan="3" style="font-size:.78rem;padding:10px;text-align:center;color:var(--pe-muted);">Nenhum aluno neste envio.</td></tr>`}</tbody>
+      </table>
+    </div>
+    ${naoCasados>0?`
+    <div style="background:#fdecea;color:var(--pe-red);padding:8px 10px;border-radius:8px;font-size:.78rem;margin-bottom:10px;">
+      ${naoCasados} aluno(s) não foram encontrados nesta turma pelo nome e NÃO serão aplicados.
+    </div>`:''}
+    <button class="btn-aplicar-qtd" id="btn-confirmar-aplicar-${imp.id}" style="width:100%;${casados===0?'opacity:.5;pointer-events:none;':''}"
+      onclick="confirmarAplicacaoImportPendente('${imp.id}')">
+      ✅ Confirmar e aplicar (${casados} aluno${casados===1?'':'s'})
+    </button>
+    <button class="btn-aplicar-qtd" style="width:100%;margin-top:8px;background:var(--pe-muted);" onclick="abrirImportsPendentes()">‹ Voltar</button>
+  `;
+}
+
+/* Aplica de fato as notas no _notasCache da unidade certa, reaproveitando
+   a mesma lógica de indexação usada em confirmarImportacaoBKP. Sempre
+   recarrega o estado salvo mais recente da unidade ANTES de sobrepor,
+   pra não perder notas de outros alunos/atividades por causa de uma
+   corrida com o carregamento padrão de tela. */
+async function _aplicarNotasImportPendente(imp){
+  const unidade = (_unidades[_turmaAtual?.id]||[]).find(u=>u.id===imp.unidadeId);
+  if(!unidade) return { importados:0, naoCasados:0, erro:'Unidade não encontrada — pode ter sido excluída.' };
+
+  const uid = unidade.id;
+
+  if(!_atvConfig[uid]){
+    const qtd = unidade.qtdAtividades ?? _turmaAtual?.atividades ?? 0;
+    _atvConfig[uid] = { qtdAtividades: qtd, atividades: Array.from({length:qtd},(_,i)=>defaultAtv(i)) };
+  }
+
+  await carregarNotasUnidade(_turmaAtual.id, unidade);
+  if(!_notasCache[uid]) _notasCache[uid] = {atv:{},prova:{},extras:{},rec:{}};
+
+  const alunosTurma = (_turmaAtual.alunos||[]).filter(a=>a.ativo!==false);
+  let importados = 0, naoCasados = 0;
+
+  (imp.alunos||[]).forEach(a=>{
+    const nNorm = _normNome(a.nome);
+    const turmaIdx = alunosTurma.findIndex(at=>_normNome(typeof at==='string'?at:at.nome)===nNorm);
+    if(turmaIdx < 0){ naoCasados++; return; }
+    const nota = parseFloat(a.nota);
+    if(isNaN(nota)) return;
+
+    if(imp.tipo === 'atividade'){
+      const ki = parseInt(String(imp.atividadeAlvo||'').replace('atv',''),10) - 1;
+      if(isNaN(ki) || ki < 0) return;
+      if(!_notasCache[uid].atv[ki]) _notasCache[uid].atv[ki] = {};
+      _notasCache[uid].atv[ki][turmaIdx] = nota;
+      while(_atvConfig[uid].atividades.length <= ki) _atvConfig[uid].atividades.push(defaultAtv(_atvConfig[uid].atividades.length));
+      if(_atvConfig[uid].qtdAtividades <= ki) _atvConfig[uid].qtdAtividades = ki+1;
+    } else {
+      _notasCache[uid].prova[turmaIdx] = nota;
+    }
+    importados++;
+  });
+
+  if(importados === 0) return { importados, naoCasados };
+
+  // Ativa a aba dessa unidade e re-renderiza, pra o professor ver o resultado na hora
+  _unidadeAtiva = unidade;
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`tab-btn-${uid}`)?.classList.add('active');
+  renderUnidadeContent(unidade);
+  alunosTurma.forEach((_,ai)=>recalcularPrevia(uid, ai));
+  agendarAutosave();
+
+  return { importados, naoCasados };
+}
+
+window.confirmarAplicacaoImportPendente = async function(id){
+  const imp = _importsPendentes.find(i=>i.id===id);
+  if(!imp) return;
+
+  showLoading('Aplicando notas...');
+  try {
+    const resultado = await _aplicarNotasImportPendente(imp);
+
+    if(resultado.erro || resultado.importados === 0){
+      hideLoading();
+      showToast(resultado.erro || 'Nenhum aluno pôde ser casado — nada foi aplicado.', 'error');
+      return;
+    }
+
+    // Marca como aplicado no Firestore, pra não aparecer mais como pendente
+    await setDoc(
+      doc(db,'users',_uid,'turmas',_turmaAtual.id,'importsPendentes',imp.id),
+      { status:'aplicado', aplicadoEm: serverTimestamp() },
+      { merge:true }
+    );
+
+    // Remove da lista local (desta turma e do sino global) e atualiza contadores
+    _importsPendentes       = _importsPendentes.filter(i=>i.id!==imp.id);
+    _importsPendentesGlobal = _importsPendentesGlobal.filter(i=>i.id!==imp.id);
+    atualizarBadgeSinoNM();
+
+    // Reconstrói a barra de abas (atualiza o contador "Importações (N)")
+    // e garante que a aba da unidade recém-aplicada continue marcada
+    renderUnidadesTabs(_unidades[_turmaAtual.id]||[]);
+    document.getElementById(`tab-btn-${_unidadeAtiva.id}`)?.classList.add('active');
+
+    hideLoading();
+    const aviso = resultado.naoCasados>0 ? ` (${resultado.naoCasados} não encontrado(s) ficaram de fora)` : '';
+    showToast(`${resultado.importados} nota(s) aplicada(s) com sucesso!${aviso} Lembre de conferir.`, 'success');
+  } catch(e){
+    hideLoading();
+    showToast('Erro ao aplicar: '+e.message, 'error');
+  }
 };
 
 // ── Sino de notificações (dashboard): olha TODAS as turmas, não só a aberta ──
@@ -6158,6 +6322,14 @@ function abrirUnidade(unidade){
   // Carrega notas salvas do Firestore em background
   if(_turmaAtual && !unidade.id.startsWith('local-')){
     carregarNotasUnidade(_turmaAtual.id, unidade).then(()=>{
+      // Evita sobrescrever a tela se o usuário já trocou de aba enquanto isso
+      // carregava (ex.: navegação rápida vinda do sino de notificações pra
+      // Importações, ou o próprio usuário clicando em outra aba antes da
+      // resposta chegar). Checa o DOM (a aba realmente marcada como ativa),
+      // já que _unidadeAtiva não muda ao ir pra abas como Importações/
+      // Consolidação/Diagnóstico/Exportação/Backup.
+      const abaAindaAtiva = document.getElementById(`tab-btn-${unidade.id}`)?.classList.contains('active');
+      if(!abaAindaAtiva) return;
       // Re-renderiza com notas carregadas
       renderUnidadeContent(unidade);
       // Recalcula prévia para todos os alunos
