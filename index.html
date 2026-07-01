@@ -5869,6 +5869,7 @@ let _turmaAtual   = null;
 let _unidadeAtiva = null;
 let _atvConfig    = {};  // { [unidadeId]: { qtdAtividades, atividades:[...] } }
 let _notasCache   = {};  // { [unidadeId]: { atv:{[atvIdx]:{[alunoIdx]:val}}, prova:{}, extras:{}, rec:{} } }
+let _importsPendentes = []; // Integração Leitor de Gabaritos — envios aguardando revisão nesta turma
 
 // ── Abrir tela da turma ─────────────────────────────────────────────
 window.openTurmaScreen = async function(turmaId){
@@ -5914,6 +5915,7 @@ window.openTurmaScreen = async function(turmaId){
   // Agora tenta buscar do Firestore em background
   try {
     const unidadesFS = await garantirUnidades(turma);
+    await carregarImportsPendentes(turma.id); // Integração Leitor de Gabaritos — Etapa 5
     // Substitui tabs e conteúdo com dados reais se bem-sucedido
     renderUnidadesTabs(unidadesFS);
     // Mantém a aba na mesma posição (mesma ordem)
@@ -5931,6 +5933,7 @@ window.closeTurmaScreen = function(){
   _unidadeAtiva = null;
   _atvConfig    = {};
   _notasCache   = {};
+  _importsPendentes = [];
   showScreen('dashboard-screen');
 };
 
@@ -5942,10 +5945,15 @@ function renderUnidadesTabs(unidades){
   }
   const bar = document.getElementById('unidades-tabs-bar');
   if(!bar) return;
+  const qtdPendentes = _importsPendentes.length;
   bar.innerHTML = unidades.map(u=>
     `<button class="unidade-tab" id="tab-btn-${u.id}"
        onclick="abrirUnidadePorId('${u.id}')">${u.label}</button>`
   ).join('') + `
+    ${ qtdPendentes > 0 ? `
+    <button class="unidade-tab" id="tab-btn-importsPendentes"
+       style="background:rgba(0,180,216,.18);"
+       onclick="abrirImportsPendentes()">📥 Importações (${qtdPendentes})</button>` : '' }
     <button class="unidade-tab" id="tab-btn-consolidacao"
        style="margin-left:auto;background:rgba(253,185,19,.18);"
        onclick="abrirConsolidacao()">🏁 Consolidação</button>
@@ -5964,6 +5972,88 @@ window.abrirUnidadePorId = function(id){
   const lista = _unidades[_turmaAtual?.id]||[];
   const u = lista.find(x=>x.id===id);
   if(u) abrirUnidade(u);
+};
+
+// ══════════════════════════════════════════════════════════════════════
+// INTEGRAÇÃO LEITOR DE GABARITOS — ETAPA 5
+// Detecta envios pendentes (users/{uid}/turmas/{turmaId}/importsPendentes
+// com status:'pendente', gravados pelo Leitor de Gabaritos na Etapa 4) e
+// mostra uma lista de revisão. Ainda não aplica nenhuma nota de verdade
+// — isso é a Etapa 6 (segunda confirmação + gravação no _notasCache).
+// ══════════════════════════════════════════════════════════════════════
+
+async function carregarImportsPendentes(turmaId){
+  try {
+    const q = query(
+      collection(db,'users',_uid,'turmas',turmaId,'importsPendentes'),
+      where('status','==','pendente')
+    );
+    const snap = await getDocs(q);
+    _importsPendentes = snap.docs.map(d=>({id:d.id, ...d.data()}));
+  } catch(e){
+    console.warn('Erro ao carregar importações pendentes:', e.message);
+    _importsPendentes = [];
+  }
+}
+
+window.abrirImportsPendentes = function(){
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-btn-importsPendentes')?.classList.add('active');
+
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+
+  if(!_importsPendentes.length){
+    el.innerHTML = `
+      <div class="medias-card">
+        <h4>📥 Importações do Leitor de Gabaritos</h4>
+        <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
+          Nenhuma importação pendente pra esta turma no momento.
+        </p>
+      </div>`;
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="medias-card" style="margin-bottom:14px;">
+      <h4>📥 Importações do Leitor de Gabaritos</h4>
+      <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
+        ${_importsPendentes.length} envio(s) aguardando revisão. Nada é aplicado até você confirmar cada um.
+      </p>
+    </div>
+    ${_importsPendentes.map(imp=>renderCardImportPendente(imp)).join('')}
+  `;
+};
+
+function renderCardImportPendente(imp){
+  const unidade   = (_unidades[_turmaAtual?.id]||[]).find(u=>u.id===imp.unidadeId);
+  const dataEnvio = imp.criadoEm && typeof imp.criadoEm.toDate === 'function' ? imp.criadoEm.toDate() : null;
+  const tipoLabel = imp.tipo==='prova' ? 'Prova da unidade' : `Atividade ${String(imp.atividadeAlvo||'').replace('atv','')}`;
+  return `
+    <div class="medias-card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div>
+          <div style="font-weight:700;font-size:.9rem;color:var(--pe-navy);">${imp.provaNome||'Prova sem nome'}</div>
+          <div style="font-size:.78rem;color:var(--pe-muted);margin-top:2px;">
+            ${unidade?.label || imp.unidadeLabel || '—'} · ${tipoLabel}${imp.disciplina ? ' · '+imp.disciplina : ''}
+          </div>
+          <div style="font-size:.72rem;color:var(--pe-muted);margin-top:2px;">
+            ${(imp.alunos||[]).length} aluno(s) · enviado por ${imp.enviadoPor||'—'}${dataEnvio ? ' em '+dataEnvio.toLocaleString('pt-BR') : ''}
+          </div>
+        </div>
+        <span style="font-size:.68rem;background:#fff3cd;color:#856404;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;">Pendente</span>
+      </div>
+      <button class="btn-aplicar-qtd" style="margin-top:10px;width:100%;" onclick="revisarImportPendente('${imp.id}')">
+        🔍 Revisar e aplicar
+      </button>
+    </div>`;
+}
+
+/* Placeholder — a Etapa 6 (segunda confirmação + aplicação de verdade) entra aqui. */
+window.revisarImportPendente = function(id){
+  const imp = _importsPendentes.find(i=>i.id===id);
+  console.log('[Import NM] revisar (placeholder):', imp);
+  showToast('A revisão e aplicação de verdade entra na próxima etapa', 'info');
 };
 
 // ── Abrir unidade ────────────────────────────────────────────────────
