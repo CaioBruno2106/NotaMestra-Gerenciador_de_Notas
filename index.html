@@ -2767,8 +2767,14 @@ body.dark-mode .stat-card-btn:active{
         </div>
       </div>
 
-      <div style="font-size:.78rem;font-weight:700;color:var(--pe-navy);margin-bottom:8px;">
-        Estudantes (<span id="tm-aluno-count">0</span>)
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <div style="font-size:.78rem;font-weight:700;color:var(--pe-navy);">
+          Estudantes (<span id="tm-aluno-count">0</span>)
+        </div>
+        <button type="button" class="aluno-btn" style="width:auto;padding:4px 10px;font-size:.76rem;font-weight:700;"
+          onclick="ordenarAlunosAlfabetico()" title="Ordenar por nome">
+          🔤 Ordenar A-Z
+        </button>
       </div>
       <div class="alunos-list" id="tm-alunos-list"></div>
 
@@ -4982,9 +4988,20 @@ window.openEditTurma = function(id){
   const turma = _turmas.find(t=>t.id===id);
   if(!turma) return;
   _editTurmaId = id;
-  _editAlunos  = (turma.alunos||[]).map(a=>
-    typeof a==='string' ? {nome:a, ativo:true} : {...a}
-  );
+
+  // Cada aluno recebe uma marca com seu índice ATUAL entre os ativos —
+  // é a mesma indexação usada pra guardar notas em cada unidade
+  // (nc.atv[idx][ai], nc.prova[ai]...). Guardamos isso agora pra,
+  // se a lista for reordenada/reduzida nesta edição, sabermos exatamente
+  // pra onde mover as notas já lançadas de cada aluno ao salvar.
+  const brutos = (turma.alunos||[]).map(a => typeof a==='string' ? {nome:a, ativo:true} : {...a});
+  let _ativoCounter = 0;
+  _editAlunos = brutos.map(a => {
+    const ativo = a.ativo !== false;
+    const origActiveIdx = ativo ? _ativoCounter++ : null;
+    return { ...a, __origActiveIdx: origActiveIdx };
+  });
+
   document.getElementById('turma-modal-title').textContent =
     `Editar: ${turma.serie} ${turma.turma} (${turma.anoLetivo||'—'})`;
   document.getElementById('tm-turma-id').value    = id;
@@ -5003,6 +5020,8 @@ window.closeTurmaModal = function(){
   _editAlunos  = [];
 };
 
+let _editandoNomeIdx = null; // índice da linha em edição de nome, ou null
+
 function renderAlunosModal(){
   const list = document.getElementById('tm-alunos-list');
   document.getElementById('tm-aluno-count').textContent = _editAlunos.length;
@@ -5013,11 +5032,27 @@ function renderAlunosModal(){
   list.innerHTML = _editAlunos.map((a,i)=>{
     const nome  = typeof a==='string'?a:a.nome;
     const ativo = typeof a==='object'?a.ativo!==false:true;
+
+    if(_editandoNomeIdx === i){
+      return `
+      <div class="aluno-row${ativo?'':' inativo'}">
+        <span class="aluno-num">${i+1}.</span>
+        <input type="text" id="aluno-edit-input-${i}" class="aluno-name"
+          value="${nome.replace(/"/g,'&quot;')}" style="border:1.5px solid var(--pe-blue);border-radius:4px;padding:2px 6px;"
+          onkeydown="if(event.key==='Enter'){salvarNomeAluno(${i});} if(event.key==='Escape'){cancelarEdicaoNome();}">
+        <div class="aluno-actions">
+          <button class="aluno-btn" onclick="salvarNomeAluno(${i})" title="Salvar nome">✔️</button>
+          <button class="aluno-btn" onclick="cancelarEdicaoNome()" title="Cancelar">✕</button>
+        </div>
+      </div>`;
+    }
+
     return `
     <div class="aluno-row${ativo?'':' inativo'}">
       <span class="aluno-num">${i+1}.</span>
       <span class="aluno-name">${nome}</span>
       <div class="aluno-actions">
+        <button class="aluno-btn" onclick="editarNomeAluno(${i})" title="Editar nome">✏️</button>
         ${ativo
           ? `<button class="aluno-btn aluno-btn-deact" onclick="toggleAluno(${i},false)" title="Desativar">⏸</button>`
           : `<button class="aluno-btn aluno-btn-react" onclick="toggleAluno(${i},true)"  title="Reativar">▶️</button>`
@@ -5026,7 +5061,58 @@ function renderAlunosModal(){
       </div>
     </div>`;
   }).join('');
+
+  if(_editandoNomeIdx !== null){
+    const inp = document.getElementById(`aluno-edit-input-${_editandoNomeIdx}`);
+    if(inp){ inp.focus(); inp.select(); }
+  }
 }
+
+window.editarNomeAluno = function(i){
+  _editandoNomeIdx = i;
+  renderAlunosModal();
+};
+
+window.cancelarEdicaoNome = function(){
+  _editandoNomeIdx = null;
+  renderAlunosModal();
+};
+
+window.salvarNomeAluno = function(i){
+  const inp = document.getElementById(`aluno-edit-input-${i}`);
+  if(!inp) return;
+  const novoNome = inp.value.trim();
+  if(!novoNome){
+    showMsgModal('O nome não pode ficar em branco.','error');
+    return;
+  }
+  const jaExiste = _editAlunos.some((a,idx)=>
+    idx!==i && (typeof a==='string'?a:a.nome).toLowerCase()===novoNome.toLowerCase()
+  );
+  if(jaExiste){
+    showMsgModal('Já existe outro estudante com esse nome nesta turma.','error');
+    return;
+  }
+  if(typeof _editAlunos[i]==='string'){
+    _editAlunos[i] = { nome: novoNome, ativo: true };
+  } else {
+    _editAlunos[i] = { ..._editAlunos[i], nome: novoNome };
+  }
+  _editandoNomeIdx = null;
+  renderAlunosModal();
+  showMsgModal('Nome atualizado. Clique em Salvar para confirmar.','info');
+};
+
+window.ordenarAlunosAlfabetico = function(){
+  _editAlunos.sort((a,b)=>{
+    const nomeA = typeof a==='string'?a:a.nome;
+    const nomeB = typeof b==='string'?b:b.nome;
+    return nomeA.localeCompare(nomeB, 'pt-BR', {sensitivity:'base'});
+  });
+  _editandoNomeIdx = null;
+  renderAlunosModal();
+  showMsgModal('Lista ordenada por nome (A-Z). As notas já lançadas serão automaticamente reajustadas pro aluno certo quando você clicar em Salvar.','info');
+};
 
 window.toggleAluno = function(i, ativo){
   if(typeof _editAlunos[i]==='string'){
@@ -5050,7 +5136,7 @@ window.addAlunoModal = function(){
   if(_editAlunos.some(a=>(typeof a==='string'?a:a.nome).toLowerCase()===nome.toLowerCase())){
     showMsgModal('Estudante já cadastrado nesta turma.','error'); return;
   }
-  _editAlunos.push({nome, ativo:true});
+  _editAlunos.push({nome, ativo:true, __origActiveIdx:null});
   inp.value='';
   renderAlunosModal();
   showMsgModal('Estudante adicionado. Clique em Salvar para confirmar.','info');
@@ -5061,14 +5147,85 @@ function showMsgModal(txt,type){
   el.textContent=txt; el.className=`ob-msg ${type}`;
 }
 
+// Aplica um mapa {indiceAntigo: indiceNovo} a um mapa de notas {indiceAluno: valor}.
+// Índices que não mudaram de posição (não estão no mapa) ficam como estavam.
+function _remapMapaNotas(mapaNotas, mapaIndices){
+  if(!mapaNotas) return mapaNotas;
+  const out = {};
+  Object.keys(mapaNotas).forEach(k=>{
+    const novo = mapaIndices.hasOwnProperty(k) ? mapaIndices[k] : k;
+    out[novo] = mapaNotas[k];
+  });
+  return out;
+}
+
+// Percorre todas as unidades já salvas da turma e realoca as notas de
+// cada aluno pro índice novo, segundo mapaIndices = {indiceAntigo:indiceNovo}.
+// Chamado quando editar-turma resulta em mudança de ordem/posição dos
+// alunos ativos (ordenar A-Z, remover alguém do meio da lista, etc.) —
+// sem isso, as notas já lançadas ficariam "coladas" no aluno errado.
+async function _remapearNotasDaTurma(turmaId, mapaIndices){
+  const snap = await getDocs(collection(db,'users',_uid,'turmas',turmaId,'unidades'));
+  for(const d of snap.docs){
+    const data = d.data();
+    const nl = data.notasLancadas;
+    if(!nl) continue;
+
+    const atividades = {};
+    Object.keys(nl.atividades||{}).forEach(idx=>{
+      atividades[idx] = { ...nl.atividades[idx], notas: _remapMapaNotas(nl.atividades[idx].notas, mapaIndices) };
+    });
+
+    const novoPayload = {
+      ...nl,
+      atividades,
+      prova:  _remapMapaNotas(nl.prova,  mapaIndices),
+      extras: _remapMapaNotas(nl.extras, mapaIndices),
+      rec:    _remapMapaNotas(nl.rec,    mapaIndices),
+    };
+
+    await setDoc(
+      doc(db,'users',_uid,'turmas',turmaId,'unidades',d.id),
+      { notasLancadas: novoPayload },
+      { merge: true }
+    );
+  }
+  // Força releitura na próxima vez que a turma for aberta
+  delete _unidades[turmaId];
+  _notasCache = {};
+  _atvConfig  = {};
+}
+
 window.saveTurmaModal = async function(){
   const id   = _editTurmaId;
   const ativ = parseInt(document.getElementById('tm-atividades').value)||0;
   if(!id) return;
   showLoading('Salvando alterações...');
   try {
-    const alunosNorm = _editAlunos.map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
+    const alunosNorm = _editAlunos.map(a=>{
+      const {__origActiveIdx, ...limpo} = (typeof a==='string'?{nome:a,ativo:true}:a);
+      return limpo;
+    });
     const disc = document.getElementById('tm-disciplina').value.trim();
+
+    // Descobre se algum aluno com notas já lançadas mudou de posição entre
+    // os ativos (por causa de ordenar A-Z, remover alguém do meio, etc.)
+    const ativosFinal = _editAlunos.filter(a=>(typeof a==='object'?a.ativo!==false:true));
+    const mapaIndices = {};
+    let precisaRemapear = false;
+    ativosFinal.forEach((a, novoIdx)=>{
+      const antigo = (typeof a==='object') ? a.__origActiveIdx : null;
+      if(antigo!=null){
+        mapaIndices[antigo] = novoIdx;
+        if(antigo !== novoIdx) precisaRemapear = true;
+      }
+    });
+
+    if(precisaRemapear){
+      showLoading('Reajustando notas já lançadas para a nova ordem...');
+      await _remapearNotasDaTurma(id, mapaIndices);
+    }
+
     await setDoc(doc(db,'users',_uid,'turmas',id),{
       atividades: ativ,
       disciplina: disc,
@@ -5083,7 +5240,12 @@ window.saveTurmaModal = async function(){
     }
     closeTurmaModal();
     renderDashboard();
-    showToast('Turma atualizada com sucesso! ✅','success');
+    showToast(
+      precisaRemapear
+        ? 'Turma atualizada e notas já lançadas reajustadas pra nova ordem! ✅'
+        : 'Turma atualizada com sucesso! ✅',
+      'success'
+    );
   } catch(e){
     showMsgModal('Erro ao salvar: '+e.message,'error');
   } finally { hideLoading(); }
