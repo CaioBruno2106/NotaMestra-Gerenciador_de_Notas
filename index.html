@@ -3150,7 +3150,7 @@ function syncDarkModeBtn() {
   var btn = document.getElementById('dark-mode-btn');
   if (btn) {
     var isDark = document.body.classList.contains('dark-mode');
-    btn.textContent = isDark ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Modo claro' : 'Modo escuro';
+    btn.innerHTML = isDark ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Modo claro' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Modo escuro';
   }
 }
 function toggleDarkMode() {
@@ -3264,7 +3264,7 @@ function hideLoading(){
 let _toastTimer;
 window.showToast = function(msg, type='info'){
   const el = document.getElementById('toast');
-  el.textContent = msg;
+  el.innerHTML = msg;
   el.className = `show t-${type}`;
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(()=>{ el.className=''; }, 3200);
@@ -5891,13 +5891,13 @@ window.openTurmaScreen = async function(turmaId){
   const alunosAtivos = (turma.alunos||[]).filter(a=>a.ativo!==false);
   document.getElementById('ts-titulo').textContent =
     `${turma.serie} ${turma.turma} — ${nivelLabel(turma.nivel)}`;
-  document.getElementById('ts-escola').textContent =
+  document.getElementById('ts-escola').innerHTML =
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M3 21h18"/><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M6 10.5V16c0 1.1 2.7 2 6 2s6-.9 6-2v-5.5"/></svg> ${turma.escolaNome||'—'}`;
   document.getElementById('ts-rede').textContent =
     turma.escolaTipo==='municipal' ? 'Rede Municipal' : 'Rede Estadual';
   document.getElementById('ts-sistema').textContent =
     turma.sistema==='trimestral' ? 'Trimestral' : 'Bimestral';
-  document.getElementById('ts-alunos').textContent =
+  document.getElementById('ts-alunos').innerHTML =
     `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> ${alunosAtivos.length} alunos`;
 
   // Mostra a tela ANTES de ir ao Firestore — evita branco
