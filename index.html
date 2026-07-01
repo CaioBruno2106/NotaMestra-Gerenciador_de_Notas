@@ -6054,6 +6054,10 @@ function renderCardImportPendente(imp){
       <button class="btn-aplicar-qtd" style="margin-top:10px;width:100%;" onclick="revisarImportPendente('${imp.id}')">
         🔍 Revisar e aplicar
       </button>
+      <button class="btn-aplicar-qtd" style="margin-top:6px;width:100%;background:transparent;color:var(--pe-red);border:1px solid var(--pe-red);"
+        onclick="excluirImportPendente('${imp.id}')">
+        🗑️ Excluir importação
+      </button>
     </div>`;
 }
 
@@ -6130,6 +6134,10 @@ function renderRevisaoImportPendente(imp){
       ✅ Confirmar e aplicar (${casados} aluno${casados===1?'':'s'})
     </button>
     <button class="btn-aplicar-qtd" style="width:100%;margin-top:8px;background:var(--pe-muted);" onclick="abrirImportsPendentes()">‹ Voltar</button>
+    <button class="btn-aplicar-qtd" style="width:100%;margin-top:8px;background:transparent;color:var(--pe-red);border:1px solid var(--pe-red);"
+      onclick="excluirImportPendente('${imp.id}')">
+      🗑️ Excluir esta importação
+    </button>
   `;
 }
 
@@ -6225,6 +6233,39 @@ window.confirmarAplicacaoImportPendente = async function(id){
   } catch(e){
     hideLoading();
     showToast('Erro ao aplicar: '+e.message, 'error');
+  }
+};
+
+/* Exclui um envio pendente sem aplicar nada — não mexe em nenhuma nota,
+   só remove da caixa de entrada. As notas continuam intactas no Leitor
+   de Gabaritos; se precisar, o professor pode importar de novo por lá. */
+window.excluirImportPendente = async function(id){
+  const imp = _importsPendentes.find(i=>i.id===id);
+  if(!imp) return;
+
+  const confirma = confirm(
+    `Excluir esta importação pendente?\n\n` +
+    `${imp.provaNome||'Prova sem nome'} — ${(imp.alunos||[]).length} aluno(s)\n\n` +
+    `Essa ação NÃO pode ser desfeita. As notas continuam normalmente no Leitor de Gabaritos ` +
+    `— só o envio pendente aqui no Nota Mestra será removido, sem aplicar nenhuma nota.`
+  );
+  if(!confirma) return;
+
+  showLoading('Excluindo...');
+  try {
+    await deleteDoc(doc(db,'users',_uid,'turmas',_turmaAtual.id,'importsPendentes',imp.id));
+
+    _importsPendentes       = _importsPendentes.filter(i=>i.id!==imp.id);
+    _importsPendentesGlobal = _importsPendentesGlobal.filter(i=>i.id!==imp.id);
+    atualizarBadgeSinoNM();
+    renderUnidadesTabs(_unidades[_turmaAtual.id]||[]);
+
+    hideLoading();
+    showToast('Importação excluída.', '');
+    abrirImportsPendentes(); // volta pra lista já atualizada
+  } catch(e){
+    hideLoading();
+    showToast('Erro ao excluir: '+e.message, 'error');
   }
 };
 
