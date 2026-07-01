@@ -3207,7 +3207,7 @@ import {
   getFirestore,
   doc, getDoc, setDoc, collection,
   getDocs, addDoc, deleteDoc,
-  writeBatch,
+  writeBatch, runTransaction,
   serverTimestamp, query, where, orderBy
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -3480,29 +3480,74 @@ async function inicializarUnidades(turmaId, sistema, qtdAtividades){
  * Garante que uma turma já existente (cadastrada antes da Etapa 1)
  * tenha suas unidades criadas — chamado on-demand ao abrir a turma.
  * Não recria se já existirem.
+ *
+ * Blindado contra duplicação em duas camadas:
+ * 1) Lock em memória (_garantirUnidadesEmAndamento): se a mesma aba
+ *    chamar isso duas vezes rápido (ex.: clique duplo, import disparado
+ *    antes do primeiro carregamento terminar), a segunda chamada espera
+ *    a primeira em vez de rodar em paralelo.
+ * 2) Transação atômica no Firestore (flag `unidadesInicializadas` no
+ *    doc da turma): se duas ABAS/sessões diferentes chegarem aqui ao
+ *    mesmo tempo, só uma consegue marcar a flag e criar as unidades;
+ *    a outra detecta a flag já marcada e só espera + relê.
  */
+const _garantirUnidadesEmAndamento = {}; // { [turmaId]: Promise }
+
 async function garantirUnidades(turma){
-  const snap = await getDocs(
-    collection(db,'users',_uid,'turmas',turma.id,'unidades')
-  );
-  if(snap.size > 0){
-    // Já existem — só atualiza cache
-    _unidades[turma.id] = snap.docs
+  if(_garantirUnidadesEmAndamento[turma.id]){
+    return _garantirUnidadesEmAndamento[turma.id];
+  }
+
+  const promessa = (async () => {
+    const snap = await getDocs(
+      collection(db,'users',_uid,'turmas',turma.id,'unidades')
+    );
+    if(snap.size > 0){
+      _unidades[turma.id] = snap.docs
+        .map(d=>({id:d.id,...d.data()}))
+        .sort((a,b)=>a.ordem-b.ordem);
+      return _unidades[turma.id];
+    }
+
+    // Ninguém tem unidade ainda — disputa a trava atômica pra criar.
+    const turmaRef = doc(db,'users',_uid,'turmas',turma.id);
+    let souEuQueVouCriar = false;
+    try {
+      await runTransaction(db, async (tx) => {
+        const tSnap = await tx.get(turmaRef);
+        const jaMarcado = tSnap.exists() && tSnap.data()?.unidadesInicializadas === true;
+        if(!jaMarcado){
+          tx.set(turmaRef, { unidadesInicializadas: true }, { merge: true });
+          souEuQueVouCriar = true;
+        }
+      });
+    } catch(e){
+      console.warn('Transação de trava falhou, seguindo com fallback:', e.message);
+    }
+
+    if(souEuQueVouCriar){
+      const sistema = turma.sistema||'bimestral';
+      await inicializarUnidades(turma.id, sistema, turma.atividades||0);
+    } else {
+      // Outra aba/sessão está criando agora — espera um pouco antes de reler.
+      await new Promise(r=>setTimeout(r, 800));
+    }
+
+    const snap2 = await getDocs(
+      collection(db,'users',_uid,'turmas',turma.id,'unidades')
+    );
+    _unidades[turma.id] = snap2.docs
       .map(d=>({id:d.id,...d.data()}))
       .sort((a,b)=>a.ordem-b.ordem);
     return _unidades[turma.id];
+  })();
+
+  _garantirUnidadesEmAndamento[turma.id] = promessa;
+  try {
+    return await promessa;
+  } finally {
+    delete _garantirUnidadesEmAndamento[turma.id];
   }
-  // Cria agora (turma legada sem unidades)
-  const sistema = turma.sistema||'bimestral';
-  await inicializarUnidades(turma.id, sistema, turma.atividades||0);
-  // Relê para popular cache
-  const snap2 = await getDocs(
-    collection(db,'users',_uid,'turmas',turma.id,'unidades')
-  );
-  _unidades[turma.id] = snap2.docs
-    .map(d=>({id:d.id,...d.data()}))
-    .sort((a,b)=>a.ordem-b.ordem);
-  return _unidades[turma.id];
 }
 
 /**
@@ -8016,8 +8061,202 @@ function renderDiagnostico(turma, unidades){
       Cada grupo de barras representa um aluno; cada barra é a nota final da unidade (após recuperação, se houver).
       Linha tracejada indica o limite de aprovação (6,0).
     </p>
+  </div>
+  <div class="medias-card" id="diag-manutencao-card">
+    <h4>🔧 Manutenção de unidades</h4>
+    <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 12px;">
+      Verifica se essa turma tem unidades letivas duplicadas (ex.: dois
+      "2º Trimestre") e, se tiver, junta as notas das cópias numa só,
+      sem perder nada, e apaga a duplicata.
+    </p>
+    <button class="btn-aplicar-qtd" onclick="detectarUnidadesDuplicadas()">
+      🔍 Verificar unidades duplicadas
+    </button>
+    <div id="diag-duplicados-resultado" style="margin-top:12px;"></div>
   </div>`;
 }
+
+// ══════════════════════════════════════════════════════════
+// MANUTENÇÃO: DETECTAR E CORRIGIR UNIDADES DUPLICADAS
+// ══════════════════════════════════════════════════════════
+
+let _diagDuplicados = null; // grupos de docs duplicados achados na última verificação
+
+function _contarAlunosComNota(u){
+  const nl = u.notasLancadas;
+  if(!nl) return 0;
+  const idxs = new Set();
+  Object.values(nl.atividades||{}).forEach(atv=>{
+    Object.keys(atv?.notas||{}).forEach(k=>idxs.add(k));
+  });
+  Object.keys(nl.prova||{}).forEach(k=>idxs.add(k));
+  Object.keys(nl.rec||{}).forEach(k=>idxs.add(k));
+  return idxs.size;
+}
+
+function _criadoEmMillis(u){
+  const c = u.criadoEm;
+  if(!c) return 0;
+  if(typeof c.toMillis === 'function') return c.toMillis();
+  if(typeof c === 'string') return new Date(c).getTime()||0;
+  return 0;
+}
+
+// Mescla os notasLancadas de dois docs de unidade em um só payload.
+// Regra: valor presente vence valor ausente; se os dois tiverem valor
+// diferente pro mesmo aluno/campo (conflito real), fica o de updatedAt
+// mais recente — e o conflito é contado pra avisar quem for revisar.
+function _mesclarNotasLancadas(a, b){
+  if(!a) return { payload: b, conflitos: 0 };
+  if(!b) return { payload: a, conflitos: 0 };
+
+  const tA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+  const tB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+  let conflitos = 0;
+
+  function preferir(va, vb){
+    if(va==null || va==='') return vb;
+    if(vb==null || vb==='') return va;
+    if(va===vb) return va;
+    conflitos++;
+    return tB >= tA ? vb : va;
+  }
+  function mesclarMapa(ma, mb){
+    const out = {};
+    new Set([...Object.keys(ma||{}), ...Object.keys(mb||{})]).forEach(k=>{
+      out[k] = preferir((ma||{})[k], (mb||{})[k]);
+    });
+    return out;
+  }
+
+  const idxsAtv = new Set([...Object.keys(a.atividades||{}), ...Object.keys(b.atividades||{})]);
+  const atividades = {};
+  idxsAtv.forEach(idx=>{
+    const atvA = (a.atividades||{})[idx];
+    const atvB = (b.atividades||{})[idx];
+    const base = (Object.keys(atvB?.notas||{}).length >= Object.keys(atvA?.notas||{}).length)
+      ? (atvB||atvA) : (atvA||atvB);
+    atividades[idx] = { ...base, notas: mesclarMapa(atvA?.notas, atvB?.notas) };
+  });
+
+  return {
+    payload: {
+      qtdAtividades: Math.max(a.qtdAtividades||0, b.qtdAtividades||0),
+      atividades,
+      prova:  mesclarMapa(a.prova,  b.prova),
+      extras: mesclarMapa(a.extras, b.extras),
+      rec:    mesclarMapa(a.rec,    b.rec),
+      updatedAt: new Date().toISOString()
+    },
+    conflitos
+  };
+}
+
+window.detectarUnidadesDuplicadas = async function(){
+  const turma = _turmaAtual;
+  if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
+  const resEl = document.getElementById('diag-duplicados-resultado');
+  if(resEl) resEl.innerHTML = '⏳ Verificando...';
+  try {
+    const snap = await getDocs(collection(db,'users',_uid,'turmas',turma.id,'unidades'));
+    const docs = snap.docs.map(d=>({id:d.id,...d.data()}));
+
+    const grupos = {};
+    docs.forEach(d=>{
+      const chave = (d.ordem!=null) ? ('ordem-'+d.ordem) : ('label-'+_normNome(d.label||''));
+      (grupos[chave] = grupos[chave]||[]).push(d);
+    });
+    const duplicados = Object.values(grupos).filter(g=>g.length>1);
+    _diagDuplicados = duplicados;
+
+    if(!resEl) return;
+    if(duplicados.length===0){
+      resEl.innerHTML = `<p style="color:#2e7d32;font-weight:600;">✅ Nenhuma duplicidade encontrada — ${docs.length} unidade(s), todas únicas.</p>`;
+      return;
+    }
+
+    const listaHtml = duplicados.map((g,gi)=>{
+      const itens = g.map(u=>
+        `<li>${u.label||'(sem rótulo)'} — id <code>${u.id}</code> — ${_contarAlunosComNota(u)} aluno(s) com nota lançada</li>`
+      ).join('');
+      return `<div style="margin-bottom:8px;"><strong>Grupo ${gi+1}</strong> (${g.length} cópias):<ul style="margin:4px 0 0 18px;">${itens}</ul></div>`;
+    }).join('');
+
+    resEl.innerHTML = `
+      <div style="background:#fff3cd;border:1px solid #ffe08a;border-radius:8px;padding:10px;margin-bottom:10px;">
+        <strong>⚠️ ${duplicados.length} grupo(s) duplicado(s) encontrado(s):</strong>
+      </div>
+      ${listaHtml}
+      <p style="font-size:.82rem;color:var(--pe-muted);margin:8px 0;">
+        Ao corrigir, as notas de cada grupo serão unidas numa cópia só (nenhuma nota é perdida)
+        e as cópias extras serão apagadas. Se algum aluno tiver nota diferente lançada nas duas
+        cópias pro mesmo campo, fica a mais recente — e eu aviso quantos casos assim aconteceram
+        pra você revisar depois.
+      </p>
+      <button class="btn-aplicar-qtd" style="background:#c0392b;" onclick="corrigirUnidadesDuplicadas()">
+        🛠️ Corrigir agora (mesclar e apagar duplicatas)
+      </button>`;
+  } catch(e){
+    if(resEl) resEl.innerHTML = `<p style="color:#c0392b;">Erro ao verificar: ${e.message}</p>`;
+  }
+};
+
+window.corrigirUnidadesDuplicadas = async function(){
+  const turma = _turmaAtual;
+  if(!turma || !_diagDuplicados || _diagDuplicados.length===0){
+    showToast('Nada para corrigir — verifique de novo.','info');
+    return;
+  }
+  showLoading('Corrigindo unidades duplicadas...');
+  try {
+    let totalConflitos = 0;
+    for(const grupo of _diagDuplicados){
+      const ordenado = [...grupo].sort((x,y)=>_criadoEmMillis(x)-_criadoEmMillis(y));
+      const canonico = ordenado[0];
+      const outros   = ordenado.slice(1);
+
+      let payloadMerged = canonico.notasLancadas || null;
+      let qtdMax = canonico.qtdAtividades||0;
+      for(const outro of outros){
+        const r = _mesclarNotasLancadas(payloadMerged, outro.notasLancadas);
+        payloadMerged   = r.payload || payloadMerged;
+        totalConflitos += r.conflitos||0;
+        qtdMax = Math.max(qtdMax, outro.qtdAtividades||0);
+      }
+
+      if(payloadMerged){
+        await setDoc(
+          doc(db,'users',_uid,'turmas',turma.id,'unidades',canonico.id),
+          { notasLancadas: payloadMerged, qtdAtividades: qtdMax },
+          { merge: true }
+        );
+      }
+      for(const outro of outros){
+        await deleteDoc(doc(db,'users',_uid,'turmas',turma.id,'unidades',outro.id));
+      }
+    }
+
+    // Limpa caches locais pra forçar releitura das unidades corrigidas
+    delete _unidades[turma.id];
+    _notasCache   = {};
+    _atvConfig    = {};
+    _unidadeAtiva = null;
+    _diagDuplicados = null;
+
+    hideLoading();
+    showToast(
+      totalConflitos>0
+        ? `Corrigido! ⚠️ ${totalConflitos} valor(es) tinham nota diferente entre as cópias — fiquei com a mais recente. Revise as notas pra confirmar.`
+        : 'Unidades duplicadas corrigidas — nenhuma nota conflitante encontrada. ✅',
+      'success'
+    );
+
+    await openTurmaScreen(turma.id); // recarrega a tela já com as unidades corretas
+  } catch(e){
+    hideLoading();
+    showToast('Erro ao corrigir: '+e.message,'error');
+  }
+};
 
 // ══════════════════════════════════════════════════════════
 // INTERAÇÕES DOS CARDS
@@ -9240,6 +9479,10 @@ window.confirmarImportacaoBKP = function(){
   const turma   = _turmaAtual;
   const unidade = _unidadeAtiva;
   if(!turma || !unidade){ showToast('Abra uma turma e selecione uma unidade.','error'); return; }
+  if(unidade._isLocal || String(unidade.id).startsWith('local-')){
+    showToast('A unidade ainda está sincronizando com o servidor — espere alguns segundos e tente de novo.', 'error');
+    return;
+  }
 
   const setup       = _bkpDados.setup;
   // Suporta tanto raw.grades (formato atual) quanto raw.notas (formato legado)
