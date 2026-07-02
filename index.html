@@ -1934,6 +1934,45 @@ body.dark-mode .stat-card-btn:active{
   padding:10px 18px;background:#f7f9fc;
   border-bottom:1px solid #eee;font-size:.78rem;color:var(--pe-muted);font-weight:600;
 }
+
+/* ═══════════════════════════════════════════════
+   VISUAL EM COMPUTADOR (telas largas)
+   Mesmo padrão adotado no Correção Mestra: a partir
+   de telas maiores o app ganha mais respiro e melhor
+   aproveitamento do espaço horizontal, sem virar um
+   celular esticado. Nada aqui afeta telas menores.
+═══════════════════════════════════════════════ */
+@media (min-width: 900px) {
+  .navbar { padding: 0 32px; }
+  .unidades-tabs-bar { padding: 0 32px; }
+
+  .dashboard-body {
+    max-width: 1240px;
+    padding: 32px 32px 48px;
+  }
+  .profile-body {
+    max-width: 820px;
+    padding: 32px 32px 48px;
+  }
+  .turma-body {
+    max-width: 1080px;
+    padding: 28px 32px 48px;
+  }
+
+  .stats-row   { grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); }
+  .turmas-grid { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+
+  /* Fundo com leve identidade PE atrás da área rolável, dá mais
+     sensação de "aplicativo" também no computador. */
+  #dashboard-screen, #profile-screen, #turma-screen {
+    background: linear-gradient(160deg, #eef2f7 0%, #dde5ee 100%);
+  }
+  body.dark-mode #dashboard-screen,
+  body.dark-mode #profile-screen,
+  body.dark-mode #turma-screen {
+    background: linear-gradient(160deg, #0a0f16 0%, #0a1420 100%);
+  }
+}
 </style>
 </head>
 <body>
@@ -3405,7 +3444,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -4534,7 +4573,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════  ══════════════════════════════════   ══════
+// ════��══════════════════════════════════���══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -5012,7 +5051,7 @@ window.renderModalAlunos = function(){
 const MSG_PCD = 'O estudante é avaliado via relatório';
 function isPCD(a){ return !!(a && typeof a==='object' && a.pcd===true); }
 
-// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -5563,7 +5602,7 @@ window.saveEscolaTipoModal = async function(){
     if(!sistIgual){
       for(const turma of turmasAfetadas){
         await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
-        // Limpa cache para for  ar releitura na próxima abertura
+        // Limpa cache para for��ar releitura na próxima abertura
         delete _unidades[turma.id];
       }
     }
@@ -5693,7 +5732,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -5797,7 +5836,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -6716,7 +6755,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────   ────────────────────────
+// ── Toggle de seção colapsável ─────────────���────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -8556,7 +8595,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════  ═════════════════════════════════════════════════════════════════
+// ════��═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -8999,7 +9038,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────  ────────────────────────
+// ── Helpers de vistos ─────────────��────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
