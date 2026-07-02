@@ -1934,89 +1934,9 @@ body.dark-mode .stat-card-btn:active{
   padding:10px 18px;background:#f7f9fc;
   border-bottom:1px solid #eee;font-size:.78rem;color:var(--pe-muted);font-weight:600;
 }
-
-/* ═══════════════════════════════════════════════
-   NAVEGAÇÃO PERSISTENTE (visual do Correção Mestra)
-   Barra inferior no celular / barra lateral no PC.
-   Fica visível apenas quando dashboard-screen ou
-   profile-screen estão ativos (ver JS em showScreen()).
-═══════════════════════════════════════════════ */
-:root{ --nm-nav-h: 64px; --nm-nav-w: 220px; --nm-safe-bottom: env(safe-area-inset-bottom, 0px); }
-
-.bottom-nav{
-  display:none;
-  position:fixed; bottom:0; left:0; right:0; z-index:150;
-  height:calc(var(--nm-nav-h) + var(--nm-safe-bottom));
-  padding-bottom:var(--nm-safe-bottom);
-  background:var(--pe-card); border-top:1px solid var(--pe-border);
-  align-items:flex-start; justify-content:stretch;
-  box-shadow:0 -4px 20px rgba(0,0,0,.12);
-}
-body.nm-has-nav .bottom-nav{ display:flex; }
-.nav-item{
-  flex:1; height:var(--nm-nav-h);
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  gap:3px; cursor:pointer; position:relative;
-  -webkit-tap-highlight-color:transparent; transition:all .2s;
-}
-.nav-item svg{ width:22px; height:22px; color:var(--pe-muted); transition:all .2s; }
-.nav-item span{ font-size:10px; font-weight:600; color:var(--pe-muted); letter-spacing:.02em; }
-.nav-item.active svg{ color:var(--pe-cyan); }
-.nav-item.active span{ color:var(--pe-cyan); }
-.nav-item.active::after{
-  content:''; position:absolute; top:0; left:50%; transform:translateX(-50%);
-  width:28px; height:2px; background:var(--pe-cyan); border-radius:0 0 3px 3px;
-}
-body.dark-mode .bottom-nav{ background:var(--pe-card); border-top-color:var(--pe-border); }
-
-@media (min-width:900px){
-  .bottom-nav{
-    top:0; bottom:0; right:auto; left:0; width:var(--nm-nav-w); height:100vh;
-    flex-direction:column; align-items:stretch; justify-content:flex-start;
-    padding:72px 10px 14px; gap:2px;
-    background:var(--pe-navy); border-top:none; box-shadow:none;
-  }
-  .nav-item{
-    flex:none; height:44px; flex-direction:row; justify-content:flex-start;
-    gap:12px; padding:0 14px; border-radius:var(--radius-md);
-  }
-  .nav-item svg{ width:19px; height:19px; color:rgba(255,255,255,.55); }
-  .nav-item span{ font-size:13px; color:rgba(255,255,255,.55); font-weight:600; }
-  .nav-item:hover{ background:rgba(255,255,255,.08); }
-  .nav-item.active{ background:rgba(0,168,232,.16); }
-  .nav-item.active svg, .nav-item.active span{ color:var(--pe-cyan); }
-  .nav-item.active::after{ display:none; }
-
-  body.nm-has-nav #dashboard-screen.active .navbar,
-  body.nm-has-nav #profile-screen.active .navbar{ margin-left:var(--nm-nav-w); }
-  body.nm-has-nav #dashboard-screen.active .dashboard-body{ margin-left:var(--nm-nav-w); }
-  body.nm-has-nav #profile-screen.active .profile-body{ margin-left:var(--nm-nav-w); }
-}
-@media (max-width:899px){
-  body.nm-has-nav #dashboard-screen.active .dashboard-body,
-  body.nm-has-nav #profile-screen.active .profile-body{
-    padding-bottom:calc(var(--nm-nav-h) + var(--nm-safe-bottom) + 16px);
-  }
-}
 </style>
 </head>
 <body>
-
-<!-- ═══════════════════════════════════════════
-     NAVEGAÇÃO PERSISTENTE (Início / Perfil)
-     Visível só quando body tem a classe "nm-has-nav"
-     (controlado dentro da função showScreen()).
-     ═══════════════════════════════════════════ -->
-<div class="bottom-nav" id="app-bottom-nav">
-  <div class="nav-item" id="nav-inicio" onclick="showScreen('dashboard-screen')">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><path d="M9 22V12h6v10"/></svg>
-    <span>Início</span>
-  </div>
-  <div class="nav-item" id="nav-perfil" onclick="showProfile()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-    <span>Perfil</span>
-  </div>
-</div>
 
 <!-- ═══════════════════════ APK BARS ═══════════════════════ -->
 <div id="apk-bar-top" style="
@@ -3399,17 +3319,6 @@ function showScreen(name){
   if(nem) nem.style.display = 'none';
   const ntm = document.getElementById('nova-turma-modal');
   if(ntm) ntm.style.display = 'none';
-
-  // Navegação persistente (layout do Correção Mestra): só aparece
-  // em dashboard-screen e profile-screen; some nas demais telas.
-  const telasComNav = ['dashboard-screen','profile-screen'];
-  document.body.classList.toggle('nm-has-nav', telasComNav.includes(name));
-  const navInicio = document.getElementById('nav-inicio');
-  const navPerfil = document.getElementById('nav-perfil');
-  if(navInicio && navPerfil){
-    navInicio.classList.toggle('active', name === 'dashboard-screen');
-    navPerfil.classList.toggle('active', name === 'profile-screen');
-  }
 }
 
 window.showLogin = function(){
@@ -3496,7 +3405,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -4625,7 +4534,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════��══════════════════════════════════���══════
+// ════  ══════════════════════════════════   ══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -5103,7 +5012,7 @@ window.renderModalAlunos = function(){
 const MSG_PCD = 'O estudante é avaliado via relatório';
 function isPCD(a){ return !!(a && typeof a==='object' && a.pcd===true); }
 
-// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -5654,7 +5563,7 @@ window.saveEscolaTipoModal = async function(){
     if(!sistIgual){
       for(const turma of turmasAfetadas){
         await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
-        // Limpa cache para for��ar releitura na próxima abertura
+        // Limpa cache para for  ar releitura na próxima abertura
         delete _unidades[turma.id];
       }
     }
@@ -5784,7 +5693,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -5888,7 +5797,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -6807,7 +6716,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────���────────────────────────
+// ── Toggle de seção colapsável ─────────────   ────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -8647,7 +8556,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════��═════════════════════════════════════════════════════════════════
+// ════  ═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -9090,7 +8999,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────��────────────────────────
+// ── Helpers de vistos ─────────────  ────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
