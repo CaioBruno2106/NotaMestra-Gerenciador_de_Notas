@@ -6,12 +6,8 @@
 <title>Nota Mestra – O seu gerenciador de notas</title>
 <!--
   ============================================================
-  Nota Mestra — build interno: v31
-  (Versão registrada apenas no código; não exibida ao usuário)
-  Etapa 7 incluída: Exportação e boletim (PDF via diálogo de impressão).
-  Etapa 8 incluída: Trabalho Acadêmico (subtipos, critérios 0–5, cálculo automático).
-  Etapa 9 incluída: Grupos por seleção de integrantes — passo 3 refeito com criação
-                    individual de grupos (seletores por aluno, salvar/continuar, editar).
+  Nota Mestra — build interno: v66
+  Correção do bug de vistos: Nomes e datas de cada visto agora salvam
   ============================================================
 -->
 <style>
@@ -3405,7 +3401,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -4534,7 +4530,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════  ══════════════════════════════════   ══════
+// ════��══════════════════════════════════���══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -5012,7 +5008,7 @@ window.renderModalAlunos = function(){
 const MSG_PCD = 'O estudante é avaliado via relatório';
 function isPCD(a){ return !!(a && typeof a==='object' && a.pcd===true); }
 
-// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -5563,7 +5559,7 @@ window.saveEscolaTipoModal = async function(){
     if(!sistIgual){
       for(const turma of turmasAfetadas){
         await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
-        // Limpa cache para for  ar releitura na próxima abertura
+        // Limpa cache para for��ar releitura na próxima abertura
         delete _unidades[turma.id];
       }
     }
@@ -5693,7 +5689,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -5797,7 +5793,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -6716,7 +6712,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────   ────────────────────────
+// ── Toggle de seção colapsável ─────────────���────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -8556,7 +8552,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════  ═════════════════════════════════════════════════════════════════
+// ════��═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -8999,7 +8995,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────  ────────────────────────
+// ── Helpers de vistos ─────────────��────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
@@ -9075,6 +9071,13 @@ function renderVistosConfig(uid, idx){
     </div>
   </div>`;
 }
+
+window.onVistosChange = function(uid, idx, vi, campo, val){
+  const atv = _atvConfig[uid]?.atividades[idx];
+  if(!atv || !atv.vistos || !atv.vistos[vi]) return;
+  atv.vistos[vi][campo] = val;
+  agendarAutosave();
+};
 
 window.incrementarVistos = function(uid, idx){
   const atv = _atvConfig[uid]?.atividades[idx];
