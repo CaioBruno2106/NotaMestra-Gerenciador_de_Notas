@@ -4047,20 +4047,45 @@ window.copiarLinkEscolaGestao = function(){
 };
 
 // ── ABA RENDIMENTO (somente leitura) ─────────────────────────────────────
-// Faz uma média simples e genérica a partir das notas já lançadas em cada
-// unidade — não recalcula as regras exatas de aprovação/recuperação
-// (essas continuam só na tela de turma). Serve como indicador rápido para
-// a gestão; para o número oficial, use "Ver" e abra a turma.
-function _mediaGenericaDeNotasLancadas(notasLancadas){
-  const valores = [];
-  const caminhar = (obj) => {
-    if(obj==null) return;
-    if(typeof obj === 'number'){ if(obj>=0 && obj<=10) valores.push(obj); return; }
-    if(typeof obj === 'object'){ Object.values(obj).forEach(caminhar); }
+// Usa exatamente a mesma lógica oficial da aba "Consolidação" do professor
+// (getRegrasRede + calcularUnidade + calcularSituacaoFinal), respeitando se
+// a escola é Municipal (bimestral) ou Estadual (trimestral). Não é uma
+// aproximação — é o mesmo motor de cálculo, só que lido em lote aqui.
+async function calcularResumoOficialTurma(turma){
+  const regras = getRegrasRede(turma.escolaTipo||'municipal');
+  const unidades = await carregarTodasUnidadesNotas(turma);
+  await carregarConsolidacao(turma.id);
+  const recFinalMap = _recFinalCache[turma.id] || {};
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+
+  let nAprov=0, nRec=0, nRep=0, nPend=0, nPCD=0;
+  let somaMedias=0, qtdMedias=0;
+
+  alunos.forEach((al,ai)=>{
+    if(isPCD(al)){ nPCD++; return; }
+    const notasUnid = unidades.map(u=>calcularNotaUnidadeAluno(u.id, ai, regras));
+    const notasValidas = notasUnid.filter(n=>n!=null);
+    if(!notasUnid.length || notasValidas.length!==notasUnid.length){
+      if(notasValidas.length){
+        const mc = notasValidas.reduce((a,b)=>a+b,0)/notasValidas.length;
+        somaMedias += (regras.arredondaMedia===false ? mc : arredondarPE(mc));
+        qtdMedias++;
+      }
+      nPend++;
+      return;
+    }
+    const res = calcularSituacaoFinal(notasValidas, recFinalMap[ai], regras);
+    somaMedias += res.mediaAnual; qtdMedias++;
+    if(res.situacao==='aprovado') nAprov++;
+    else if(res.situacao==='recuperacao') nRec++;
+    else if(res.situacao==='reprovado') nRep++;
+  });
+
+  return {
+    regras, nAprov, nRec, nRep, nPend, nPCD,
+    totalAlunos: alunos.length,
+    mediaTurma: qtdMedias ? (somaMedias/qtdMedias) : null
   };
-  caminhar(notasLancadas);
-  if(!valores.length) return null;
-  return valores.reduce((a,b)=>a+b,0)/valores.length;
 }
 
 async function renderGestaoRendimento(){
@@ -4071,37 +4096,45 @@ async function renderGestaoRendimento(){
     list.innerHTML = '<div class="ob-empty">Nenhuma turma ativa nesta escola.</div>';
     return;
   }
-  list.innerHTML = '<div class="ob-empty">Calculando médias...</div>';
+  list.innerHTML = '<div class="ob-empty">Calculando rendimento (respeitando as regras de cada rede)...</div>';
 
   const linhas = await Promise.all(turmas.map(async t=>{
-    let unidades = [];
-    try { unidades = await loadUnidades(t.id); } catch(e){ unidades = []; }
-    let somaMedias = 0, qtdMedias = 0;
-    for(const u of unidades){
-      if(u.id.startsWith('local-')) continue;
-      try {
-        const snap = await getDoc(doc(db,'escolas',_gestaoEscolaAtual.id,'turmas',t.id,'unidades',u.id));
-        const media = snap.exists() ? _mediaGenericaDeNotasLancadas(snap.data()?.notasLancadas) : null;
-        if(media!=null){ somaMedias += media; qtdMedias++; }
-      } catch(e){ /* ignora unidade individual com erro */ }
+    try {
+      const resumo = await calcularResumoOficialTurma(t);
+      return { t, resumo };
+    } catch(e){
+      console.warn('Erro ao calcular rendimento de', t.nome, e);
+      return { t, resumo:null };
     }
-    const mediaTurma = qtdMedias ? (somaMedias/qtdMedias) : null;
-    return { turma:t, media:mediaTurma };
   }));
 
-  list.innerHTML = linhas.map(({turma:t, media})=>{
+  list.innerHTML = linhas.map(({t, resumo})=>{
     const alunosAtivos = (t.alunos||[]).filter(a=>a.ativo!==false).length;
+    const redeLabel = t.escolaTipo==='estadual' ? 'Estadual · Trimestral' : t.escolaTipo==='particular' ? 'Particular' : 'Municipal · Bimestral';
+    if(!resumo || (resumo.nAprov+resumo.nRec+resumo.nRep)===0){
+      return `
+      <div class="gestao-list-item">
+        <div class="gestao-list-item-info">
+          <div class="gestao-list-item-name">${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}</div>
+          <div class="gestao-list-item-sub">${redeLabel} · ${t.disciplina||''} · ${alunosAtivos} aluno(s)</div>
+        </div>
+        <div class="gestao-list-item-actions">
+          <span class="gestao-badge gestao-badge-professor">Sem notas consolidadas ainda</span>
+          <button class="pe-act-btn pe-act-edit" onclick="window.openTurmaScreen('${t.id}')">Ver notas</button>
+        </div>
+      </div>`;
+    }
     return `
     <div class="gestao-list-item">
       <div class="gestao-list-item-info">
         <div class="gestao-list-item-name">${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}</div>
-        <div class="gestao-list-item-sub">${t.disciplina||''} · ${alunosAtivos} aluno(s)</div>
+        <div class="gestao-list-item-sub">${redeLabel} · ${t.disciplina||''} · ${alunosAtivos} aluno(s)${resumo.nPCD?' · '+resumo.nPCD+' PCD':''}${resumo.nPend?' · '+resumo.nPend+' pendente(s)':''}</div>
       </div>
       <div class="gestao-list-item-actions">
-        ${media!=null
-          ? `<span class="gestao-badge" style="background:${media>=6?'#e6f4ea':'#fdecea'};color:${media>=6?'#1e7e34':'#c0392b'};">Média ${media.toFixed(1)}</span>`
-          : `<span class="gestao-badge gestao-badge-professor">Sem notas ainda</span>`
-        }
+        ${resumo.mediaTurma!=null ? `<span class="gestao-badge" style="background:#e8f0fe;color:var(--pe-blue);">Média ${resumo.mediaTurma.toFixed(1)}</span>` : ''}
+        <span class="gestao-badge" style="background:#e6f4ea;color:#1e7e34;">Aprovados ${resumo.nAprov}</span>
+        <span class="gestao-badge" style="background:#fff3e0;color:#a15c00;">Rec. Final ${resumo.nRec}</span>
+        <span class="gestao-badge" style="background:#fdecea;color:#c0392b;">Reprovados ${resumo.nRep}</span>
         <button class="pe-act-btn pe-act-edit" onclick="window.openTurmaScreen('${t.id}')">Ver notas</button>
       </div>
     </div>`;
@@ -4115,48 +4148,50 @@ window.gestaoExportarPDF = async function(){
   const turmas = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.ativo!==false);
 
   const linhas = await Promise.all(turmas.map(async t=>{
-    let unidades = [];
-    try { unidades = await loadUnidades(t.id); } catch(e){ unidades = []; }
-    let somaMedias = 0, qtdMedias = 0;
-    for(const u of unidades){
-      if(u.id.startsWith('local-')) continue;
-      try {
-        const snap = await getDoc(doc(db,'escolas',_gestaoEscolaAtual.id,'turmas',t.id,'unidades',u.id));
-        const media = snap.exists() ? _mediaGenericaDeNotasLancadas(snap.data()?.notasLancadas) : null;
-        if(media!=null){ somaMedias += media; qtdMedias++; }
-      } catch(e){}
-    }
-    const mediaTurma = qtdMedias ? (somaMedias/qtdMedias) : null;
+    let resumo = null;
+    try { resumo = await calcularResumoOficialTurma(t); } catch(e){ console.warn(e); }
     const alunosAtivos = (t.alunos||[]).filter(a=>a.ativo!==false).length;
-    return { t, mediaTurma, alunosAtivos };
+    return { t, resumo, alunosAtivos };
   }));
 
-  const linhasHtml = linhas.map(({t, mediaTurma, alunosAtivos})=>`
+  const linhasHtml = linhas.map(({t, resumo, alunosAtivos})=>{
+    const redeLabel = t.escolaTipo==='estadual' ? 'Estadual' : t.escolaTipo==='particular' ? 'Particular' : 'Municipal';
+    return `
     <tr>
       <td>${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}</td>
       <td>${t.disciplina||''}</td>
+      <td style="text-align:center;">${redeLabel}</td>
       <td style="text-align:center;">${alunosAtivos}</td>
-      <td style="text-align:center;">${mediaTurma!=null?mediaTurma.toFixed(1):'—'}</td>
-    </tr>`).join('');
+      <td style="text-align:center;">${resumo?.mediaTurma!=null?resumo.mediaTurma.toFixed(1):'—'}</td>
+      <td style="text-align:center;">${resumo?.nAprov ?? '—'}</td>
+      <td style="text-align:center;">${resumo?.nRec ?? '—'}</td>
+      <td style="text-align:center;">${resumo?.nRep ?? '—'}</td>
+    </tr>`;
+  }).join('');
 
   const html = `
     <div style="font-family:Arial,Helvetica,sans-serif;">
       <h2 style="margin-bottom:2px;">${_gestaoEscolaAtual.nome}</h2>
       <div style="color:#666;font-size:.85rem;margin-bottom:16px;">Relatório de rendimento por turma — gerado em ${new Date().toLocaleDateString('pt-BR')}</div>
-      <table style="width:100%;border-collapse:collapse;font-size:.85rem;">
+      <table style="width:100%;border-collapse:collapse;font-size:.8rem;">
         <thead>
           <tr style="background:#003e82;color:#fff;">
             <th style="padding:6px;text-align:left;">Turma</th>
             <th style="padding:6px;text-align:left;">Disciplina</th>
+            <th style="padding:6px;">Rede</th>
             <th style="padding:6px;">Alunos</th>
-            <th style="padding:6px;">Média geral*</th>
+            <th style="padding:6px;">Média</th>
+            <th style="padding:6px;">Aprovados</th>
+            <th style="padding:6px;">Rec. Final</th>
+            <th style="padding:6px;">Reprovados</th>
           </tr>
         </thead>
         <tbody>${linhasHtml}</tbody>
       </table>
       <div style="font-size:.7rem;color:#888;margin-top:10px;">
-        * Média simples calculada a partir das notas já lançadas por unidade — não substitui os critérios oficiais
-        de aprovação/recuperação da turma, disponíveis na tela de cada turma.
+        Cálculo oficial por rede de ensino: Municipal (bimestral, aprovação ≥ 6,0, recuperação final entre 2,5
+        e 6,0) e Estadual (trimestral, aprovação ≥ 6,0, sem arredondamento da média anual, recuperação final
+        substitui a média se maior). Alunos PCD e turmas sem notas consolidadas não entram na contagem.
       </div>
       <div style="text-align:center;margin-top:20px;" class="no-print">
         <button onclick="window.print()" style="background:#0056b3;color:#fff;border:none;padding:10px 16px;border-radius:6px;font-weight:700;cursor:pointer;font-size:.9rem;">Imprimir / Salvar PDF</button>
