@@ -7,8 +7,12 @@
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Crect width='24' height='24' rx='6' fill='%23002b5c'/%3E%3Cpath d='M6 12.5l4 4 8-9' fill='none' stroke='%2300a8e8' stroke-width='2.6' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
 <!--
   ============================================================
-  Nota Mestra — build interno: v67
-  Adição do favicon ao html
+  Nota Mestra — build interno: v31
+  (Versão registrada apenas no código; não exibida ao usuário)
+  Etapa 7 incluída: Exportação e boletim (PDF via diálogo de impressão).
+  Etapa 8 incluída: Trabalho Acadêmico (subtipos, critérios 0–5, cálculo automático).
+  Etapa 9 incluída: Grupos por seleção de integrantes — passo 3 refeito com criação
+                    individual de grupos (seletores por aluno, salvar/continuar, editar).
   ============================================================
 -->
 <style>
@@ -2292,6 +2296,26 @@ body.dark-mode .stat-card-btn:active{
         </div>
         <div class="ob-card-body">
 
+          <!-- Item 3: entrar direto numa escola com gestão/coordenação -->
+          <div class="add-escola-box" style="border-color:var(--pe-blue,#0056b3);background:#eef5ff;">
+            <label>Já tem o código da sua escola?</label>
+            <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:8px;">
+              Se a gestão ou coordenação da sua escola já usa o Nota Mestra, digite o código
+              recebido para entrar direto — suas turmas aparecem automaticamente, sem precisar
+              cadastrar escola nem turma.
+            </div>
+            <div class="add-escola-row">
+              <input type="text" id="ob-codigo-escola" placeholder="Código da escola (ex.: ABC123)"
+                style="flex:2;text-transform:uppercase;" maxlength="12">
+              <button type="button" class="ob-btn ob-btn-primary" id="btn-entrar-codigo-ob"
+                onclick="entrarComCodigoOnboarding()">Entrar com código</button>
+            </div>
+          </div>
+
+          <div style="text-align:center;font-size:.75rem;color:var(--pe-muted);margin:14px 0;">
+            — ou, se não tiver código, cadastre sua própria escola abaixo (sem vínculo) —
+          </div>
+
           <div id="escola-list-wrap">
             <div class="ob-empty" id="escola-empty">Nenhuma escola adicionada ainda.</div>
             <div class="escola-list" id="escola-list"></div>
@@ -2661,6 +2685,27 @@ body.dark-mode .stat-card-btn:active{
           <button class="ob-btn ob-btn-primary" onclick="saveEditAcesso()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar</button>
         </div>
         <div class="ob-msg" id="acesso-msg" style="margin-top:8px;"></div>
+      </div>
+    </div>
+
+    <!-- Vincular escola por código/link (item 4) -->
+    <div class="profile-section">
+      <div class="profile-section-header">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg> Vincular escola</h3>
+      </div>
+      <div class="profile-section-body">
+        <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:10px;">
+          Recebeu um link ou código de uma escola que usa gestão/coordenação no Nota Mestra?
+          Cole aqui para vincular suas turmas automaticamente. Suas escolas atuais (sem vínculo)
+          continuam do jeito que estão.
+        </div>
+        <div class="add-escola-row">
+          <input type="text" id="pf-link-escola" placeholder="Cole o link ou digite o código da escola"
+            style="flex:2;">
+          <button type="button" class="ob-btn ob-btn-primary" id="btn-vincular-escola-perfil"
+            onclick="vincularEscolaPerfil()">Vincular</button>
+        </div>
+        <div class="ob-msg" id="vincular-escola-msg" style="margin-top:8px;"></div>
       </div>
     </div>
 
@@ -3230,7 +3275,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import {
   getFirestore,
-  doc, getDoc, setDoc, collection,
+  doc, getDoc, setDoc, collection, collectionGroup,
   getDocs, addDoc, deleteDoc,
   writeBatch, runTransaction,
   serverTimestamp, query, where, orderBy
@@ -3255,6 +3300,27 @@ let _escolas = [];    // array de {id, nome, tipo}
 let _turmas  = [];    // array de {id, nome, escolaId, nivel, turno, serie, turma, atividades, alunos:[]}
 let _unidades = {};  // cache: { [turmaId]: [{id, label, ordem, sistema, qtdAtividades}] }
 let _importsPendentesGlobal = [];   // Integração Leitor de Gabaritos — envios pendentes de TODAS as turmas (pro sino)
+let _sinoPollingIntervalId = null;  // Melhoria — polling automático do sino, sem precisar reabrir o app
+
+// ── Origem das turmas: pessoal (sem vínculo) x escola gerida (com código) ──
+// Toda turma criada do jeito de sempre (sem vínculo) mora em
+// users/{uid}/turmas/{turmaId} — nada muda pra quem já usa o app.
+// Turmas de uma escola com gestão/coordenação moram em
+// escolas/{escolaId}/turmas/{turmaId}, compartilhadas entre a equipe.
+// _turmaOrigem[turmaId] = { escolaId } quando a turma é de uma escola gerida;
+// ausente (undefined) quando é pessoal.
+let _turmaOrigem = {};
+// _escolasGeridas = escolas com código das quais este usuário é membro:
+// [{ id, nome, role: 'gestor'|'coordenador'|'professor', ... }]
+let _escolasGeridas = [];
+
+function turmaPath(turmaId){
+  const origem = _turmaOrigem[turmaId];
+  if(origem && origem.escolaId){
+    return ['escolas', origem.escolaId, 'turmas', turmaId];
+  }
+  return ['users', _uid, 'turmas', turmaId];
+}
 let _importsPendentesGlobalEm = null;
 
 // Estado temporário do wizard
@@ -3423,6 +3489,14 @@ async function loadUserData(){
       console.warn('Erro ao carregar turmas:', e);
       _turmas = [];
     }
+    // Escolas COM código (gestão/coordenação) das quais este professor é
+    // membro — mescla as turmas dessas escolas às pessoais, sem afetar nada
+    // do que já existia. Erro aqui nunca deve travar o carregamento normal.
+    try {
+      await carregarEscolasGeridas();
+    } catch(e) {
+      console.warn('Erro ao carregar escolas geridas:', e);
+    }
   } else {
     _escolas = [];
     _turmas  = [];
@@ -3438,6 +3512,101 @@ async function loadUserData(){
   if(_perfil?.telefone){
     syncTelefoneIndex(_perfil.telefone).catch(e=>console.warn('syncTelefoneIndex (permissão?):', e.code, e.message));
   }
+}
+
+// ── Escolas geridas (com código) — item 3 ─────────────────────────────
+// Descobre em quais escolas compartilhadas (escolas/{id}/professores/{uid})
+// este usuário é membro, e mescla as turmas dessas escolas com as pessoais.
+// Não mexe em nada da estrutura pessoal (users/{uid}/...).
+async function carregarEscolasGeridas(){
+  _escolasGeridas = [];
+  _turmaOrigem = {};
+  const q = query(collectionGroup(db,'professores'), where('uid','==',_uid));
+  const membrosSnap = await getDocs(q);
+  await Promise.all(membrosSnap.docs.map(async membroDoc => {
+    const escolaId = membroDoc.ref.parent.parent?.id;
+    if(!escolaId) return;
+    const membro = membroDoc.data();
+    let escolaSnap;
+    try { escolaSnap = await getDoc(doc(db,'escolas',escolaId)); }
+    catch(e){ console.warn('Erro ao ler escola gerida', escolaId, e); return; }
+    if(!escolaSnap.exists() || escolaSnap.data().ativo===false) return;
+    const escolaData = escolaSnap.data();
+
+    _escolasGeridas.push({ id:escolaId, role:membro.role||'professor', ...escolaData });
+
+    // Reflete a escola gerida na lista de escolas exibida ao professor
+    // (mesmo formato usado pelas escolas pessoais, pra reaproveitar a UI).
+    if(!_escolas.find(e=>e.id===escolaId)){
+      _escolas.push({
+        id: escolaId,
+        nome: escolaData.nome,
+        tipo: escolaData.tipo || 'municipal',
+        sistema: escolaData.sistema || 'bimestral',
+        gerida: true,
+        roleDoUsuario: membro.role || 'professor'
+      });
+    }
+
+    try {
+      const tSnap = await getDocs(collection(db,'escolas',escolaId,'turmas'));
+      tSnap.docs.forEach(td=>{
+        const turma = { id: td.id, ...td.data(), escolaId };
+        _turmaOrigem[td.id] = { escolaId };
+        const idx = _turmas.findIndex(t=>t.id===turma.id);
+        if(idx>=0) _turmas[idx] = turma; else _turmas.push(turma);
+      });
+    } catch(e){
+      console.warn('Erro ao carregar turmas da escola gerida', escolaData.nome, e);
+    }
+  }));
+}
+
+// ── Entrar numa escola gerida por código (item 3 e 4) ─────────────────
+// Usada tanto no cadastro (onboarding) quanto na tela de perfil, pra
+// vincular o professor a uma escola com gestão/coordenação.
+// Retorna { ok:true, escola } ou { ok:false, msg }.
+async function entrarComCodigoEscola(codigoBruto){
+  const codigo = String(codigoBruto||'').trim().toUpperCase();
+  if(!codigo){
+    return { ok:false, msg:'Informe o código da escola.' };
+  }
+  let snap;
+  try {
+    snap = await getDocs(query(collection(db,'escolas'), where('codigo','==',codigo)));
+  } catch(e){
+    console.error('Erro ao buscar escola por código:', e);
+    return { ok:false, msg:'Não foi possível verificar o código agora. Tente novamente.' };
+  }
+  const escolaDoc = snap.docs.find(d => d.data().ativo !== false);
+  if(!escolaDoc){
+    return { ok:false, msg:'Código inválido. Confira com a gestão da escola.' };
+  }
+  const escolaId = escolaDoc.id;
+  const escolaData = escolaDoc.data();
+
+  // Já é membro? Evita erro de permissão tentando recriar o vínculo.
+  try {
+    const jaMembro = await getDoc(doc(db,'escolas',escolaId,'professores',_uid));
+    if(jaMembro.exists()){
+      return { ok:true, escola:{ id:escolaId, ...escolaData }, jaEraMembro:true };
+    }
+  } catch(e){ /* segue tentando criar normalmente */ }
+
+  try {
+    await setDoc(doc(db,'escolas',escolaId,'professores',_uid), {
+      uid: _uid,
+      nome: _perfil?.nome || '',
+      email: _email || '',
+      role: 'professor',
+      entrouEm: serverTimestamp()
+    });
+  } catch(e){
+    console.error('Erro ao entrar na escola:', e);
+    return { ok:false, msg:'Não foi possível entrar na escola. Tente novamente.' };
+  }
+
+  return { ok:true, escola:{ id:escolaId, ...escolaData } };
 }
 
 // ── SALVAR PERFIL COMPLETO ────────────────────────────────────────────
@@ -3485,7 +3654,7 @@ function getUnidadesConfig(sistema){
 async function inicializarUnidades(turmaId, sistema, qtdAtividades){
   const uConfig = getUnidadesConfig(sistema);
   const batch   = writeBatch(db);
-  const basePath = collection(db,'users',_uid,'turmas',turmaId,'unidades');
+  const basePath = collection(db,...turmaPath(turmaId),'unidades');
 
   for(const u of uConfig){
     const uRef = doc(basePath); // auto-ID
@@ -3527,7 +3696,7 @@ async function garantirUnidades(turma){
 
   const promessa = (async () => {
     const snap = await getDocs(
-      collection(db,'users',_uid,'turmas',turma.id,'unidades')
+      collection(db,...turmaPath(turma.id),'unidades')
     );
     if(snap.size > 0){
       _unidades[turma.id] = snap.docs
@@ -3537,7 +3706,7 @@ async function garantirUnidades(turma){
     }
 
     // Ninguém tem unidade ainda — disputa a trava atômica pra criar.
-    const turmaRef = doc(db,'users',_uid,'turmas',turma.id);
+    const turmaRef = doc(db,...turmaPath(turma.id));
     let souEuQueVouCriar = false;
     try {
       await runTransaction(db, async (tx) => {
@@ -3561,7 +3730,7 @@ async function garantirUnidades(turma){
     }
 
     const snap2 = await getDocs(
-      collection(db,'users',_uid,'turmas',turma.id,'unidades')
+      collection(db,...turmaPath(turma.id),'unidades')
     );
     _unidades[turma.id] = snap2.docs
       .map(d=>({id:d.id,...d.data()}))
@@ -3584,7 +3753,7 @@ async function garantirUnidades(turma){
 async function loadUnidades(turmaId){
   if(_unidades[turmaId]) return _unidades[turmaId]; // cache hit
   const snap = await getDocs(
-    collection(db,'users',_uid,'turmas',turmaId,'unidades')
+    collection(db,...turmaPath(turmaId),'unidades')
   );
   _unidades[turmaId] = snap.docs
     .map(d=>({id:d.id,...d.data()}))
@@ -3597,7 +3766,7 @@ async function loadUnidades(turmaId){
  */
 async function setQtdAtividadesUnidade(turmaId, unidadeId, qtd){
   await setDoc(
-    doc(db,'users',_uid,'turmas',turmaId,'unidades',unidadeId),
+    doc(db,...turmaPath(turmaId),'unidades',unidadeId),
     { qtdAtividades: qtd },
     { merge: true }
   );
@@ -4364,7 +4533,7 @@ async function syncEscolaTiposNasTurmas(silent=false){
     const turmasEscola = _turmas.filter(t => t.escolaId === escola.id);
     for(const turma of turmasEscola){
       if(turma.escolaTipo === escola.tipo) continue;
-      await setDoc(doc(db,'users',_uid,'turmas',turma.id), {
+      await setDoc(doc(db,...turmaPath(turma.id)), {
         escolaTipo: escola.tipo
       }, { merge: true });
       turma.escolaTipo = escola.tipo;
@@ -4500,6 +4669,60 @@ function renderReview(){
   document.getElementById('review-content').innerHTML = html;
 }
 
+// ── Onboarding: finalizar entrando direto com código de escola ────────
+// Usada quando o professor escolhe "Tenho código de escola" no passo 2:
+// não cria escola nem turma manualmente — elas já existem na escola gerida.
+window.entrarComCodigoOnboarding = async function(){
+  if(!validateStep(1)) { goStep(1); return; }
+
+  const codigo = document.getElementById('ob-codigo-escola').value.trim();
+  if(!codigo){
+    showMsg('step2-msg','Informe o código da escola.','error');
+    return;
+  }
+
+  const btn = document.getElementById('btn-entrar-codigo-ob');
+  if(btn) btn.disabled = true;
+  showLoading('Entrando na escola...');
+
+  try {
+    // Salva o perfil pessoal primeiro (nome/telefone/etc precisam existir
+    // para o vínculo com a escola registrar quem é o professor).
+    const perfil = {
+      nome:       document.getElementById('ob-nome').value.trim(),
+      cargo:      document.getElementById('ob-cargo').value,
+      disciplina: document.getElementById('ob-disciplina').value.trim(),
+      cidade:     document.getElementById('ob-cidade').value.trim(),
+      telefone:   document.getElementById('ob-telefone').value.trim(),
+      email:      _email
+    };
+    await setDoc(doc(db,'users',_uid,'perfil','dados'),{
+      ...perfil,
+      setupCompleto: true,
+      updatedAt: serverTimestamp()
+    });
+    _perfil = { ...perfil, setupCompleto:true };
+
+    const resultado = await entrarComCodigoEscola(codigo);
+    if(!resultado.ok){
+      hideLoading();
+      if(btn) btn.disabled = false;
+      showMsg('step2-msg', resultado.msg, 'error');
+      return;
+    }
+
+    await loadUserData();
+    hideLoading();
+    showDashboard();
+    showToast(`Você entrou em ${resultado.escola?.nome || 'sua escola'}! `,'success');
+  } catch(e){
+    console.error('Erro ao entrar na escola pelo onboarding:', e);
+    hideLoading();
+    if(btn) btn.disabled = false;
+    showMsg('step2-msg','Não foi possível concluir agora. Tente novamente.','error');
+  }
+};
+
 window.finishSetup = async function(){
   const btn = document.getElementById('btn-finish');
   btn.disabled=true;
@@ -4559,11 +4782,47 @@ function showDashboard(){
   showScreen('dashboard-screen');
   renderDashboard();
   carregarImportsPendentesGlobal(); // Integração Leitor de Gabaritos — Etapa 5 (sino)
+  iniciarPollingSinoNM(); // Melhoria — mantém o sino atualizado sozinho
   // Se o usuário não tem telefone cadastrado E não pulou nesta sessão, exibe o modal
   if(_perfil && !_perfil.telefone && !window._phoneModalSkippedThisSession){
     setTimeout(()=>{ openPhoneModal(); }, 600);
   }
 }
+
+// ── Polling automático do sino ──────────────────────────────────────────
+// Evita que o usuário precise reiniciar o site ou fechar/reabrir o app no
+// Android para ver que chegou uma nova importação do Leitor de Gabaritos.
+// Estratégia combinada:
+//  1) Um intervalo em segundo plano (a cada 90s) enquanto o app estiver aberto;
+//  2) Uma checagem imediata sempre que o app/aba volta ao primeiro plano
+//     (troca de app no Android, ou o usuário volta pra aba no navegador).
+const SINO_POLL_MS = 90 * 1000;
+
+function iniciarPollingSinoNM(){
+  if(_sinoPollingIntervalId) return; // já está rodando, evita duplicar
+  _sinoPollingIntervalId = setInterval(()=>{
+    if(_uid) carregarImportsPendentesGlobal(true);
+  }, SINO_POLL_MS);
+}
+
+function pararPollingSinoNM(){
+  if(_sinoPollingIntervalId){
+    clearInterval(_sinoPollingIntervalId);
+    _sinoPollingIntervalId = null;
+  }
+}
+
+// Checagem imediata ao voltar o app/aba pro primeiro plano (cobre o caso do
+// Android: usuário troca de app e volta, sem fechar/reabrir o Nota Mestra).
+document.addEventListener('visibilitychange', ()=>{
+  if(document.visibilityState === 'visible' && _uid){
+    carregarImportsPendentesGlobal(true);
+  }
+});
+// Fallback extra para WebViews onde 'visibilitychange' às vezes não dispara.
+window.addEventListener('focus', ()=>{
+  if(_uid) carregarImportsPendentesGlobal(true);
+});
 
 function getAnos(){
   const anos = [...new Set(_turmas.map(t=>t.anoLetivo||new Date().getFullYear()))].sort((a,b)=>b-a);
@@ -4703,7 +4962,7 @@ window.renomearEscola = async function(id){
     // Propagar para turmas vinculadas
     const turmasAfet = _turmas.filter(t=>t.escolaId===id);
     await Promise.all(turmasAfet.map(t=>
-      setDoc(doc(db,'users',_uid,'turmas',t.id), { escolaNome: nome }, { merge:true })
+      setDoc(doc(db,...turmaPath(t.id)), { escolaNome: nome }, { merge:true })
     ));
     turmasAfet.forEach(t=>{ t.escolaNome = nome; });
     renderDashboard();
@@ -4721,7 +4980,7 @@ window.desativarTurma = async function(id){
   if(!confirm('Desativar esta turma? Ela ficará visível no dashboard, mas não aparecerá nas notas e atividades.')) return;
   showLoading('Desativando turma...');
   try {
-    await setDoc(doc(db,'users',_uid,'turmas',id),{ativo:false},{merge:true});
+    await setDoc(doc(db,...turmaPath(id)),{ativo:false},{merge:true});
     const idx = _turmas.findIndex(t=>t.id===id);
     if(idx!==-1) _turmas[idx].ativo=false;
     renderDashboard();
@@ -4733,7 +4992,7 @@ window.desativarTurma = async function(id){
 window.reativarTurma = async function(id){
   showLoading('Reativando turma...');
   try {
-    await setDoc(doc(db,'users',_uid,'turmas',id),{ativo:true},{merge:true});
+    await setDoc(doc(db,...turmaPath(id)),{ativo:true},{merge:true});
     const idx = _turmas.findIndex(t=>t.id===id);
     if(idx!==-1) _turmas[idx].ativo=true;
     renderDashboard();
@@ -4750,7 +5009,7 @@ window.excluirTurmaDefinitivo = async function(id){
   if(!confirm(`Excluir definitivamente "${turma.serie} ${turma.turma}"? Esta ação não pode ser desfeita.`)) return;
   showLoading('Excluindo turma...');
   try {
-    await deleteDoc(doc(db,'users',_uid,'turmas',id));
+    await deleteDoc(doc(db,...turmaPath(id)));
     _turmas = _turmas.filter(t=>t.id!==id);
     renderDashboard();
     showToast('Turma excluída definitivamente.','info');
@@ -5214,7 +5473,7 @@ function _remapMapaNotas(mapaNotas, mapaIndices){
 // alunos ativos (ordenar A-Z, remover alguém do meio da lista, etc.) —
 // sem isso, as notas já lançadas ficariam "coladas" no aluno errado.
 async function _remapearNotasDaTurma(turmaId, mapaIndices){
-  const snap = await getDocs(collection(db,'users',_uid,'turmas',turmaId,'unidades'));
+  const snap = await getDocs(collection(db,...turmaPath(turmaId),'unidades'));
   for(const d of snap.docs){
     const data = d.data();
     const nl = data.notasLancadas;
@@ -5234,7 +5493,7 @@ async function _remapearNotasDaTurma(turmaId, mapaIndices){
     };
 
     await setDoc(
-      doc(db,'users',_uid,'turmas',turmaId,'unidades',d.id),
+      doc(db,...turmaPath(turmaId),'unidades',d.id),
       { notasLancadas: novoPayload },
       { merge: true }
     );
@@ -5275,7 +5534,7 @@ window.saveTurmaModal = async function(){
       await _remapearNotasDaTurma(id, mapaIndices);
     }
 
-    await setDoc(doc(db,'users',_uid,'turmas',id),{
+    await setDoc(doc(db,...turmaPath(id)),{
       atividades: ativ,
       disciplina: disc,
       alunos: alunosNorm,
@@ -5354,6 +5613,62 @@ function renderProfile(){
   renderProfileEscolas();
 }
 
+// ── Vincular escola por código ou link colado (item 4) ─────────────────
+// Aceita tanto o código puro (ex.: "ABC123") quanto um link de convite
+// (ex.: https://.../?escola=ABC123) — extrai o código de qualquer um dos dois.
+function extrairCodigoEscolaDeTexto(texto){
+  const raw = String(texto||'').trim();
+  if(!raw) return '';
+  try {
+    if(/^https?:\/\//i.test(raw)){
+      const url = new URL(raw);
+      const porQuery = url.searchParams.get('escola') || url.searchParams.get('codigo') || url.searchParams.get('c');
+      if(porQuery) return porQuery.trim();
+      // Último pedaço do caminho (ex.: .../entrar/ABC123)
+      const partes = url.pathname.split('/').filter(Boolean);
+      if(partes.length) return partes[partes.length-1].trim();
+    }
+  } catch(e){ /* não era uma URL válida — trata como código puro abaixo */ }
+  return raw;
+}
+
+window.vincularEscolaPerfil = async function(){
+  const input = document.getElementById('pf-link-escola');
+  const codigo = extrairCodigoEscolaDeTexto(input?.value);
+  if(!codigo){
+    showMsg('vincular-escola-msg','Cole o link ou digite o código da escola.','error');
+    return;
+  }
+  const btn = document.getElementById('btn-vincular-escola-perfil');
+  if(btn) btn.disabled = true;
+  clearMsg('vincular-escola-msg');
+  showLoading('Vinculando escola...');
+
+  try {
+    const resultado = await entrarComCodigoEscola(codigo);
+    hideLoading();
+    if(btn) btn.disabled = false;
+    if(!resultado.ok){
+      showMsg('vincular-escola-msg', resultado.msg, 'error');
+      return;
+    }
+    if(input) input.value = '';
+    await loadUserData();
+    renderProfileEscolas();
+    renderDashboard();
+    carregarImportsPendentesGlobal(true);
+    showMsg('vincular-escola-msg',
+      resultado.jaEraMembro ? 'Você já fazia parte dessa escola.' : `Vinculado a ${resultado.escola?.nome || 'escola'} com sucesso! `,
+      'success');
+    showToast(`Turmas de ${resultado.escola?.nome || 'sua escola'} adicionadas! `,'success');
+  } catch(e){
+    console.error('Erro ao vincular escola pelo perfil:', e);
+    hideLoading();
+    if(btn) btn.disabled = false;
+    showMsg('vincular-escola-msg','Não foi possível vincular agora. Tente novamente.','error');
+  }
+};
+
 function renderProfileEscolas(){
   const list = document.getElementById('profile-escolas-list');
   if(!list) return; // tela de perfil não está no DOM ainda
@@ -5370,6 +5685,26 @@ function renderProfileEscolas(){
     const tagL      = escolaTipoLabel(e.tipo);
     const sisLabel  = (e.sistema||'bimestral')==='trimestral'?'Trimestral':'Bimestral';
     const turmasCount = _turmas.filter(t=>t.escolaId===e.id).length;
+
+    // Escolas geridas (com código) são vínculos, não algo que o professor
+    // criou — mostra só leitura + o papel dele nela, sem editar/excluir.
+    if(e.gerida){
+      const roleLabel = e.roleDoUsuario==='gestor' ? 'Gestor(a)'
+                       : e.roleDoUsuario==='coordenador' ? 'Coordenador(a)'
+                       : 'Professor(a)';
+      return `
+      <div class="profile-escola-item">
+        <div style="flex:1;min-width:0;">
+          <div class="profile-escola-name">${e.nome} <span style="font-size:.65rem;font-weight:700;background:#eef5ff;color:var(--pe-blue);padding:2px 8px;border-radius:10px;margin-left:4px;">Vinculada</span></div>
+          <div class="profile-escola-tipo-row">
+            <span class="escola-chip-tag ${tagC}" style="padding:2px 8px;border-radius:10px;font-size:.65rem;font-weight:700;">${tagL}</span>
+            <span style="font-size:.65rem;font-weight:700;background:#fdf3e0;color:#a15c00;padding:2px 8px;border-radius:10px;">${roleLabel}</span>
+            <span style="font-size:.68rem;color:var(--pe-muted);">${turmasCount} turma(s)</span>
+          </div>
+        </div>
+      </div>`;
+    }
+
     return `
     <div class="profile-escola-item${isInativa?' inativa':''}">
       <div style="flex:1;min-width:0;">
@@ -5548,7 +5883,7 @@ window.saveEscolaTipoModal = async function(){
 
     // Propaga tipo/sistema para todas as turmas vinculadas
     await Promise.all(turmasAfetadas.map(t =>
-      setDoc(doc(db,'users',_uid,'turmas',t.id),
+      setDoc(doc(db,...turmaPath(t.id)),
         { escolaTipo: novoTipo, sistema: novoSist }, { merge: true })
     ));
     turmasAfetadas.forEach(t => {
@@ -5603,7 +5938,7 @@ window.saveEscolaTipoModal = async function(){
  * @param {string} sistemaNovo    "bimestral" | "trimestral"
  */
 async function _migrarUnidadesTurma(turmaId, sistemaAntigo, sistemaNovo){
-  const basePath = collection(db,'users',_uid,'turmas',turmaId,'unidades');
+  const basePath = collection(db,...turmaPath(turmaId),'unidades');
   const snap = await getDocs(basePath);
   if(snap.empty) return; // nada a migrar
 
@@ -5617,7 +5952,7 @@ async function _migrarUnidadesTurma(turmaId, sistemaAntigo, sistemaNovo){
   if(sistemaAntigo === 'bimestral' && sistemaNovo === 'trimestral'){
     // ── 4 bimestres → 3 trimestres ────────────────────────────────────
     for(const u of unidades){
-      const uRef = doc(db,'users',_uid,'turmas',turmaId,'unidades',u.id);
+      const uRef = doc(db,...turmaPath(turmaId),'unidades',u.id);
       if(u.ordem <= 3){
         // Renomeia e atualiza sistema
         const novoLabel = novosLabels.find(n=>n.ordem===u.ordem)?.label || u.label;
@@ -5626,11 +5961,11 @@ async function _migrarUnidadesTurma(turmaId, sistemaAntigo, sistemaNovo){
         // ordem 4 → excluir
         // Primeiro exclui subcoleção de atividades (Firestore não faz cascata)
         const atvSnap = await getDocs(
-          collection(db,'users',_uid,'turmas',turmaId,'unidades',u.id,'atividades')
+          collection(db,...turmaPath(turmaId),'unidades',u.id,'atividades')
         );
         for(const atvDoc of atvSnap.docs){
           batch.delete(doc(
-            db,'users',_uid,'turmas',turmaId,'unidades',u.id,'atividades',atvDoc.id
+            db,...turmaPath(turmaId),'unidades',u.id,'atividades',atvDoc.id
           ));
         }
         batch.delete(uRef);
@@ -5639,7 +5974,7 @@ async function _migrarUnidadesTurma(turmaId, sistemaAntigo, sistemaNovo){
   } else if(sistemaAntigo === 'trimestral' && sistemaNovo === 'bimestral'){
     // ── 3 trimestres → 4 bimestres ────────────────────────────────────
     for(const u of unidades){
-      const uRef = doc(db,'users',_uid,'turmas',turmaId,'unidades',u.id);
+      const uRef = doc(db,...turmaPath(turmaId),'unidades',u.id);
       const novoLabel = novosLabels.find(n=>n.ordem===u.ordem)?.label || u.label;
       batch.update(uRef, { label: novoLabel, sistema: sistemaNovo });
     }
@@ -6034,7 +6369,7 @@ window.abrirUnidadePorId = function(id){
 async function carregarImportsPendentes(turmaId){
   try {
     const q = query(
-      collection(db,'users',_uid,'turmas',turmaId,'importsPendentes'),
+      collection(db,...turmaPath(turmaId),'importsPendentes'),
       where('status','==','pendente')
     );
     const snap = await getDocs(q);
@@ -6253,7 +6588,7 @@ window.confirmarAplicacaoImportPendente = async function(id){
 
     // Marca como aplicado no Firestore, pra não aparecer mais como pendente
     await setDoc(
-      doc(db,'users',_uid,'turmas',_turmaAtual.id,'importsPendentes',imp.id),
+      doc(db,...turmaPath(_turmaAtual.id),'importsPendentes',imp.id),
       { status:'aplicado', aplicadoEm: serverTimestamp() },
       { merge:true }
     );
@@ -6294,7 +6629,7 @@ window.excluirImportPendente = async function(id){
 
   showLoading('Excluindo...');
   try {
-    await deleteDoc(doc(db,'users',_uid,'turmas',_turmaAtual.id,'importsPendentes',imp.id));
+    await deleteDoc(doc(db,...turmaPath(_turmaAtual.id),'importsPendentes',imp.id));
 
     _importsPendentes       = _importsPendentes.filter(i=>i.id!==imp.id);
     _importsPendentesGlobal = _importsPendentesGlobal.filter(i=>i.id!==imp.id);
@@ -6318,7 +6653,7 @@ async function carregarImportsPendentesGlobal(forcar){
   await Promise.all(turmasAtivas.map(async turma => {
     try {
       const q = query(
-        collection(db,'users',_uid,'turmas',turma.id,'importsPendentes'),
+        collection(db,...turmaPath(turma.id),'importsPendentes'),
         where('status','==','pendente')
       );
       const snap = await getDocs(q);
@@ -8073,7 +8408,7 @@ async function salvarPayloadFirestore(turmaId, unidadeId, payload){
     throw {code:'unavailable', message:'Unidade local sem ID Firestore ainda'};
   }
   await setDoc(
-    doc(db,'users',_uid,'turmas',turmaId,'unidades',unidadeId),
+    doc(db,...turmaPath(turmaId),'unidades',unidadeId),
     { notasLancadas: payload },
     { merge: true }
   );
@@ -8128,7 +8463,7 @@ async function carregarNotasUnidade(turmaId, unidade){
   if(unidade.id.startsWith('local-')) return; // sem ID real ainda
   try {
     const snap = await getDoc(
-      doc(db,'users',_uid,'turmas',turmaId,'unidades',unidade.id)
+      doc(db,...turmaPath(turmaId),'unidades',unidade.id)
     );
     if(!snap.exists()) return;
     const dados = snap.data()?.notasLancadas;
@@ -8313,7 +8648,7 @@ let _recFinalCache = {};  // { [turmaId]: { [alunoIdx]: valor } }
 async function carregarConsolidacao(turmaId){
   if(_recFinalCache[turmaId]) return _recFinalCache[turmaId];
   try {
-    const snap = await getDoc(doc(db,'users',_uid,'turmas',turmaId,'consolidacao','final'));
+    const snap = await getDoc(doc(db,...turmaPath(turmaId),'consolidacao','final'));
     _recFinalCache[turmaId] = (snap.exists() ? snap.data().recFinal : null) || {};
   } catch(e){
     console.warn('Erro ao carregar consolidação:', e.message);
@@ -8328,7 +8663,7 @@ async function salvarRecFinal(turmaId, alunoIdx, valor){
   setSaveStatus('saving','Salvando...');
   try {
     await setDoc(
-      doc(db,'users',_uid,'turmas',turmaId,'consolidacao','final'),
+      doc(db,...turmaPath(turmaId),'consolidacao','final'),
       { recFinal: _recFinalCache[turmaId], updatedAt: new Date().toISOString() },
       { merge: true }
     );
@@ -8823,7 +9158,7 @@ window.detectarUnidadesDuplicadas = async function(){
   const resEl = document.getElementById('diag-duplicados-resultado');
   if(resEl) resEl.innerHTML = '⏳ Verificando...';
   try {
-    const snap = await getDocs(collection(db,'users',_uid,'turmas',turma.id,'unidades'));
+    const snap = await getDocs(collection(db,...turmaPath(turma.id),'unidades'));
     const docs = snap.docs.map(d=>({id:d.id,...d.data()}));
 
     const grupos = {};
@@ -8891,13 +9226,13 @@ window.corrigirUnidadesDuplicadas = async function(){
 
       if(payloadMerged){
         await setDoc(
-          doc(db,'users',_uid,'turmas',turma.id,'unidades',canonico.id),
+          doc(db,...turmaPath(turma.id),'unidades',canonico.id),
           { notasLancadas: payloadMerged, qtdAtividades: qtdMax },
           { merge: true }
         );
       }
       for(const outro of outros){
-        await deleteDoc(doc(db,'users',_uid,'turmas',turma.id,'unidades',outro.id));
+        await deleteDoc(doc(db,...turmaPath(turma.id),'unidades',outro.id));
       }
     }
 
@@ -9517,7 +9852,7 @@ function _renderTelaExportacao(turma, unidades){
 
     <!-- 4. Exportar para a extensão (preenchimento no SIEPE) -->
     <div class="medias-card">
-      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE ou SIEC</h4>
+      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         Gera um JSON da unidade selecionada, pronto pra carregar na extensão
         que preenche as notas no SIEPE.
@@ -10025,7 +10360,7 @@ window.exportarEscolaJSON = async function(){
       for(const u of unidades){
         if(u.id.startsWith('local-')) continue;
         try {
-          const snap = await getDoc(doc(db,'users',_uid,'turmas',turma.id,'unidades',u.id));
+          const snap = await getDoc(doc(db,...turmaPath(turma.id),'unidades',u.id));
           turmaData.unidades.push({
             id: u.id, label: u.label, ordem: u.ordem,
             sistema: u.sistema, qtdAtividades: u.qtdAtividades,
@@ -10036,7 +10371,7 @@ window.exportarEscolaJSON = async function(){
 
       // Consolidação
       try {
-        const cSnap = await getDoc(doc(db,'users',_uid,'turmas',turma.id,'consolidacao','final'));
+        const cSnap = await getDoc(doc(db,...turmaPath(turma.id),'consolidacao','final'));
         turmaData.consolidacao = cSnap.exists() ? cSnap.data() : null;
       } catch(e){ turmaData.consolidacao = null; }
 
@@ -10544,14 +10879,14 @@ window.dashExportarEscola = async function(){
       for(const u of unidades){
         if(u.id.startsWith('local-')) continue;
         try {
-          const snap = await getDoc(doc(db,'users',_uid,'turmas',turma.id,'unidades',u.id));
+          const snap = await getDoc(doc(db,...turmaPath(turma.id),'unidades',u.id));
           turmaData.unidades.push({id:u.id,label:u.label,ordem:u.ordem,sistema:u.sistema,
             qtdAtividades:u.qtdAtividades,
             notasLancadas:snap.exists()?(snap.data()?.notasLancadas||null):null});
         } catch(e){ turmaData.unidades.push({id:u.id,label:u.label,ordem:u.ordem,notasLancadas:null}); }
       }
       try {
-        const cSnap = await getDoc(doc(db,'users',_uid,'turmas',turma.id,'consolidacao','final'));
+        const cSnap = await getDoc(doc(db,...turmaPath(turma.id),'consolidacao','final'));
         turmaData.consolidacao = cSnap.exists() ? cSnap.data() : null;
       } catch(e){ turmaData.consolidacao=null; }
       payload.turmas.push(turmaData);
@@ -10629,7 +10964,7 @@ window.dashImportarEscola = async function(input){
           }).map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
           if(novos.length){
             const updated=[...(turmaLocal.alunos||[]),...novos];
-            await setDoc(doc(db,'users',_uid,'turmas',turmaLocal.id),{alunos:updated},{merge:true});
+            await setDoc(doc(db,...turmaPath(turmaLocal.id)),{alunos:updated},{merge:true});
             turmaLocal.alunos=updated; alunosAdicionados+=novos.length;
           }
           turmasAtualizadas++;
@@ -10712,6 +11047,7 @@ window.androidHandleBack = function(){
 window.doLogout = async function(){
   document.getElementById('confirm-modal').classList.remove('active');
   showLoading('Saindo...');
+  pararPollingSinoNM(); // Melhoria — não fica mais consultando após logout
   await signOut(auth);
   // ── Android: limpa a conta Google cacheada pelo GoogleSignInClient ────
   // Sem isso, o próximo "Entrar com Google" devolve silenciosamente a
