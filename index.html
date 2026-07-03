@@ -2792,6 +2792,15 @@ body.dark-mode .stat-card-btn:active{
       </button>
     </div>
 
+    <!-- Excluir conta -->
+    <div style="text-align:center;padding-top:10px;">
+      <button onclick="abrirModalExcluirConta()"
+        style="background:transparent;color:var(--pe-red,#c0392b);border:1px solid var(--pe-red,#c0392b);padding:9px 22px;border-radius:8px;
+               font-size:.8rem;font-weight:700;cursor:pointer;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Excluir conta definitivamente
+      </button>
+    </div>
+
   </div>
 </div>
 
@@ -3223,6 +3232,44 @@ body.dark-mode .stat-card-btn:active{
   </div>
 </div>
 
+<!-- ── Modal: excluir conta definitivamente ── -->
+<div id="excluir-conta-modal" style="
+  display:none;position:fixed;inset:0;z-index:3001;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px;">
+  <div style="
+    background:#fff;border-radius:var(--radius-lg);width:100%;max-width:440px;
+    box-shadow:var(--shadow-lg);overflow:hidden;animation:fadeUp .3s ease both;">
+    <div style="background:var(--pe-red,#c0392b);padding:18px 22px;">
+      <h3 style="color:#fff;font-size:1rem;font-weight:800;">Excluir conta definitivamente</h3>
+    </div>
+    <div style="padding:20px 22px;">
+      <p style="font-size:.85rem;color:var(--pe-muted);line-height:1.5;">
+        Isso apaga <strong>todos os dados salvos nesta conta</strong> — perfil, escolas sem vínculo,
+        turmas, notas lançadas, importações e, se você for gestor(a)/coordenador(a), seu vínculo com
+        as escolas geridas. Se você for o(a) único(a) gestor(a) de uma escola, ela também é apagada
+        por inteiro (turmas e notas de toda a equipe). Escolas com outros gestores/coordenadores
+        continuam existindo para eles.
+      </p>
+      <p style="font-size:.85rem;color:var(--pe-red,#c0392b);font-weight:700;margin-top:10px;">
+        Essa ação não pode ser desfeita. Pra usar o Nota Mestra de novo, será preciso criar uma conta nova.
+      </p>
+      <label class="input-label" style="margin-top:14px;display:block;">
+        Digite <strong>EXCLUIR</strong> para confirmar
+      </label>
+      <input type="text" id="excluir-conta-confirma-input" class="input" placeholder="EXCLUIR"
+        oninput="document.getElementById('btn-excluir-conta-confirmar').disabled = this.value.trim().toUpperCase()!=='EXCLUIR';">
+      <div class="ob-msg" id="excluir-conta-msg" style="margin-top:8px;"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px;">
+        <button class="ob-btn ob-btn-ghost" onclick="fecharModalExcluirConta()">Cancelar</button>
+        <button class="ob-btn" id="btn-excluir-conta-confirmar" disabled
+          style="background:var(--pe-red,#c0392b);color:#fff;"
+          onclick="excluirContaDefinitivamente()">Excluir minha conta</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: alterar tipo/sistema da escola ── -->
 <div id="escola-tipo-modal" style="
   display:none;position:fixed;inset:0;z-index:3001;
@@ -3431,6 +3478,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut,
+  deleteUser,
   GoogleAuthProvider,
   signInWithPopup,
   signInWithCredential,
@@ -11758,6 +11806,135 @@ window.doLogout = async function(){
   hideLoading();
 };
 
+// ══════════════════════════════════════════════════════════════════════
+// EXCLUIR CONTA DEFINITIVAMENTE
+// ══════════════════════════════════════════════════════════════════════
+window.abrirModalExcluirConta = function(){
+  const input = document.getElementById('excluir-conta-confirma-input');
+  if(input) input.value = '';
+  const btn = document.getElementById('btn-excluir-conta-confirmar');
+  if(btn) btn.disabled = true;
+  clearMsg('excluir-conta-msg');
+  document.getElementById('excluir-conta-modal').style.display = 'flex';
+};
+window.fecharModalExcluirConta = function(){
+  document.getElementById('excluir-conta-modal').style.display = 'none';
+};
+
+// Apaga uma turma inteira (unidades, importações pendentes e consolidação)
+// dado o caminho até o doc da turma — funciona tanto pra turma pessoal
+// (['users',uid,'turmas',id]) quanto pra turma de escola gerida
+// (['escolas',escolaId,'turmas',id]).
+async function _excluirTurmaCompleta(pathArr){
+  try {
+    const snapU = await getDocs(collection(db, ...pathArr, 'unidades'));
+    await Promise.all(snapU.docs.map(d=>deleteDoc(d.ref)));
+  } catch(e){ console.warn('Erro ao apagar unidades da turma:', e.message); }
+  try {
+    const snapI = await getDocs(collection(db, ...pathArr, 'importsPendentes'));
+    await Promise.all(snapI.docs.map(d=>deleteDoc(d.ref)));
+  } catch(e){ console.warn('Erro ao apagar importações pendentes:', e.message); }
+  try { await deleteDoc(doc(db, ...pathArr, 'consolidacao', 'final')); } catch(e){}
+  try { await deleteDoc(doc(db, ...pathArr)); } catch(e){ console.warn('Erro ao apagar turma:', e.message); }
+}
+
+// Apaga uma escola gerida inteira (todas as turmas de todos os professores
+// + todos os membros da equipe + o doc da escola). Só é chamada quando o
+// usuário que está excluindo a conta é o único membro dela.
+async function _excluirEscolaCompleta(escolaId){
+  try {
+    const snapT = await getDocs(collection(db,'escolas',escolaId,'turmas'));
+    for(const td of snapT.docs){
+      await _excluirTurmaCompleta(['escolas', escolaId, 'turmas', td.id]);
+    }
+  } catch(e){ console.warn('Erro ao apagar turmas da escola:', e.message); }
+  try {
+    const snapP = await getDocs(collection(db,'escolas',escolaId,'professores'));
+    await Promise.all(snapP.docs.map(d=>deleteDoc(d.ref)));
+  } catch(e){ console.warn('Erro ao apagar equipe da escola:', e.message); }
+  try { await deleteDoc(doc(db,'escolas',escolaId)); } catch(e){ console.warn('Erro ao apagar escola:', e.message); }
+}
+
+window.excluirContaDefinitivamente = async function(){
+  const input = document.getElementById('excluir-conta-confirma-input');
+  if((input?.value||'').trim().toUpperCase() !== 'EXCLUIR') return;
+  if(!_uid || !auth.currentUser) return;
+
+  const btn = document.getElementById('btn-excluir-conta-confirmar');
+  if(btn) btn.disabled = true;
+  fecharModalExcluirConta();
+  pararPollingSinoNM();
+  showLoading('Excluindo conta e todos os dados...');
+
+  try {
+    // 1) Turmas: pessoais (users/uid/turmas) e próprias dentro de escolas geridas
+    for(const t of _turmas){
+      const origem = _turmaOrigem[t.id];
+      if(origem && origem.escolaId){
+        if(t.criadoPor === _uid){
+          await _excluirTurmaCompleta(['escolas', origem.escolaId, 'turmas', t.id]);
+        }
+        // turmas de outros professores na mesma escola gerida: preservadas
+      } else {
+        await _excluirTurmaCompleta(['users', _uid, 'turmas', t.id]);
+      }
+    }
+
+    // 2) Escolas pessoais (sem vínculo)
+    for(const e of _escolas.filter(e=>!e.gerida)){
+      try { await deleteDoc(doc(db,'users',_uid,'escolas',e.id)); }
+      catch(err){ console.warn('Erro ao apagar escola pessoal:', err.message); }
+    }
+
+    // 3) Escolas geridas: se for o único membro, apaga a escola inteira;
+    //    senão, só sai dela (equipe e turmas de outros professores ficam).
+    for(const eg of _escolasGeridas){
+      let membros = [];
+      try {
+        const s = await getDocs(collection(db,'escolas',eg.id,'professores'));
+        membros = s.docs;
+      } catch(err){ console.warn('Erro ao checar equipe da escola:', err.message); }
+
+      if(eg.role === 'gestor' && membros.length <= 1){
+        await _excluirEscolaCompleta(eg.id);
+      } else {
+        try { await deleteDoc(doc(db,'escolas',eg.id,'professores',_uid)); }
+        catch(err){ console.warn('Erro ao sair da escola gerida:', err.message); }
+      }
+    }
+
+    // 4) Índice de telefone (best-effort — pode já não ter permissão hoje)
+    if(_perfil?.telefone){
+      try {
+        const digits = telefoneDigits(_perfil.telefone);
+        if(digits) await deleteDoc(doc(db,'telefones',digits));
+      } catch(err){ /* ignora — best-effort */ }
+    }
+
+    // 5) Perfil
+    try { await deleteDoc(doc(db,'users',_uid,'perfil','dados')); }
+    catch(err){ console.warn('Erro ao apagar perfil:', err.message); }
+
+    // 6) Conta de autenticação (por último — sem ela não há mais como logar)
+    await deleteUser(auth.currentUser);
+
+    hideLoading();
+    _uid=null; _email=null; _perfil=null;
+    _escolas=[]; _turmas=[]; _unidades={}; _escolasGeridas=[]; _turmaOrigem={};
+    showLogin();
+    showToast('Sua conta e todos os dados foram excluídos.','success');
+  } catch(e){
+    hideLoading();
+    console.error('Erro ao excluir conta:', e);
+    if(e.code === 'auth/requires-recent-login'){
+      showToast('Por segurança, é preciso ter feito login recentemente. Saia, entre novamente e tente excluir a conta em seguida.','error');
+    } else {
+      showToast('Não foi possível concluir a exclusão agora. Alguns dados podem já ter sido apagados — tente novamente.','error');
+    }
+    if(btn) btn.disabled = false;
+  }
+};
+
 // ─────────────────────────────────────────────────────────────
 // BOTÃO VOLTAR DO ANDROID — cole este bloco dentro do <script>
 // principal do index.html, perto do final (antes do <\/script>).
@@ -11787,6 +11964,7 @@ const modaisDisplay = [
 'escola-tipo-modal',
 'nova-escola-modal',
 'nova-turma-modal',
+'excluir-conta-modal',
 ];
 for (const id of modaisDisplay) {
 const el = document.getElementById(id);
