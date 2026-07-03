@@ -753,6 +753,23 @@ body{ box-sizing:border-box; }
 }
 .chip-del:hover{background:#fdecea;}
 
+/* Cards de escolha do onboarding (qual caminho seguir) */
+.onboarding-choice-card{
+  display:flex;align-items:center;gap:14px;padding:16px;border:1.5px solid var(--pe-border,#e0e0e0);
+  border-radius:var(--radius-sm);margin-bottom:12px;cursor:pointer;transition:border-color .15s,transform .1s;
+  background:var(--pe-card,#fff);
+}
+.onboarding-choice-card:hover{border-color:var(--pe-blue);transform:translateY(-1px);}
+.onboarding-choice-card:active{transform:translateY(0);}
+.onboarding-choice-icon{
+  width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:1.3rem;flex-shrink:0;
+}
+.onboarding-choice-info{flex:1;min-width:0;}
+.onboarding-choice-title{font-size:.92rem;font-weight:800;color:var(--pe-navy);}
+.onboarding-choice-tag{font-size:10px;font-weight:700;padding:2px 6px;border-radius:6px;margin-left:6px;}
+.onboarding-choice-sub{font-size:.78rem;color:var(--pe-muted);margin-top:3px;line-height:1.4;}
+
 .add-escola-box{
   background:#f0f4f8;border:1.5px dashed var(--pe-blue);
   border-radius:var(--radius-sm);padding:14px;margin-top:12px;
@@ -2317,14 +2334,127 @@ body.dark-mode .stat-card-btn:active{
         </div>
         <div class="ob-footer">
           <span style="font-size:.75rem;color:var(--pe-muted);">* Campo obrigatório</span>
-          <button class="ob-btn ob-btn-primary" onclick="goStep(2)">
+          <button class="ob-btn ob-btn-primary" onclick="irParaEscolhaOnboarding()">
             Próximo
             <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </button>
         </div>
       </div>
 
-      <!-- ── ETAPA 2: Escolas ── -->
+      <!-- ── ESCOLHA: qual é o seu caso? (não numerada, entre a etapa 1 e a 2) ── -->
+      <div class="ob-step-content" id="step-escolha">
+        <div class="ob-card-header">
+          <div class="step-badge">2</div>
+          <div>
+            <h3>Como você vai usar o Nota Mestra?</h3>
+            <p>Escolha a opção que combina com você</p>
+          </div>
+        </div>
+        <div class="ob-card-body">
+          <div class="onboarding-choice-card" onclick="irParaTelaOnboarding('gestao-form')">
+            <div class="onboarding-choice-icon" style="background:#fdf3e0;color:#a15c00;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M3 21h18"/><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M6 10.5V16c0 1.1 2.7 2 6 2s6-.9 6-2v-5.5"/></svg>
+            </div>
+            <div class="onboarding-choice-info">
+              <div class="onboarding-choice-title">Sou gestor(a) ou coordenador(a)<span class="onboarding-choice-tag" style="background:rgba(161,92,0,.15);color:#a15c00;">Gestão</span></div>
+              <div class="onboarding-choice-sub">Vou cadastrar a escola e gerar o código de acesso pra minha equipe.</div>
+            </div>
+          </div>
+          <div class="onboarding-choice-card" onclick="irParaTelaOnboarding('codigo-form')">
+            <div class="onboarding-choice-icon" style="background:#eef5ff;color:var(--pe-blue);">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </div>
+            <div class="onboarding-choice-info">
+              <div class="onboarding-choice-title">Já tenho o código da minha escola</div>
+              <div class="onboarding-choice-sub">Minha escola já usa o Nota Mestra — vou entrar com o código recebido.</div>
+            </div>
+          </div>
+          <div class="onboarding-choice-card" onclick="goStep(2)">
+            <div class="onboarding-choice-icon" style="background:#e8f5e9;color:#2e7d32;">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:22px;height:22px;"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            </div>
+            <div class="onboarding-choice-info">
+              <div class="onboarding-choice-title">Não tenho código</div>
+              <div class="onboarding-choice-sub">Vou cadastrar minha própria escola, sem vínculo com gestão — do jeito de sempre.</div>
+            </div>
+          </div>
+        </div>
+        <div class="ob-footer">
+          <button class="ob-btn ob-btn-ghost" onclick="goStep(1)">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Voltar
+          </button>
+          <span></span>
+        </div>
+      </div>
+
+      <!-- ── FORMULÁRIO: criar escola com gestão ── -->
+      <div class="ob-step-content" id="step-gestao-form">
+        <div class="ob-card-header">
+          <div class="step-badge">2</div>
+          <div>
+            <h3>Criar escola com gestão <span style="font-size:10px;background:rgba(161,92,0,0.2);color:#a15c00;padding:2px 6px;border-radius:6px;">Gestão</span></h3>
+            <p>Você vira o(a) gestor(a) e recebe um código pra convidar professores</p>
+          </div>
+        </div>
+        <div class="ob-card-body">
+          <div class="ob-field">
+            <label for="ob-gestao-nome">Nome da escola *</label>
+            <input type="text" id="ob-gestao-nome" placeholder="Ex.: EE Professor Fulano de Tal">
+          </div>
+          <div class="ob-row">
+            <div class="ob-field">
+              <label for="ob-gestao-cidade">Município</label>
+              <input type="text" id="ob-gestao-cidade" placeholder="Ex.: Recife">
+            </div>
+            <div class="ob-field">
+              <label for="ob-gestao-rede">Rede</label>
+              <select id="ob-gestao-rede">
+                <option value="municipal">Municipal</option>
+                <option value="estadual">Estadual</option>
+                <option value="particular">Particular</option>
+              </select>
+            </div>
+          </div>
+          <div class="ob-msg" id="gestao-form-msg"></div>
+        </div>
+        <div class="ob-footer">
+          <button class="ob-btn ob-btn-ghost" onclick="irParaTelaOnboarding('escolha')">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Voltar
+          </button>
+          <button class="ob-btn" id="btn-criar-escola-gestao-ob" style="background:#a15c00;color:#fff;"
+            onclick="criarEscolaGestaoOnboarding()">Criar escola com gestão</button>
+        </div>
+      </div>
+
+      <!-- ── FORMULÁRIO: entrar com código ── -->
+      <div class="ob-step-content" id="step-codigo-form">
+        <div class="ob-card-header">
+          <div class="step-badge">2</div>
+          <div>
+            <h3>Entrar com código da escola</h3>
+            <p>Suas turmas aparecem automaticamente, sem precisar cadastrar nada</p>
+          </div>
+        </div>
+        <div class="ob-card-body">
+          <div class="ob-field">
+            <label for="ob-codigo-escola">Código da escola *</label>
+            <input type="text" id="ob-codigo-escola" placeholder="Ex.: ABC123" style="text-transform:uppercase;" maxlength="12">
+          </div>
+          <div class="ob-msg" id="codigo-form-msg"></div>
+        </div>
+        <div class="ob-footer">
+          <button class="ob-btn ob-btn-ghost" onclick="irParaTelaOnboarding('escolha')">
+            <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Voltar
+          </button>
+          <button class="ob-btn ob-btn-primary" id="btn-entrar-codigo-ob"
+            onclick="entrarComCodigoOnboarding()">Entrar com código</button>
+        </div>
+      </div>
+
+      <!-- ── ETAPA 2: Escolas (sem vínculo) ── -->
       <div class="ob-step-content" id="step-2">
         <div class="ob-card-header">
           <div class="step-badge">2</div>
@@ -2334,48 +2464,6 @@ body.dark-mode .stat-card-btn:active{
           </div>
         </div>
         <div class="ob-card-body">
-
-          <!-- Item 3: entrar direto numa escola com gestão/coordenação -->
-          <div class="add-escola-box" style="border-color:var(--pe-blue,#0056b3);background:#eef5ff;">
-            <label>Já tem o código da sua escola?</label>
-            <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:8px;">
-              Se a gestão ou coordenação da sua escola já usa o Nota Mestra, digite o código
-              recebido para entrar direto — suas turmas aparecem automaticamente, sem precisar
-              cadastrar escola nem turma.
-            </div>
-            <div class="add-escola-row">
-              <input type="text" id="ob-codigo-escola" placeholder="Código da escola (ex.: ABC123)"
-                style="flex:2;text-transform:uppercase;" maxlength="12">
-              <button type="button" class="ob-btn ob-btn-primary" id="btn-entrar-codigo-ob"
-                onclick="entrarComCodigoOnboarding()">Entrar com código</button>
-            </div>
-          </div>
-
-          <!-- Item 2: sou gestor(a)/coordenador(a) — criar escola COM gestão -->
-          <div class="add-escola-box" style="border-color:#a15c00;background:#fdf3e0;">
-            <label>É gestor(a) ou coordenador(a) de uma escola?
-              <span style="font-size:10px;background:rgba(161,92,0,0.2);color:#a15c00;padding:2px 6px;border-radius:6px;margin-left:4px;">Gestão</span>
-            </label>
-            <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:8px;">
-              Crie a escola com gestão: você vira o(a) gestor(a) e recebe um código pra convidar
-              os professores. Dá pra criar turmas e acompanhar o rendimento de toda a equipe.
-            </div>
-            <div class="add-escola-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-              <input type="text" id="ob-gestao-nome" placeholder="Nome da escola *" style="grid-column:span 2;">
-              <input type="text" id="ob-gestao-cidade" placeholder="Município">
-              <select id="ob-gestao-rede">
-                <option value="municipal">Municipal</option>
-                <option value="estadual">Estadual</option>
-                <option value="particular">Particular</option>
-              </select>
-            </div>
-            <button type="button" class="ob-btn" style="margin-top:10px;background:#a15c00;color:#fff;" id="btn-criar-escola-gestao-ob"
-              onclick="criarEscolaGestaoOnboarding()">Criar escola com gestão</button>
-          </div>
-
-          <div style="text-align:center;font-size:.75rem;color:var(--pe-muted);margin:14px 0;">
-            — ou, se não tiver código, cadastre sua própria escola abaixo (sem vínculo) —
-          </div>
 
           <div id="escola-list-wrap">
             <div class="ob-empty" id="escola-empty">Nenhuma escola adicionada ainda.</div>
@@ -2401,7 +2489,7 @@ body.dark-mode .stat-card-btn:active{
           <div class="ob-msg" id="step2-msg"></div>
         </div>
         <div class="ob-footer">
-          <button class="ob-btn ob-btn-ghost" onclick="goStep(1)">
+          <button class="ob-btn ob-btn-ghost" onclick="irParaTelaOnboarding('escolha')">
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             Voltar
           </button>
@@ -3739,15 +3827,39 @@ async function loadUserData(){
 // Descobre em quais escolas compartilhadas (escolas/{id}/professores/{uid})
 // este usuário é membro, e mescla as turmas dessas escolas com as pessoais.
 // Não mexe em nada da estrutura pessoal (users/{uid}/...).
+// Descobre em quais escolas geridas este usuário é membro usando um
+// "espelho" local — users/{uid}/escolasVinculo/{escolaId} — que o próprio
+// usuário grava quando cria ou entra numa escola. Isso evita depender de
+// uma consulta collectionGroup (que exige criar um índice especial no
+// Firestore antes de funcionar). O papel (role) sempre é lido fresco de
+// escolas/{id}/professores/{uid}, então promoções feitas pelo gestor
+// aparecem corretamente mesmo sem esse doc ser tocado por quem promoveu.
 async function carregarEscolasGeridas(){
   _escolasGeridas = [];
   _turmaOrigem = {};
-  const q = query(collectionGroup(db,'professores'), where('uid','==',_uid));
-  const membrosSnap = await getDocs(q);
-  await Promise.all(membrosSnap.docs.map(async membroDoc => {
-    const escolaId = membroDoc.ref.parent.parent?.id;
-    if(!escolaId) return;
-    const membro = membroDoc.data();
+
+  let vinculoSnap;
+  try {
+    vinculoSnap = await getDocs(collection(db,'users',_uid,'escolasVinculo'));
+  } catch(e){
+    console.warn('Erro ao carregar vínculos de escola:', e);
+    return;
+  }
+
+  await Promise.all(vinculoSnap.docs.map(async vd => {
+    const escolaId = vd.id;
+    let profSnap;
+    try { profSnap = await getDoc(doc(db,'escolas',escolaId,'professores',_uid)); }
+    catch(e){ console.warn('Erro ao ler vínculo com escola', escolaId, e); return; }
+
+    if(!profSnap.exists()){
+      // Não é mais membro desta escola (removido, por exemplo) — limpa o
+      // espelho local silenciosamente, sem incomodar o usuário.
+      try { await deleteDoc(doc(db,'users',_uid,'escolasVinculo',escolaId)); } catch(e){}
+      return;
+    }
+    const membro = profSnap.data();
+
     let escolaSnap;
     try { escolaSnap = await getDoc(doc(db,'escolas',escolaId)); }
     catch(e){ console.warn('Erro ao ler escola gerida', escolaId, e); return; }
@@ -3810,6 +3922,8 @@ async function entrarComCodigoEscola(codigoBruto){
   try {
     const jaMembro = await getDoc(doc(db,'escolas',escolaId,'professores',_uid));
     if(jaMembro.exists()){
+      // Garante que o espelho local existe (auto-cura caso tenha se perdido).
+      try { await setDoc(doc(db,'users',_uid,'escolasVinculo',escolaId), { escolaId, atualizadoEm: serverTimestamp() }, { merge:true }); } catch(e){}
       return { ok:true, escola:{ id:escolaId, ...escolaData }, jaEraMembro:true };
     }
   } catch(e){ /* segue tentando criar normalmente */ }
@@ -3821,6 +3935,9 @@ async function entrarComCodigoEscola(codigoBruto){
       email: _email || '',
       role: 'professor',
       entrouEm: serverTimestamp()
+    });
+    await setDoc(doc(db,'users',_uid,'escolasVinculo',escolaId), {
+      escolaId, criadoEm: serverTimestamp()
     });
   } catch(e){
     console.error('Erro ao entrar na escola:', e);
@@ -4872,9 +4989,11 @@ window.goStep = function(target){
 };
 
 function renderStep(step){
-  // Esconde todos
+  // Esconde TODAS as telas do onboarding, inclusive as não numeradas
+  // (escolha de caminho, formulário de gestão, formulário de código).
+  document.querySelectorAll('.ob-step-content').forEach(el=>el.classList.remove('active'));
+
   for(let i=1;i<=TOTAL_STEPS;i++){
-    document.getElementById(`step-${i}`).classList.remove('active');
     const dot  = document.getElementById(`sdot-${i}`);
     const line = i<TOTAL_STEPS ? document.getElementById(`sline-${i}`) : null;
     if(i<step){ dot.classList.add('done'); dot.classList.remove('active'); dot.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>'; if(line) line.classList.add('done'); }
@@ -4887,6 +5006,33 @@ function renderStep(step){
   if(step===3) renderTurmasStep();
   if(step===4) renderReview();
 }
+
+// ── Navegação entre as telas não numeradas do onboarding ───────────────
+// (escolha de caminho, criar escola com gestão, entrar com código).
+// Ficam "dentro" do passo 2 pro indicador de pontinhos, mas não usam o
+// fluxo goStep/validateStep normal porque não fazem parte da sequência
+// linear 1→2→3→4 (são desvios que terminam direto no painel).
+window.irParaEscolhaOnboarding = function(){
+  if(!validateStep(1)) return;
+  // Veio de um link de convite (?escola=CODIGO)? Pula a tela de escolha e
+  // já vai direto pro formulário de código, preenchido.
+  if(_escolaLinkPendente){
+    irParaTelaOnboarding('codigo-form');
+    return;
+  }
+  irParaTelaOnboarding('escolha');
+};
+window.irParaTelaOnboarding = function(nome){
+  document.querySelectorAll('.ob-step-content').forEach(el=>el.classList.remove('active'));
+  document.getElementById(`step-${nome}`)?.classList.add('active');
+  // Mantém o indicador de pontinhos mostrando "passo 2" como atual
+  const dot1 = document.getElementById('sdot-1');
+  const dot2 = document.getElementById('sdot-2');
+  const line1 = document.getElementById('sline-1');
+  if(dot1){ dot1.classList.add('done'); dot1.classList.remove('active'); dot1.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>'; }
+  if(line1) line1.classList.add('done');
+  if(dot2){ dot2.classList.add('active'); dot2.classList.remove('done'); dot2.innerHTML='2'; }
+};
 
 function validateStep(step){
   if(step===1){
@@ -5335,7 +5481,7 @@ window.criarEscolaGestaoOnboarding = async function(){
 
   const nomeEscola = document.getElementById('ob-gestao-nome').value.trim();
   if(!nomeEscola){
-    showMsg('step2-msg','Informe o nome da escola.','error');
+    showMsg('gestao-form-msg','Informe o nome da escola.','error');
     return;
   }
   const cidade = document.getElementById('ob-gestao-cidade').value.trim();
@@ -5377,6 +5523,9 @@ window.criarEscolaGestaoOnboarding = async function(){
       role: 'gestor',
       entrouEm: serverTimestamp()
     });
+    await setDoc(doc(db,'users',_uid,'escolasVinculo',escolaRef.id),{
+      escolaId: escolaRef.id, criadoEm: serverTimestamp()
+    });
 
     await loadUserData();
     hideLoading();
@@ -5387,7 +5536,7 @@ window.criarEscolaGestaoOnboarding = async function(){
     console.error('Erro ao criar escola com gestão:', e);
     hideLoading();
     if(btn) btn.disabled = false;
-    showMsg('step2-msg','Não foi possível criar a escola agora. Tente novamente.','error');
+    showMsg('gestao-form-msg','Não foi possível criar a escola agora. Tente novamente.','error');
   }
 };
 
@@ -5396,7 +5545,7 @@ window.entrarComCodigoOnboarding = async function(){
 
   const codigo = document.getElementById('ob-codigo-escola').value.trim();
   if(!codigo){
-    showMsg('step2-msg','Informe o código da escola.','error');
+    showMsg('codigo-form-msg','Informe o código da escola.','error');
     return;
   }
 
@@ -5426,7 +5575,7 @@ window.entrarComCodigoOnboarding = async function(){
     if(!resultado.ok){
       hideLoading();
       if(btn) btn.disabled = false;
-      showMsg('step2-msg', resultado.msg, 'error');
+      showMsg('codigo-form-msg', resultado.msg, 'error');
       return;
     }
 
@@ -5438,7 +5587,7 @@ window.entrarComCodigoOnboarding = async function(){
     console.error('Erro ao entrar na escola pelo onboarding:', e);
     hideLoading();
     if(btn) btn.disabled = false;
-    showMsg('step2-msg','Não foi possível concluir agora. Tente novamente.','error');
+    showMsg('codigo-form-msg','Não foi possível concluir agora. Tente novamente.','error');
   }
 };
 
@@ -11901,6 +12050,7 @@ window.excluirContaDefinitivamente = async function(){
         try { await deleteDoc(doc(db,'escolas',eg.id,'professores',_uid)); }
         catch(err){ console.warn('Erro ao sair da escola gerida:', err.message); }
       }
+      try { await deleteDoc(doc(db,'users',_uid,'escolasVinculo',eg.id)); } catch(err){}
     }
 
     // 4) Índice de telefone (best-effort — pode já não ter permissão hoje)
