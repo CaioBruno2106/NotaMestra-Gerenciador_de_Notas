@@ -2619,6 +2619,8 @@ body.dark-mode .stat-card-btn:active{
       </div>
     </div>
 
+    <div id="dash-codigos-escola-wrap"></div>
+
     <div class="section-title">
       Minhas turmas
     </div>
@@ -2924,6 +2926,11 @@ body.dark-mode .stat-card-btn:active{
         <div class="ob-card-body">
           <div class="add-escola-box">
             <label>Nova turma da escola</label>
+            <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:8px;">
+              Crie a turma de forma genérica (só a turma em si — sem disciplina). Depois, cada
+              professor entra e faz sua própria cópia dessa turma pra disciplina que leciona, com
+              o número de atividades que quiser.
+            </div>
             <div class="add-turma-grid">
               <input type="number" id="gt-ano" placeholder="Ano letivo * (ex.: 2025)" min="2020" max="2040" style="grid-column:span 2">
               <select id="gt-nivel" style="grid-column:span 2">
@@ -2939,14 +2946,20 @@ body.dark-mode .stat-card-btn:active{
                 <option value="turno2">Turno 2</option>
               </select>
               <input type="text" id="gt-serie" placeholder="Série * (ex.: 6º, 7º, 1ª)">
-              <input type="text" id="gt-turma" placeholder="Turma * (ex.: A, B, C)">
-              <input type="number" id="gt-ativ" placeholder="Nº atividades" min="1" max="99" style="grid-column:span 2">
-              <input type="text" id="gt-disc" placeholder="Disciplina(s)" style="grid-column:span 2">
+              <input type="text" id="gt-turma" placeholder="Turma * (ex.: A, B, C)" style="grid-column:span 2">
+              <textarea id="gt-alunos" placeholder="Cole aqui a lista de alunos, um por linha (opcional — dá pra adicionar depois também)"
+                style="grid-column:span 2;min-height:80px;padding:10px;border:1px solid var(--pe-border,#ccc);border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;"></textarea>
             </div>
             <button class="ob-btn ob-btn-primary" style="margin-top:10px;" onclick="gestaoCriarTurma()">+ Adicionar turma</button>
             <div class="ob-msg" id="gestao-turmas-msg"></div>
           </div>
           <div id="gestao-turmas-list" style="margin-top:14px;"></div>
+          <div style="text-align:center;margin-top:18px;padding-top:14px;border-top:1px solid var(--pe-border,#eee);">
+            <button class="ob-btn ob-btn-primary" onclick="showDashboard()">
+              Ir para o painel
+              <svg width="16" height="16" fill="none" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -3895,6 +3908,161 @@ async function carregarEscolasGeridas(){
   }));
 }
 
+// ══════════════════════════════════════════════════════════════════════
+// TURMAS GENÉRICAS (moldes criados pela gestão) — cópia por disciplina
+// ══════════════════════════════════════════════════════════════════════
+// A gestão cria a turma "crua" (só a turma em si, sem disciplina). Cada
+// professor que entra na escola faz sua própria cópia dessa turma pra cada
+// disciplina que leciona nela — a lista de alunos vem copiada da turma
+// genérica no momento da cópia (mudanças feitas na turma genérica depois
+// não se propagam automaticamente pras cópias já existentes).
+async function criarCopiaTurmaDisciplina(turmaMaeId, disciplina, atividades){
+  const mae = _turmas.find(t=>t.id===turmaMaeId);
+  const origem = _turmaOrigem[turmaMaeId];
+  if(!mae || !origem){
+    return { ok:false, msg:'Turma genérica não encontrada.' };
+  }
+  const role = _escolasGeridas.find(e=>e.id===origem.escolaId)?.role || 'professor';
+  try {
+    const ref = await addDoc(collection(db,'escolas',origem.escolaId,'turmas'),{
+      escolaId:      origem.escolaId,
+      escolaNome:    mae.escolaNome,
+      escolaTipo:    mae.escolaTipo,
+      nome:          `${mae.serie||''} ${mae.turma||''}`,
+      anoLetivo:     mae.anoLetivo,
+      nivel:         mae.nivel,
+      turno:         mae.turno,
+      serie:         mae.serie,
+      turma:         mae.turma,
+      disciplina:    disciplina,
+      atividades:    parseInt(atividades)||0,
+      sistema:       mae.sistema || 'bimestral',
+      alunos:        JSON.parse(JSON.stringify(mae.alunos||[])),
+      ativo:         true,
+      generica:      false,
+      turmaMaeId:    turmaMaeId,
+      criadoPor:     _uid,
+      criadoPorRole: role,
+      criadoEm:      serverTimestamp()
+    });
+    return { ok:true, id: ref.id };
+  } catch(e){
+    console.error('Erro ao copiar turma genérica:', e);
+    return { ok:false, msg:'Não foi possível criar a cópia agora. Tente novamente.' };
+  }
+}
+
+let _turmaMaeAtualDash = null;
+
+// ── Sincroniza cópias por disciplina quando a turma genérica é editada ──
+// Sincroniza por NOME (não por posição), pra nunca bagunçar notas já
+// lançadas em cada cópia:
+//  - aluno novo na turma genérica → adicionado ao final de cada cópia;
+//  - aluno que já existe (mesmo nome) → nome e status são atualizados na
+//    cópia, mas a posição dele não muda (preserva notas já lançadas);
+//  - aluno removido/desativado na turma genérica → só marcado inativo nas
+//    cópias, nunca excluído (preserva o histórico de notas).
+async function sincronizarCopiasDaTurmaGenerica(turmaMaeId, alunosMae){
+  const copias = _turmas.filter(t=>t.turmaMaeId===turmaMaeId);
+  if(!copias.length) return 0;
+
+  let copiasAtualizadas = 0;
+  for(const copia of copias){
+    if(!_turmaOrigem[copia.id]) continue; // segurança: só mexe em turmas de escola gerida
+    let alunosCopia = (copia.alunos||[]).map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
+    let mudou = false;
+
+    alunosCopia = alunosCopia.map(a=>{
+      const chave = _normNome(a.nome);
+      const naMae = alunosMae.find(m=>_normNome(typeof m==='string'?m:m.nome)===chave);
+      if(naMae){
+        const nomeMae  = typeof naMae==='string' ? naMae : naMae.nome;
+        const ativoMae = typeof naMae==='object' ? naMae.ativo!==false : true;
+        if(a.nome!==nomeMae || a.ativo!==ativoMae) mudou = true;
+        return { ...a, nome:nomeMae, ativo:ativoMae };
+      }
+      if(a.ativo!==false){ mudou = true; return { ...a, ativo:false }; }
+      return a;
+    });
+
+    const jaNaCopia = new Set(alunosCopia.map(a=>_normNome(a.nome)));
+    const novos = alunosMae
+      .filter(m=>!jaNaCopia.has(_normNome(typeof m==='string'?m:m.nome)))
+      .map(m=>typeof m==='string'?{nome:m,ativo:true}:{...m});
+    if(novos.length){ alunosCopia = [...alunosCopia, ...novos]; mudou = true; }
+
+    if(mudou){
+      try {
+        await setDoc(doc(db,...turmaPath(copia.id)), { alunos: alunosCopia }, { merge:true });
+        copia.alunos = alunosCopia; // mantém o cache local coerente
+        copiasAtualizadas++;
+      } catch(e){
+        console.warn('Erro ao sincronizar cópia', copia.id, e);
+      }
+    }
+  }
+  return copiasAtualizadas;
+}
+
+window.abrirTurmaMaeDash = function(turmaMaeId){
+  const mae = _turmas.find(t=>t.id===turmaMaeId);
+  if(!mae) return;
+  _turmaMaeAtualDash = turmaMaeId;
+  document.getElementById('dm-turma-mae-titulo').textContent =
+    `${mae.serie||''} ${mae.turma||''} — ${nivelLabel(mae.nivel)}`;
+  renderTurmaMaeDashBody();
+  document.getElementById('dm-turma-mae-overlay').style.display = 'flex';
+};
+window.fecharModalTurmaMae = function(){
+  document.getElementById('dm-turma-mae-overlay').style.display = 'none';
+};
+
+function renderTurmaMaeDashBody(){
+  const body = document.getElementById('dm-turma-mae-body');
+  if(!body || !_turmaMaeAtualDash) return;
+  const copias = _turmas.filter(t=>t.turmaMaeId===_turmaMaeAtualDash && t.criadoPor===_uid);
+  if(copias.length===0){
+    body.innerHTML = '<div class="ob-empty">Você ainda não criou nenhuma disciplina nesta turma. Toque em "+ Nova disciplina" acima.</div>';
+    return;
+  }
+  body.innerHTML = copias.map(t=>`
+    <div class="dm-item${t.ativo===false?' inativo':''}" onclick="${t.ativo===false?'':`fecharModalTurmaMae();openTurmaScreen('${t.id}')`}" style="${t.ativo===false?'':'cursor:pointer;'}">
+      <div class="dm-item-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="6" y="4" width="12" height="18" rx="2"/><path d="M9 14l2 2 4-4"/></svg></div>
+      <div class="dm-item-info">
+        <div class="dm-item-name">${t.disciplina||'Sem nome'}${t.ativo===false?' (arquivada)':''}</div>
+        <div class="dm-item-sub">${t.atividades||0} atividades · ${(t.alunos||[]).filter(a=>a.ativo!==false).length} aluno(s)</div>
+      </div>
+    </div>`).join('');
+}
+
+window.abrirNovaDisciplinaModal = function(){
+  if(!_turmaMaeAtualDash) return;
+  document.getElementById('nd-disciplina').value = '';
+  document.getElementById('nd-atividades').value = '';
+  clearMsg('nd-msg');
+  document.getElementById('nova-disciplina-modal').style.display = 'flex';
+};
+window.fecharNovaDisciplinaModal = function(){
+  document.getElementById('nova-disciplina-modal').style.display = 'none';
+};
+window.confirmarNovaDisciplina = async function(){
+  const disciplina = document.getElementById('nd-disciplina').value.trim();
+  const atividades = document.getElementById('nd-atividades').value.trim();
+  if(!disciplina){ showMsg('nd-msg','Informe a disciplina.','error'); return; }
+  if(!_turmaMaeAtualDash) return;
+
+  showLoading('Criando disciplina...');
+  const res = await criarCopiaTurmaDisciplina(_turmaMaeAtualDash, disciplina, atividades);
+  hideLoading();
+  if(!res.ok){ showMsg('nd-msg', res.msg, 'error'); return; }
+
+  fecharNovaDisciplinaModal();
+  try { await carregarEscolasGeridas(); } catch(e){ console.warn(e); }
+  renderTurmaMaeDashBody();
+  renderDashboard();
+  showToast('Disciplina criada! ','success');
+};
+
 // ── Entrar numa escola gerida por código (item 3 e 4) ─────────────────
 // Usada tanto no cadastro (onboarding) quanto na tela de perfil, pra
 // vincular o professor a uma escola com gestão/coordenação.
@@ -3982,6 +4150,30 @@ window._gestaoEscolherEAbrir = function(){
   if(gerenciaveis[idx]) abrirGestaoEscola(gerenciaveis[idx].id);
 };
 
+// Mostra, direto no dashboard, o código de cada escola gerida da qual o
+// usuário é gestor(a) ou coordenador(a) — pra copiar e passar pra equipe
+// sem precisar entrar na tela de Gestão.
+function renderDashboardCodigosEscola(){
+  const wrap = document.getElementById('dash-codigos-escola-wrap');
+  if(!wrap) return;
+  const gerenciaveis = _escolasGeridas.filter(e => (e.role==='gestor' || e.role==='coordenador') && e.codigo);
+  if(gerenciaveis.length===0){ wrap.innerHTML=''; return; }
+  wrap.innerHTML = gerenciaveis.map(e => `
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#eef5ff;border:1px solid #cfe0f7;
+                border-radius:10px;padding:10px 14px;margin-bottom:8px;">
+      <span style="font-size:.8rem;color:var(--pe-navy);"><strong>${e.nome}</strong> — código de acesso:</span>
+      <span style="font-weight:800;letter-spacing:1px;background:#fff;padding:3px 10px;border-radius:8px;font-size:.85rem;">${e.codigo}</span>
+      <button onclick="_copiarCodigoEscolaDash('${e.codigo}')"
+        style="margin-left:auto;background:var(--pe-blue);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:.75rem;font-weight:700;cursor:pointer;">
+        Copiar código
+      </button>
+    </div>`).join('');
+}
+window._copiarCodigoEscolaDash = function(codigo){
+  navigator.clipboard?.writeText(codigo).then(()=>showToast('Código copiado! ','success'))
+    .catch(()=>showToast(codigo,'info'));
+};
+
 window.abrirGestaoEscola = async function(escolaId){
   const escola = _escolasGeridas.find(e=>e.id===escolaId);
   if(!escola){ showToast('Escola não encontrada.','error'); return; }
@@ -4035,14 +4227,18 @@ function renderGestaoTurmas(){
 
   const renderItem = (t) => {
     const responsavel = t.criadoPor===_uid ? 'Você' : (_gestaoEquipe.find(p=>p.uid===t.criadoPor)?.nome || 'Outro(a) professor(a)');
+    const tagGenerica = t.generica ? ' <span style="font-size:.65rem;font-weight:700;background:#eef5ff;color:var(--pe-blue);padding:1px 7px;border-radius:8px;">Genérica</span>' : '';
+    const disciplinaOuInfo = t.generica
+      ? 'Sem disciplina — cada professor cria sua própria cópia'
+      : (t.turmaMaeId ? `${t.disciplina||'(sem disciplina)'} · cópia da turma genérica` : (t.disciplina||''));
     return `
     <div class="gestao-list-item${t.ativo===false?' inativa':''}">
       <div class="gestao-list-item-info">
-        <div class="gestao-list-item-name">${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}${t.ativo===false?' <span style="color:var(--pe-muted);font-weight:400;">(arquivada)</span>':''}</div>
-        <div class="gestao-list-item-sub">${t.turno? turnoLabel(t.turno)+' · ':''}${t.disciplina||''} · Responsável: ${responsavel} · ${(t.alunos||[]).filter(a=>a.ativo!==false).length} aluno(s)</div>
+        <div class="gestao-list-item-name">${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}${tagGenerica}${t.ativo===false?' <span style="color:var(--pe-muted);font-weight:400;">(arquivada)</span>':''}</div>
+        <div class="gestao-list-item-sub">${t.turno? turnoLabel(t.turno)+' · ':''}${disciplinaOuInfo} · Responsável: ${responsavel} · ${(t.alunos||[]).filter(a=>a.ativo!==false).length} aluno(s)</div>
       </div>
       <div class="gestao-list-item-actions">
-        <button class="pe-act-btn pe-act-edit" onclick="window.openTurmaScreen('${t.id}')">Ver</button>
+        <button class="pe-act-btn pe-act-edit" onclick="${t.generica ? `window.openEditTurma('${t.id}')` : `window.openTurmaScreen('${t.id}')`}">${t.generica ? 'Editar alunos' : 'Ver'}</button>
         ${t.ativo===false
           ? `<button class="pe-act-btn pe-act-react" onclick="gestaoReativarTurma('${t.id}')">Reativar</button>
              <button class="pe-act-btn pe-act-del" onclick="gestaoExcluirTurma('${t.id}')">Excluir</button>`
@@ -4067,13 +4263,13 @@ window.gestaoCriarTurma = async function(){
   const turno  = document.getElementById('gt-turno').value;
   const serie  = document.getElementById('gt-serie').value.trim();
   const turma  = document.getElementById('gt-turma').value.trim();
-  const ativ   = document.getElementById('gt-ativ').value.trim();
-  const disc   = document.getElementById('gt-disc').value.trim();
 
   if(!ano || !nivel || !turno || !serie || !turma){
     showMsg('gestao-turmas-msg','Preencha ano, nível, turno, série e turma.','error');
     return;
   }
+  const alunosTexto = document.getElementById('gt-alunos').value;
+  const alunos = parseStudents(alunosTexto).map(nome=>({ nome, ativo:true }));
   showLoading('Criando turma...');
   try {
     await addDoc(collection(db,'escolas',_gestaoEscolaAtual.id,'turmas'),{
@@ -4083,10 +4279,11 @@ window.gestaoCriarTurma = async function(){
       nome:          `${serie} ${turma}`,
       anoLetivo:     parseInt(ano)||new Date().getFullYear(),
       nivel, turno, serie, turma,
-      disciplina:    disc,
-      atividades:    parseInt(ativ)||0,
+      disciplina:    '',
+      atividades:    0,
+      generica:      true,
       sistema:       _gestaoEscolaAtual.sistema||'bimestral',
-      alunos:        [],
+      alunos,
       ativo:         true,
       criadoPor:     _uid,
       criadoPorRole: _gestaoEscolaAtual.role,
@@ -4095,11 +4292,11 @@ window.gestaoCriarTurma = async function(){
     await carregarEscolasGeridas();
     hideLoading();
     clearMsg('gestao-turmas-msg');
-    ['gt-ano','gt-serie','gt-turma','gt-ativ','gt-disc'].forEach(id=>document.getElementById(id).value='');
+    ['gt-ano','gt-serie','gt-turma','gt-alunos'].forEach(id=>document.getElementById(id).value='');
     document.getElementById('gt-nivel').value='';
     document.getElementById('gt-turno').value='';
     renderGestaoTurmas();
-    showToast('Turma criada! ','success');
+    showToast('Turma criada! Cada professor já pode entrar e copiar pra sua disciplina.','success');
   } catch(e){
     console.error('Erro ao criar turma da escola:', e);
     hideLoading();
@@ -4256,7 +4453,7 @@ async function calcularResumoOficialTurma(turma){
 async function renderGestaoRendimento(){
   const list = document.getElementById('gestao-rendimento-list');
   if(!list || !_gestaoEscolaAtual) return;
-  const turmas = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.ativo!==false);
+  const turmas = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.ativo!==false && !t.generica);
   if(turmas.length===0){
     list.innerHTML = '<div class="ob-empty">Nenhuma turma ativa nesta escola.</div>';
     return;
@@ -4310,7 +4507,7 @@ async function renderGestaoRendimento(){
 window.gestaoExportarPDF = async function(){
   if(!_gestaoEscolaAtual) return;
   showLoading('Preparando PDF...');
-  const turmas = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.ativo!==false);
+  const turmas = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.ativo!==false && !t.generica);
 
   const linhas = await Promise.all(turmas.map(async t=>{
     let resumo = null;
@@ -5718,9 +5915,10 @@ function renderDashboard(){
   // Popular select de backup por escola no card do dashboard
   _renderDashBkpEscolasSel();
   renderDashboardGestaoBtn();
+  renderDashboardCodigosEscola();
 
-  const ativas   = _turmas.filter(t=>t.ativo!==false);
-  const inativas = _turmas.filter(t=>t.ativo===false);
+  const ativas   = _turmas.filter(t=>t.ativo!==false && !t.generica);
+  const inativas = _turmas.filter(t=>t.ativo===false && !t.generica);
   const totalAlunos = ativas.reduce((acc,t)=>acc+(t.alunos?.filter(a=>a.ativo!==false).length||0),0);
 
   document.getElementById('stat-escolas').textContent       = _escolas.length;
@@ -5769,8 +5967,14 @@ function renderDashboard(){
   // Filtrar por ano e escola
   let turmasFiltradas = _anoFiltro!==null ? _turmas.filter(t=>(t.anoLetivo||new Date().getFullYear())===_anoFiltro) : _turmas;
   if(_escolaFiltro) turmasFiltradas = turmasFiltradas.filter(t=>t.escolaId===_escolaFiltro);
-  const ativasFilt   = sortTurmas(turmasFiltradas.filter(t=>t.ativo!==false));
-  const inativasFilt = sortTurmas(turmasFiltradas.filter(t=>t.ativo===false));
+
+  // Turmas genéricas (moldes criados pela gestão) viram UM card de
+  // agrupamento — clicar mostra/gerencia as cópias por disciplina deste
+  // usuário. As demais (pessoais ou cópias já feitas) seguem como sempre.
+  const turmasMaeAtivas = sortTurmas(turmasFiltradas.filter(t=>t.generica && t.ativo!==false));
+  const turmasRestantes = turmasFiltradas.filter(t=>!t.generica);
+  const ativasFilt   = sortTurmas(turmasRestantes.filter(t=>t.ativo!==false));
+  const inativasFilt = sortTurmas(turmasRestantes.filter(t=>t.ativo===false));
 
   const renderCard = (t, isInativa)=>{
     const tagC = t.escolaTipo==='municipal'?'tag-municipal':'tag-estadual';
@@ -5793,8 +5997,28 @@ function renderDashboard(){
     </div>`;
   };
 
-  let html = ativasFilt.map(t=>renderCard(t,false)).join('');
-  if(ativasFilt.length===0 && inativasFilt.length===0){
+  const renderTurmaMaeCard = (t)=>{
+    const tagC = t.escolaTipo==='municipal'?'tag-municipal':'tag-estadual';
+    const tagL = escolaTipoLabel(t.escolaTipo);
+    const minhasDisciplinas = _turmas.filter(x=>x.turmaMaeId===t.id && x.criadoPor===_uid && x.ativo!==false).length;
+    const totalAlunos = (t.alunos||[]).filter(a=>a.ativo!==false).length;
+    return `
+    <div class="turma-mini" onclick="abrirTurmaMaeDash('${t.id}')" style="cursor:pointer;border-style:dashed;border-color:var(--pe-blue);">
+      <div class="turma-mini-badge ${tagC}">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M3 21h18"/><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M6 10.5V16c0 1.1 2.7 2 6 2s6-.9 6-2v-5.5"/></svg> ${t.escolaNome||'Escola'}
+        <span style="background:rgba(0,0,0,.1);padding:1px 6px;border-radius:8px;margin-left:4px;">${tagL}</span>
+      </div>
+      <div class="turma-mini-name">${t.serie||''} ${t.turma||''} — ${nivelLabel(t.nivel)}</div>
+      <div class="turma-mini-escola">${turnoLabel(t.turno)} · ${t.anoLetivo||'—'} · Turma da escola (todas as disciplinas)</div>
+      <div class="turma-mini-meta">
+        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg> <strong>${totalAlunos}</strong> aluno(s)</span>
+        <span style="color:var(--pe-blue);font-weight:700;">${minhasDisciplinas ? minhasDisciplinas+' disciplina(s) sua(s) →' : '+ Copiar pra sua disciplina'}</span>
+      </div>
+    </div>`;
+  };
+
+  let html = turmasMaeAtivas.map(renderTurmaMaeCard).join('') + ativasFilt.map(t=>renderCard(t,false)).join('');
+  if(turmasMaeAtivas.length===0 && ativasFilt.length===0 && inativasFilt.length===0){
     html='<div class="ob-empty" style="grid-column:1/-1;">Nenhuma turma para este ano letivo.</div>';
   }
   if(inativasFilt.length>0){
@@ -5959,7 +6183,7 @@ window.renderModalTurmasDash = function(){
   const mostrarInativas = document.getElementById('dm-trm-mostrar-inativas')?.checked;
   const body = document.getElementById('dm-turmas-dash-body');
   if(!body) return;
-  let turmas = [..._turmas];
+  let turmas = [..._turmas].filter(t=>!t.generica);
   if(!mostrarInativas) turmas = turmas.filter(t => t.ativo !== false);
   turmas.sort((a,b) => {
     const ea = (_escolas.find(e=>e.id===a.escolaId)||{}).nome||'';
@@ -6410,15 +6634,25 @@ window.saveTurmaModal = async function(){
       updatedAt: serverTimestamp()
     },{merge:true});
     const idx = _turmas.findIndex(t=>t.id===id);
+    const eraGenerica = idx!==-1 && _turmas[idx].generica === true;
     if(idx!==-1){
       _turmas[idx].atividades = ativ;
       _turmas[idx].disciplina = disc;
       _turmas[idx].alunos     = alunosNorm;
     }
+
+    let copiasSincronizadas = 0;
+    if(eraGenerica){
+      showLoading('Sincronizando com as disciplinas já criadas...');
+      copiasSincronizadas = await sincronizarCopiasDaTurmaGenerica(id, alunosNorm);
+    }
+
     closeTurmaModal();
     renderDashboard();
     showToast(
-      precisaRemapear
+      copiasSincronizadas>0
+        ? `Turma atualizada e sincronizada com ${copiasSincronizadas} disciplina(s) já criada(s)! <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`
+      : precisaRemapear
         ? 'Turma atualizada e notas já lançadas reajustadas pra nova ordem! <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>'
         : 'Turma atualizada com sucesso! <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>',
       'success'
@@ -12110,10 +12344,12 @@ const modaisDisplay = [
 'dm-escolas-overlay',
 'dm-turmas-overlay',
 'dm-alunos-overlay',
+'dm-turma-mae-overlay',
 'phone-modal-overlay',
 'escola-tipo-modal',
 'nova-escola-modal',
 'nova-turma-modal',
+'nova-disciplina-modal',
 'excluir-conta-modal',
 ];
 for (const id of modaisDisplay) {
@@ -12188,6 +12424,46 @@ return false;
       </label>
     </div>
     <div class="dash-modal-body" id="dm-escolas-body"></div>
+  </div>
+</div>
+
+<!-- ── Modal: turma genérica — disciplinas que este professor já copiou ── -->
+<div id="dm-turma-mae-overlay" class="dash-modal-overlay" style="display:none;"
+     onclick="if(event.target===this)fecharModalTurmaMae()">
+  <div class="dash-modal">
+    <div class="dash-modal-header">
+      <h3 id="dm-turma-mae-titulo">Turma</h3>
+      <button onclick="fecharModalTurmaMae()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
+    </div>
+    <div class="dash-modal-toolbar">
+      <button onclick="abrirNovaDisciplinaModal()">+ Nova disciplina</button>
+    </div>
+    <div class="dash-modal-body" id="dm-turma-mae-body"></div>
+  </div>
+</div>
+
+<!-- ── Modal: criar nova disciplina (cópia da turma genérica) ── -->
+<div id="nova-disciplina-modal" style="display:none;position:fixed;inset:0;z-index:3002;
+  background:rgba(0,0,0,.55);align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:var(--radius-lg);width:100%;max-width:400px;box-shadow:var(--shadow-lg);overflow:hidden;">
+    <div style="background:var(--pe-blue);padding:16px 20px;">
+      <h3 style="color:#fff;font-size:1rem;font-weight:800;">Nova disciplina nesta turma</h3>
+    </div>
+    <div style="padding:18px 20px;">
+      <div class="ob-field">
+        <label for="nd-disciplina">Disciplina *</label>
+        <input type="text" id="nd-disciplina" placeholder="Ex.: Matemática">
+      </div>
+      <div class="ob-field">
+        <label for="nd-atividades">Nº de atividades</label>
+        <input type="number" id="nd-atividades" min="1" max="99" placeholder="Ex.: 4">
+      </div>
+      <div class="ob-msg" id="nd-msg"></div>
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+        <button class="ob-btn ob-btn-ghost" onclick="fecharNovaDisciplinaModal()">Cancelar</button>
+        <button class="ob-btn ob-btn-primary" onclick="confirmarNovaDisciplina()">Criar</button>
+      </div>
+    </div>
   </div>
 </div>
 
