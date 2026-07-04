@@ -2630,8 +2630,6 @@ body.dark-mode .stat-card-btn:active{
       Minhas turmas
     </div>
 
-    <div id="dash-gestao-criar-turma-wrap"></div>
-
     <!-- FAB de backup: ver #dash-bkp-fab abaixo -->
     <div class="escola-filter-row" id="escola-filter-row"></div>
     <div class="ano-filter-row" id="ano-filter-row"></div>
@@ -3118,8 +3116,8 @@ body.dark-mode .stat-card-btn:active{
     background:#fff;border-radius:var(--radius-lg);width:100%;max-width:520px;
     box-shadow:var(--shadow-lg);overflow:hidden;animation:fadeUp .3s ease both;margin:auto;">
     <div style="background:var(--pe-navy);padding:18px 22px;position:relative;">
-      <h3 style="color:#fff;font-size:1rem;font-weight:800;">Adicionar nova turma</h3>
-      <p style="color:var(--pe-cyan);font-size:.75rem;margin-top:3px;">
+      <h3 id="nt-titulo" style="color:#fff;font-size:1rem;font-weight:800;">Adicionar nova turma</h3>
+      <p id="nt-subtitulo" style="color:var(--pe-cyan);font-size:.75rem;margin-top:3px;">
         A turma será criada e vinculada à escola selecionada.
       </p>
       <div class="brand-line" style="bottom:0;left:0;right:0;height:3px;display:flex;position:absolute;">
@@ -3130,7 +3128,7 @@ body.dark-mode .stat-card-btn:active{
 
       <!-- Escola vinculada -->
       <div class="ob-field" style="margin-bottom:14px;">
-        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+        <label id="nt-escola-label" style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
           Escola vinculada *
         </label>
         <select id="nt-escola" style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;background:#fafafa;">
@@ -3188,7 +3186,7 @@ body.dark-mode .stat-card-btn:active{
             style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;"
             onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
         </div>
-        <div class="ob-field">
+        <div class="ob-field" id="nt-atividades-wrap">
           <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
             N° de atividades
           </label>
@@ -3196,7 +3194,7 @@ body.dark-mode .stat-card-btn:active{
             style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;outline:none;"
             onfocus="this.style.borderColor='var(--pe-blue)'" onblur="this.style.borderColor='var(--pe-border)'">
         </div>
-        <div class="ob-field" style="grid-column:span 2;">
+        <div class="ob-field" id="nt-disciplina-wrap" style="grid-column:span 2;">
           <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
             Disciplina(s)
           </label>
@@ -3866,70 +3864,9 @@ async function criarCopiaTurmaDisciplina(turmaMaeId, disciplina, atividades){
   }
 }
 
-// Formulário de criar turma genérica, embutido em "Minhas turmas" — só
-// aparece pra quem é gestor(a)/coordenador(a) de alguma escola. É aqui
-// (não mais no modal "Turmas da escola") que a turma-molde é criada/editada.
+// Estado usado pelas telas de turma genérica (modal de disciplinas do
+// dashboard e sincronização com as cópias).
 let _turmaMaeAtualDash = null;
-
-function renderGestaoCriarTurmaInline(){
-  const wrap = document.getElementById('dash-gestao-criar-turma-wrap');
-  if(!wrap) return;
-  const gerenciaveis = _escolasGeridas.filter(e => e.role==='gestor' || e.role==='coordenador');
-  if(gerenciaveis.length===0){ wrap.innerHTML=''; return; }
-
-  if(!_gestaoEscolaAtual || !gerenciaveis.some(e=>e.id===_gestaoEscolaAtual.id)){
-    _gestaoEscolaAtual = gerenciaveis[0];
-  }
-
-  const seletorHTML = gerenciaveis.length>1
-    ? `<select id="gci-escola-select" onchange="_gestaoTrocarEscolaCriarTurma(this.value)"
-         style="font-size:.78rem;font-weight:700;padding:5px 10px;border-radius:8px;
-                border:1.5px solid var(--pe-border);color:var(--pe-navy);background:#fff;margin-left:auto;">
-         ${gerenciaveis.map(e=>`<option value="${e.id}" ${e.id===_gestaoEscolaAtual.id?'selected':''}>${e.nome}</option>`).join('')}
-       </select>`
-    : '';
-
-  wrap.innerHTML = `
-    <div class="profile-section">
-      <div class="profile-section-header" style="display:flex;align-items:center;gap:10px;">
-        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M3 21h18"/><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M6 10.5V16c0 1.1 2.7 2 6 2s6-.9 6-2v-5.5"/></svg> Turmas genéricas — ${_gestaoEscolaAtual.nome}</h3>
-        ${seletorHTML}
-      </div>
-      <div class="profile-section-body">
-        <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:8px;">
-          Crie a turma de forma genérica (só a turma em si — sem disciplina). Depois, cada
-          professor entra e faz sua própria cópia dessa turma pra disciplina que leciona. As
-          turmas copiadas pelos professores ficam visíveis no card "Turmas da escola", com
-          filtros por professor, disciplina e turno.
-        </div>
-        <div class="add-turma-grid">
-          <input type="number" id="gt-ano" placeholder="Ano letivo * (ex.: 2025)" min="2020" max="2040" style="grid-column:span 2">
-          <select id="gt-nivel" style="grid-column:span 2">
-            <option value="">Nível de ensino *</option>
-            <option value="fund2">Fundamental II</option>
-            <option value="medio">Ensino Médio</option>
-          </select>
-          <select id="gt-turno">
-            <option value="">Turno *</option>
-            <option value="manha">Manhã</option>
-            <option value="tarde">Tarde</option>
-            <option value="turno1">Turno 1</option>
-            <option value="turno2">Turno 2</option>
-          </select>
-          <input type="text" id="gt-serie" placeholder="Série * (ex.: 6º, 7º, 1ª)">
-          <input type="text" id="gt-turma" placeholder="Turma * (ex.: A, B, C)" style="grid-column:span 2">
-          <textarea id="gt-alunos" placeholder="Cole aqui a lista de alunos, um por linha (opcional — dá pra adicionar depois também)"
-            style="grid-column:span 2;min-height:80px;padding:10px;border:1px solid var(--pe-border,#ccc);border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;"></textarea>
-        </div>
-        <button class="btn-sm btn-sm-primary" style="margin-top:10px;" onclick="gestaoCriarTurma()">+ Adicionar turma</button>
-        <div class="ob-msg" id="gestao-turmas-msg"></div>
-      </div>
-    </div>`;
-}
-window._gestaoTrocarEscolaCriarTurma = function(novoId){
-  const escola = _escolasGeridas.find(e=>e.id===novoId);
-  if(escola){ _gestaoEscolaAtual = escola; renderGestaoCriarTurmaInline(); }
-};
 
 // ── Sincroniza cópias por disciplina quando a turma genérica é editada ──
 // Sincroniza por NOME (não por posição), pra nunca bagunçar notas já
@@ -4377,54 +4314,6 @@ function renderGestaoTurmas(){
   }
   list.innerHTML = html;
 }
-
-window.gestaoCriarTurma = async function(){
-  if(!_gestaoEscolaAtual) return;
-  const ano    = document.getElementById('gt-ano').value.trim();
-  const nivel  = document.getElementById('gt-nivel').value;
-  const turno  = document.getElementById('gt-turno').value;
-  const serie  = document.getElementById('gt-serie').value.trim();
-  const turma  = document.getElementById('gt-turma').value.trim();
-
-  if(!ano || !nivel || !turno || !serie || !turma){
-    showMsg('gestao-turmas-msg','Preencha ano, nível, turno, série e turma.','error');
-    return;
-  }
-  const alunosTexto = document.getElementById('gt-alunos').value;
-  const alunos = parseStudents(alunosTexto).map(nome=>({ nome, ativo:true }));
-  showLoading('Criando turma...');
-  try {
-    await addDoc(collection(db,'escolas',_gestaoEscolaAtual.id,'turmas'),{
-      escolaId:      _gestaoEscolaAtual.id,
-      escolaNome:    _gestaoEscolaAtual.nome,
-      escolaTipo:    _gestaoEscolaAtual.tipo,
-      nome:          `${serie} ${turma}`,
-      anoLetivo:     parseInt(ano)||new Date().getFullYear(),
-      nivel, turno, serie, turma,
-      disciplina:    '',
-      atividades:    0,
-      generica:      true,
-      sistema:       _gestaoEscolaAtual.sistema||'bimestral',
-      alunos,
-      ativo:         true,
-      criadoPor:     _uid,
-      criadoPorRole: _gestaoEscolaAtual.role,
-      criadoEm:      serverTimestamp()
-    });
-    await carregarEscolasGeridas();
-    hideLoading();
-    clearMsg('gestao-turmas-msg');
-    ['gt-ano','gt-serie','gt-turma','gt-alunos'].forEach(id=>document.getElementById(id).value='');
-    document.getElementById('gt-nivel').value='';
-    document.getElementById('gt-turno').value='';
-    renderDashboard();
-    showToast('Turma criada! Cada professor já pode entrar e copiar pra sua disciplina.','success');
-  } catch(e){
-    console.error('Erro ao criar turma da escola:', e);
-    hideLoading();
-    showMsg('gestao-turmas-msg','Não foi possível criar a turma agora.','error');
-  }
-};
 
 window.gestaoArquivarTurma = async function(turmaId){
   try {
@@ -6069,7 +5958,6 @@ function renderDashboard(){
   renderDashboardGestaoBtn();
   renderDashboardCodigosEscola();
   renderTurmasDisponiveisParaCopiar();
-  renderGestaoCriarTurmaInline();
 
   const ativas   = _turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t));
   const inativas = _turmas.filter(t=>t.ativo===false && !ehTurmaGenerica(t));
@@ -12053,19 +11941,56 @@ window.saveNovaEscola = async function(){
 // ══════════════════════════════════════════════════════════════════════
 // NOVA TURMA — modal do dashboard
 // ══════════════════════════════════════════════════════════════════════
-window.openNovaTurmaModal = function(){
-  const escolasAtivas = _escolas.filter(e=>e.ativo!==false);
-  if(escolasAtivas.length === 0){
-    showToast('Cadastre uma escola primeiro antes de adicionar turmas.', 'error');
-    return;
-  }
+let _novaTurmaModoGenerica = false;
 
+// Decide qual modo abrir: se o usuário gerencia alguma escola (gestor ou
+// coordenador), o cadastro de turma vira o de turma genérica da escola;
+// senão, é o cadastro pessoal de sempre.
+window.abrirNovaTurmaOuGenerica = function(){
+  const gerenciaveis = _escolasGeridas.filter(e => e.role==='gestor' || e.role==='coordenador');
+  openNovaTurmaModal(gerenciaveis.length > 0);
+};
+
+window.openNovaTurmaModal = function(generica){
+  _novaTurmaModoGenerica = !!generica;
   const modal = document.getElementById('nova-turma-modal');
   if(!modal) return;
 
-  // Preenche select de escolas
-  const sel = document.getElementById('nt-escola');
-  sel.innerHTML = escolasAtivas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+  const sel   = document.getElementById('nt-escola');
+  const titulo = document.getElementById('nt-titulo');
+  const sub    = document.getElementById('nt-subtitulo');
+  const escolaLabel = document.getElementById('nt-escola-label');
+  const atvWrap  = document.getElementById('nt-atividades-wrap');
+  const discWrap = document.getElementById('nt-disciplina-wrap');
+
+  if(_novaTurmaModoGenerica){
+    // Turma genérica de escola gerida — só a gestão/coordenação chega aqui
+    const gerenciaveis = _escolasGeridas.filter(e => e.role==='gestor' || e.role==='coordenador');
+    if(gerenciaveis.length===0){
+      showToast('Você não gerencia nenhuma escola.','error');
+      return;
+    }
+    sel.innerHTML = gerenciaveis.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+    titulo.textContent = 'Nova turma genérica';
+    sub.textContent = 'Só a turma em si (sem disciplina) — cada professor faz sua própria cópia depois.';
+    escolaLabel.textContent = 'Escola *';
+    atvWrap.style.display = 'none';
+    discWrap.style.display = 'none';
+  } else {
+    // Turma pessoal (sem vínculo) — só escolas sem gestão aparecem aqui;
+    // escolas com código/gestão têm sua turma genérica criada pelo botão acima.
+    const escolasAtivas = _escolas.filter(e=>e.ativo!==false && !e.gerida);
+    if(escolasAtivas.length === 0){
+      showToast('Cadastre uma escola primeiro antes de adicionar turmas.', 'error');
+      return;
+    }
+    sel.innerHTML = escolasAtivas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
+    titulo.textContent = 'Adicionar nova turma';
+    sub.textContent = 'A turma será criada e vinculada à escola selecionada.';
+    escolaLabel.textContent = 'Escola vinculada *';
+    atvWrap.style.display = '';
+    discWrap.style.display = '';
+  }
 
   // Preenche ano letivo padrão
   document.getElementById('nt-ano').value         = new Date().getFullYear();
@@ -12096,8 +12021,8 @@ window.saveNovaTurma = async function(){
   const turno     = document.getElementById('nt-turno').value;
   const serieVal  = document.getElementById('nt-serie').value.trim();
   const turmaVal  = document.getElementById('nt-turma').value.trim();
-  const atividades= parseInt(document.getElementById('nt-atividades').value)||0;
-  const disciplina= document.getElementById('nt-disciplina').value.trim();
+  const atividades= _novaTurmaModoGenerica ? 0 : (parseInt(document.getElementById('nt-atividades').value)||0);
+  const disciplina= _novaTurmaModoGenerica ? '' : document.getElementById('nt-disciplina').value.trim();
   const alunosRaw = document.getElementById('nt-alunos').value;
   const msgEl     = document.getElementById('nt-msg');
 
@@ -12107,17 +12032,63 @@ window.saveNovaTurma = async function(){
     return;
   }
 
+  const alunos = parseStudents(alunosRaw);
+  const btn = document.querySelector('#nova-turma-modal button:last-child');
+  if(btn){ btn.disabled = true; btn.textContent = 'Criando...'; }
+
+  // ── Modo turma genérica (escola com gestão/coordenação) ────────────────
+  if(_novaTurmaModoGenerica){
+    const escola = _escolasGeridas.find(e=>e.id===escolaId);
+    if(!escola){
+      msgEl.textContent = 'Escola não encontrada. Recarregue a página.';
+      msgEl.className   = 'auth-msg error';
+      if(btn){ btn.disabled=false; btn.textContent='Criar turma'; }
+      return;
+    }
+    try {
+      showLoading('Criando turma...');
+      const turmaRef = await addDoc(collection(db,'escolas',escolaId,'turmas'),{
+        escolaId,
+        escolaNome:    escola.nome,
+        escolaTipo:    escola.tipo,
+        nome:          `${serieVal} ${turmaVal}`,
+        anoLetivo:     ano,
+        nivel, turno,
+        serie:         serieVal,
+        turma:         turmaVal,
+        disciplina:    '',
+        atividades:    0,
+        generica:      true,
+        sistema:       escola.sistema || 'bimestral',
+        alunos:        alunos.map(nome=>({ nome, ativo:true })),
+        ativo:         true,
+        criadoPor:     _uid,
+        criadoPorRole: escola.role,
+        criadoEm:      serverTimestamp()
+      });
+      await carregarEscolasGeridas();
+      closeNovaTurmaModal();
+      _anoFiltro = ano;
+      renderDashboard();
+      showToast(`Turma "${serieVal} ${turmaVal}" criada! Cada professor já pode copiar pra sua disciplina.`, 'success');
+    } catch(e){
+      msgEl.textContent = 'Erro ao criar turma: ' + e.message;
+      msgEl.className   = 'auth-msg error';
+    } finally {
+      hideLoading();
+      if(btn){ btn.disabled = false; btn.textContent = 'Criar turma'; }
+    }
+    return;
+  }
+
+  // ── Modo turma pessoal (sem vínculo) — como já era ──────────────────────
   const escola = _escolas.find(e=>e.id===escolaId);
   if(!escola){
     msgEl.textContent = 'Escola não encontrada. Recarregue a página.';
     msgEl.className   = 'auth-msg error';
+    if(btn){ btn.disabled=false; btn.textContent='Criar turma'; }
     return;
   }
-
-  const alunos = parseStudents(alunosRaw);
-
-  const btn = document.querySelector('#nova-turma-modal button:last-child');
-  if(btn){ btn.disabled = true; btn.textContent = 'Criando...'; }
 
   try {
     showLoading('Criando turma...');
@@ -12769,7 +12740,7 @@ return false;
       <button onclick="fecharModalTurmasDash()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
     </div>
     <div class="dash-modal-toolbar">
-      <button onclick="fecharModalTurmasDash();openNovaTurmaModal()">+ Nova Turma</button>
+      <button onclick="fecharModalTurmasDash();abrirNovaTurmaOuGenerica()">+ Nova Turma</button>
       <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;color:var(--pe-muted);margin-left:auto;cursor:pointer;">
         <input type="checkbox" id="dm-trm-mostrar-inativas" onchange="renderModalTurmasDash()"> Mostrar inativas
       </label>
