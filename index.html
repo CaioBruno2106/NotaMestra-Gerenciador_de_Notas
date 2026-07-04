@@ -4107,9 +4107,27 @@ function renderDashboardCodigosEscola(){
       </button>
     </div>`).join('');
 }
+// ── Copiar pra área de transferência ────────────────────────────────────
+// Dentro do app Android empacotado (WebView carregada de file://), a
+// Clipboard API do navegador é conhecida por falhar silenciosamente em
+// alguns aparelhos. Se existir a ponte nativa (AndroidApp.copiarTexto),
+// usa ela — é sempre confiável. Fora do app (navegador normal), usa a
+// Clipboard API padrão.
+function copiarParaAreaDeTransferencia(texto, mensagemSucesso){
+  if(typeof AndroidApp !== 'undefined' && typeof AndroidApp.copiarTexto === 'function'){
+    try {
+      AndroidApp.copiarTexto(texto);
+      showToast(mensagemSucesso || 'Copiado! ','success');
+      return;
+    } catch(e){ console.warn('Erro na ponte nativa de copiar, tentando clipboard do navegador:', e); }
+  }
+  navigator.clipboard?.writeText(texto)
+    .then(()=>showToast(mensagemSucesso || 'Copiado! ','success'))
+    .catch(()=>showToast(texto,'info'));
+}
+
 window._copiarCodigoEscolaDash = function(codigo){
-  navigator.clipboard?.writeText(codigo).then(()=>showToast('Código copiado! ','success'))
-    .catch(()=>showToast(codigo,'info'));
+  copiarParaAreaDeTransferencia(codigo, 'Código copiado! ');
 };
 
 // ── Preferência: minimizar "Turmas disponíveis pra copiar" ────────────
@@ -4456,14 +4474,21 @@ window.gestaoRemoverFuncionario = async function(uid){
 window.copiarCodigoEscolaGestao = function(){
   const input = document.getElementById('gestao-codigo-escola');
   if(!input?.value) return;
-  navigator.clipboard?.writeText(input.value).then(()=>showToast('Código copiado! ','success'))
-    .catch(()=>{ input.select(); document.execCommand('copy'); showToast('Código copiado! ','success'); });
+  copiarParaAreaDeTransferencia(input.value, 'Código copiado! ');
 };
 window.copiarLinkEscolaGestao = function(){
   if(!_gestaoEscolaAtual?.codigo) return;
+  // Dentro do app Android empacotado, a página é carregada de um arquivo
+  // local (file:///android_asset/...) — não existe um endereço https://
+  // de verdade pra montar um link compartilhável. Nesse caso, copia só o
+  // código (que sempre funciona) em vez de gerar um link quebrado.
+  const dentroDoAppEmpacotado = location.protocol === 'file:' || typeof AndroidApp !== 'undefined';
+  if(dentroDoAppEmpacotado){
+    copiarParaAreaDeTransferencia(_gestaoEscolaAtual.codigo, 'Link não disponível aqui dentro do app — copiei o código no lugar.');
+    return;
+  }
   const link = `${location.origin}${location.pathname}?escola=${encodeURIComponent(_gestaoEscolaAtual.codigo)}`;
-  navigator.clipboard?.writeText(link).then(()=>showToast('Link copiado! ','success'))
-    .catch(()=>showToast(link,'info'));
+  copiarParaAreaDeTransferencia(link, 'Link copiado! ');
 };
 
 // ── ABA RENDIMENTO (somente leitura) ─────────────────────────────────────
