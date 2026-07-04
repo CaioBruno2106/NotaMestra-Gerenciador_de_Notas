@@ -3885,6 +3885,7 @@ async function sincronizarCopiasDaTurmaGenerica(turmaMaeId, alunosMae){
     if(!_turmaOrigem[copia.id]) continue; // segurança: só mexe em turmas de escola gerida
     let alunosCopia = (copia.alunos||[]).map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
     let mudou = false;
+    const adicionados = [], removidos = [], renomeados = [];
 
     alunosCopia = alunosCopia.map(a=>{
       const chave = _normNome(a.nome);
@@ -3892,10 +3893,12 @@ async function sincronizarCopiasDaTurmaGenerica(turmaMaeId, alunosMae){
       if(naMae){
         const nomeMae  = typeof naMae==='string' ? naMae : naMae.nome;
         const ativoMae = typeof naMae==='object' ? naMae.ativo!==false : true;
+        if(a.nome!==nomeMae && a.ativo!==false && ativoMae){ renomeados.push(`${a.nome} → ${nomeMae}`); }
+        if(a.ativo!==false && !ativoMae){ removidos.push(a.nome); }
         if(a.nome!==nomeMae || a.ativo!==ativoMae) mudou = true;
         return { ...a, nome:nomeMae, ativo:ativoMae };
       }
-      if(a.ativo!==false){ mudou = true; return { ...a, ativo:false }; }
+      if(a.ativo!==false){ mudou = true; removidos.push(a.nome); return { ...a, ativo:false }; }
       return a;
     });
 
@@ -3903,13 +3906,37 @@ async function sincronizarCopiasDaTurmaGenerica(turmaMaeId, alunosMae){
     const novos = alunosMae
       .filter(m=>!jaNaCopia.has(_normNome(typeof m==='string'?m:m.nome)))
       .map(m=>typeof m==='string'?{nome:m,ativo:true}:{...m});
-    if(novos.length){ alunosCopia = [...alunosCopia, ...novos]; mudou = true; }
+    if(novos.length){
+      alunosCopia = [...alunosCopia, ...novos];
+      novos.forEach(n=>adicionados.push(n.nome));
+      mudou = true;
+    }
 
     if(mudou){
       try {
         await setDoc(doc(db,...turmaPath(copia.id)), { alunos: alunosCopia }, { merge:true });
         copia.alunos = alunosCopia; // mantém o cache local coerente
         copiasAtualizadas++;
+
+        // Avisa o professor dono da cópia que a lista de alunos mudou.
+        const partes = [];
+        if(adicionados.length) partes.push(`${adicionados.length} adicionado(s)`);
+        if(removidos.length) partes.push(`${removidos.length} removido(s)`);
+        if(renomeados.length) partes.push(`${renomeados.length} renomeado(s)`);
+        const mensagem = partes.length
+          ? `A turma da escola foi atualizada: ${partes.join(', ')}.`
+          : 'A turma da escola foi atualizada.';
+        try {
+          await addDoc(collection(db,...turmaPath(copia.id),'avisos'), {
+            tipo: 'sincronizacaoGenerica',
+            mensagem,
+            adicionados, removidos, renomeados,
+            lida: false,
+            criadoEm: serverTimestamp()
+          });
+        } catch(e){
+          console.warn('Erro ao registrar aviso de sincronização para', copia.id, e);
+        }
       } catch(e){
         console.warn('Erro ao sincronizar cópia', copia.id, e);
       }
@@ -4250,7 +4277,11 @@ function renderGestaoTurmas(){
   const list = document.getElementById('gestao-turmas-list');
   if(!list || !_gestaoEscolaAtual) return;
 
-  const todasCopias = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.turmaMaeId);
+  // Qualquer turma "de professor" da escola — cópia por disciplina feita a
+  // partir da genérica (tem turmaMaeId) OU turma vinculada diretamente sem
+  // uma genérica correspondente. A única coisa que nunca aparece aqui é a
+  // própria turma genérica (ehTurmaGenerica), que se gerencia em "Minhas turmas".
+  const todasCopias = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && !ehTurmaGenerica(t));
 
   // Popular os filtros (professor / disciplina) com base no que existe
   // nesta escola — repopula sempre que a escola ativa mudar.
@@ -6093,7 +6124,7 @@ function renderDashboard(){
 // Move a turma inteira — incluindo notas já lançadas, importações e
 // consolidação — de users/{uid}/turmas pra escolas/{id}/turmas. É uma
 // migração de UMA turma por vez, feita explicitamente pelo usuário.
-async function vincularTurmaAEscolaGerida(turmaId, novaEscolaId){
+async function vincularTurmaAEscolaGerida(turmaId, novaEscolaId, turmaMae){
   const turma  = _turmas.find(t=>t.id===turmaId);
   const escola = _escolasGeridas.find(e=>e.id===novaEscolaId);
   if(!turma || !escola) return { ok:false, msg:'Turma ou escola não encontrada.' };
@@ -6103,14 +6134,35 @@ async function vincularTurmaAEscolaGerida(turmaId, novaEscolaId){
   try {
     const { id, escolaId, escolaNome, escolaTipo, ...dadosTurma } = turma;
 
-    // 1) Cria a turma na escola gerida com os mesmos dados
+    // Se existe uma turma genérica correspondente nessa escola, sincroniza
+    // a lista de alunos com ela ANTES de criar a cópia — quem já é gestão
+    // decidiu quem entra e quem sai (opção 4): adiciona quem falta, marca
+    // como inativo (nunca exclui de verdade) quem não está mais na turma
+    // da escola, preservando qualquer nota já lançada.
+    let alunosFinal = (dadosTurma.alunos || []).map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
+    if(turmaMae){
+      const alunosMae = (turmaMae.alunos||[]).map(a=>typeof a==='string'?{nome:a,ativo:true}:{...a});
+      const chaveMaeAtivos = new Set(alunosMae.filter(a=>a.ativo!==false).map(a=>_normNome(a.nome)));
+
+      alunosFinal = alunosFinal.map(a =>
+        chaveMaeAtivos.has(_normNome(a.nome)) ? a : { ...a, ativo:false }
+      );
+
+      const jaTem = new Set(alunosFinal.map(a=>_normNome(a.nome)));
+      const novos = alunosMae.filter(a => a.ativo!==false && !jaTem.has(_normNome(a.nome)));
+      if(novos.length) alunosFinal = [...alunosFinal, ...novos];
+    }
+
+    // 1) Cria a turma na escola gerida com os mesmos dados (+ alunos já sincronizados)
     const novoRef = await addDoc(collection(db,'escolas',novaEscolaId,'turmas'), {
       ...dadosTurma,
+      alunos: alunosFinal,
       escolaId: novaEscolaId,
       escolaNome: escola.nome,
       escolaTipo: escola.tipo,
       criadoPor: _uid,
       criadoPorRole: escola.role,
+      turmaMaeId: turmaMae ? turmaMae.id : null,
       criadoEm: serverTimestamp()
     });
 
@@ -6140,11 +6192,13 @@ async function vincularTurmaAEscolaGerida(turmaId, novaEscolaId){
     _turmaOrigem[novoRef.id] = { escolaId: novaEscolaId };
     _turmas.push({
       id: novoRef.id, ...dadosTurma,
+      alunos: alunosFinal,
       escolaId: novaEscolaId, escolaNome: escola.nome, escolaTipo: escola.tipo,
-      criadoPor: _uid, criadoPorRole: escola.role
+      criadoPor: _uid, criadoPorRole: escola.role,
+      turmaMaeId: turmaMae ? turmaMae.id : null
     });
 
-    return { ok:true, novoId: novoRef.id };
+    return { ok:true, novoId: novoRef.id, sincronizada: !!turmaMae };
   } catch(e){
     console.error('Erro ao vincular turma a escola gerida:', e);
     return { ok:false, msg:'Não foi possível vincular a turma agora. Tente novamente.' };
@@ -6152,30 +6206,99 @@ async function vincularTurmaAEscolaGerida(turmaId, novaEscolaId){
 }
 
 let _vincularTurmaIdAtual = null;
+let _vincularPreview = null; // guarda a prévia calculada, aguardando confirmação
 
 window.abrirVincularTurmaModal = function(turmaId){
   if(_escolasGeridas.length===0) return;
   _vincularTurmaIdAtual = turmaId;
+  _vincularPreview = null;
   const sel = document.getElementById('vt-escola-select');
   sel.innerHTML = _escolasGeridas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('');
   clearMsg('vt-msg');
+  document.getElementById('btn-vincular-turma-confirmar').textContent = 'Vincular';
   document.getElementById('vincular-turma-modal').style.display = 'flex';
 };
 window.fecharVincularTurmaModal = function(){
   document.getElementById('vincular-turma-modal').style.display = 'none';
   _vincularTurmaIdAtual = null;
+  _vincularPreview = null;
 };
 window.confirmarVincularTurma = async function(){
   const escolaId = document.getElementById('vt-escola-select').value;
   if(!_vincularTurmaIdAtual || !escolaId) return;
-  showLoading('Vinculando turma à escola...');
-  const res = await vincularTurmaAEscolaGerida(_vincularTurmaIdAtual, escolaId);
-  hideLoading();
-  if(!res.ok){ showMsg('vt-msg', res.msg, 'error'); return; }
-  fecharVincularTurmaModal();
-  renderDashboard();
-  showToast('Turma vinculada à escola! ','success');
+
+  // Segunda etapa: já mostramos a prévia e o usuário confirmou de novo.
+  if(_vincularPreview && _vincularPreview.turmaId===_vincularTurmaIdAtual && _vincularPreview.escolaId===escolaId){
+    showLoading('Vinculando e sincronizando turma...');
+    const res = await vincularTurmaAEscolaGerida(_vincularTurmaIdAtual, escolaId, _vincularPreview.turmaMae);
+    hideLoading();
+    _vincularPreview = null;
+    if(!res.ok){ showMsg('vt-msg', res.msg, 'error'); return; }
+    fecharVincularTurmaModal();
+    renderDashboard();
+    showToast(res.sincronizada ? 'Turma vinculada e sincronizada com a turma da escola! ' : 'Turma vinculada à escola! ','success');
+    return;
+  }
+
+  const turmaPessoal = _turmas.find(t=>t.id===_vincularTurmaIdAtual);
+  const escola = _escolasGeridas.find(e=>e.id===escolaId);
+  if(!turmaPessoal || !escola) return;
+
+  // Procura uma turma genérica com a mesma série+turma já cadastrada nessa escola
+  const turmaMae = _turmas.find(t =>
+    t.escolaId===escolaId && ehTurmaGenerica(t) && t.ativo!==false &&
+    _normNome(t.serie)===_normNome(turmaPessoal.serie) &&
+    _normNome(t.turma)===_normNome(turmaPessoal.turma)
+  );
+
+  if(!turmaMae){
+    // Sem turma genérica correspondente — vincula direto, sem sincronizar nada
+    showLoading('Vinculando turma à escola...');
+    const res = await vincularTurmaAEscolaGerida(_vincularTurmaIdAtual, escolaId, null);
+    hideLoading();
+    if(!res.ok){ showMsg('vt-msg', res.msg, 'error'); return; }
+    fecharVincularTurmaModal();
+    renderDashboard();
+    showToast('Turma vinculada à escola! ','success');
+    return;
+  }
+
+  // Existe turma genérica correspondente: monta a prévia do que vai mudar
+  const nomesPessoal = (turmaPessoal.alunos||[]).map(a=>typeof a==='string'?a:a.nome).filter(Boolean);
+  const nomesMaeAtivos = (turmaMae.alunos||[]).filter(a=>a.ativo!==false).map(a=>typeof a==='string'?a:a.nome).filter(Boolean);
+  const setPessoal = new Set(nomesPessoal.map(_normNome));
+  const setMae = new Set(nomesMaeAtivos.map(_normNome));
+
+  const adicionar = nomesMaeAtivos.filter(n=>!setPessoal.has(_normNome(n)));
+  const remover    = nomesPessoal.filter(n=>!setMae.has(_normNome(n)));
+
+  _vincularPreview = { turmaId:_vincularTurmaIdAtual, escolaId, turmaMae };
+
+  let previewHtml = `<div style="text-align:left;">
+    <strong>Já existe a turma genérica "${escapeHtmlNM(turmaMae.serie)} ${escapeHtmlNM(turmaMae.turma)}" nessa escola.</strong>
+    Ao confirmar, a lista de alunos desta turma vai ser sincronizada com ela — quem decide quem entra
+    e quem sai da turma passa a ser a gestão/coordenação:<br><br>`;
+  if(adicionar.length){
+    previewHtml += `<strong style="color:#1e7e34;">+ ${adicionar.length} aluno(s) serão adicionados:</strong> ${adicionar.map(escapeHtmlNM).join(', ')}<br><br>`;
+  }
+  if(remover.length){
+    previewHtml += `<strong style="color:#c0392b;">− ${remover.length} aluno(s) serão marcados como inativos</strong> (não estão na turma da escola — as notas já lançadas pra eles não se perdem): ${remover.map(escapeHtmlNM).join(', ')}<br><br>`;
+  }
+  if(!adicionar.length && !remover.length){
+    previewHtml += `As listas já estão iguais — nenhuma mudança de alunos será feita.<br><br>`;
+  }
+  previewHtml += `Clique em "Confirmar vínculo" pra concluir.</div>`;
+
+  const msgEl = document.getElementById('vt-msg');
+  msgEl.innerHTML = previewHtml;
+  msgEl.className = 'ob-msg';
+  document.getElementById('btn-vincular-turma-confirmar').textContent = 'Confirmar vínculo';
 };
+
+// Pequeno escape de HTML pra exibir nomes de alunos com segurança na prévia
+function escapeHtmlNM(s){
+  return String(s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
 
 window.setAnoFiltro = function(ano){
   _anoFiltro = ano;
@@ -7912,6 +8035,8 @@ window.excluirImportPendente = async function(id){
 };
 
 // ── Sino de notificações (dashboard): olha TODAS as turmas, não só a aberta ──
+let _avisosGenericaGlobal = []; // Avisos de sincronização de turma genérica (pro sino)
+
 async function carregarImportsPendentesGlobal(forcar){
   if(!forcar && _importsPendentesGlobalEm && (Date.now()-_importsPendentesGlobalEm) < 60*1000) return; // evita reconsultar toda hora
   const turmasAtivas = _turmas.filter(t=>t.ativo!==false);
@@ -7929,6 +8054,25 @@ async function carregarImportsPendentesGlobal(forcar){
     }
   }));
   _importsPendentesGlobal = resultado;
+
+  // Avisos de sincronização: turmas que o próprio usuário copiou de uma
+  // turma genérica e que tiveram a lista de alunos atualizada pela gestão.
+  const minhasCopias = turmasAtivas.filter(t => t.turmaMaeId && t.criadoPor===_uid && _turmaOrigem[t.id]);
+  const avisos = [];
+  await Promise.all(minhasCopias.map(async turma => {
+    try {
+      const q = query(
+        collection(db,...turmaPath(turma.id),'avisos'),
+        where('lida','==', false)
+      );
+      const snap = await getDocs(q);
+      snap.docs.forEach(d => avisos.push({ id:d.id, turmaId:turma.id, turmaNome:turma.nome, disciplina:turma.disciplina, ...d.data() }));
+    } catch(e){
+      console.warn('Erro ao checar avisos da turma', turma.nome, e.message);
+    }
+  }));
+  _avisosGenericaGlobal = avisos;
+
   _importsPendentesGlobalEm = Date.now();
   atualizarBadgeSinoNM();
 }
@@ -7936,7 +8080,7 @@ async function carregarImportsPendentesGlobal(forcar){
 function atualizarBadgeSinoNM(){
   const badge = document.getElementById('dash-sino-badge');
   if(!badge) return;
-  const qtd = _importsPendentesGlobal.length;
+  const qtd = _importsPendentesGlobal.length + _avisosGenericaGlobal.length;
   if(qtd > 0){
     badge.textContent = qtd > 99 ? '99+' : String(qtd);
     badge.style.display = 'flex';
@@ -7955,11 +8099,12 @@ window.fecharPainelNotificacoesNM = function(){
 function renderPainelNotificacoesNM(){
   const body = document.getElementById('dm-notificacoes-body');
   if(!body) return;
-  if(!_importsPendentesGlobal.length){
-    body.innerHTML = `<div class="dm-empty">Nenhuma importação pendente no momento. </div>`;
+  if(!_importsPendentesGlobal.length && !_avisosGenericaGlobal.length){
+    body.innerHTML = `<div class="dm-empty">Nenhuma notificação no momento. </div>`;
     return;
   }
-  body.innerHTML = _importsPendentesGlobal.map(imp => {
+
+  const htmlImports = _importsPendentesGlobal.map(imp => {
     const tipoLabel = imp.tipo==='prova' ? 'Prova da unidade' : `Atividade ${String(imp.atividadeAlvo||'').replace('atv','')}`;
     const dataEnvio = imp.criadoEm && typeof imp.criadoEm.toDate === 'function' ? imp.criadoEm.toDate() : null;
     return `
@@ -7975,7 +8120,36 @@ function renderPainelNotificacoesNM(){
         <span class="dm-item-badge">Pendente</span>
       </div>`;
   }).join('');
+
+  const htmlAvisos = _avisosGenericaGlobal.map(av => {
+    const dataAviso = av.criadoEm && typeof av.criadoEm.toDate === 'function' ? av.criadoEm.toDate() : null;
+    return `
+      <div class="dm-item" style="cursor:pointer;" onclick="abrirAvisoGenericaNM('${av.turmaId}','${av.id}')">
+        <div class="dm-item-icon" style="background:#eef5ff;color:var(--pe-blue);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></div>
+        <div class="dm-item-info">
+          <div class="dm-item-name">${av.turmaNome||'Turma'}${av.disciplina ? ' · '+av.disciplina : ''}</div>
+          <div class="dm-item-sub">
+            ${av.mensagem || 'A lista de alunos foi atualizada pela gestão/coordenação da escola.'}
+            ${dataAviso ? ' · '+dataAviso.toLocaleString('pt-BR') : ''}
+          </div>
+        </div>
+        <span class="dm-item-badge" style="background:#eef5ff;color:var(--pe-blue);">Atualizada</span>
+      </div>`;
+  }).join('');
+
+  body.innerHTML = htmlAvisos + htmlImports;
 }
+
+/* Marca o aviso de sincronização como lido e abre a turma pra conferir */
+window.abrirAvisoGenericaNM = async function(turmaId, avisoId){
+  fecharPainelNotificacoesNM();
+  try {
+    await setDoc(doc(db,...turmaPath(turmaId),'avisos',avisoId), { lida:true }, { merge:true });
+  } catch(e){ console.warn('Erro ao marcar aviso como lido:', e); }
+  _avisosGenericaGlobal = _avisosGenericaGlobal.filter(a=>a.id!==avisoId);
+  atualizarBadgeSinoNM();
+  await window.openTurmaScreen(turmaId);
+};
 
 /* Atalho: abre a turma já direto na aba de Importações pendentes */
 window.abrirNotificacaoNM = async function(turmaId){
@@ -12723,7 +12897,7 @@ return false;
       <div class="ob-msg" id="vt-msg"></div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
         <button class="ob-btn ob-btn-ghost" onclick="fecharVincularTurmaModal()">Cancelar</button>
-        <button class="ob-btn ob-btn-primary" onclick="confirmarVincularTurma()">Vincular</button>
+        <button class="ob-btn ob-btn-primary" id="btn-vincular-turma-confirmar" onclick="confirmarVincularTurma()">Vincular</button>
       </div>
     </div>
   </div>
