@@ -2605,6 +2605,21 @@ body.dark-mode .stat-card-btn:active{
         <div class="stat-label">Estudantes</div>
         <div class="stat-hint">toque para ver</div>
       </div>
+      <div class="stat-card stat-card-btn" id="stat-card-gestao-turmas" style="display:none;" onclick="abrirModalGestaoTurmas()" title="Turmas da escola">
+        <div class="stat-num" id="stat-gestao-turmas">0</div>
+        <div class="stat-label">Turmas da escola</div>
+        <div class="stat-hint">toque para ver</div>
+      </div>
+      <div class="stat-card stat-card-btn" id="stat-card-gestao-equipe" style="display:none;" onclick="abrirModalGestaoEquipe()" title="Equipe da escola">
+        <div class="stat-num" id="stat-gestao-equipe">0</div>
+        <div class="stat-label">Equipe</div>
+        <div class="stat-hint">toque para ver</div>
+      </div>
+      <div class="stat-card stat-card-btn" id="stat-card-gestao-rendimento" style="display:none;" onclick="abrirModalGestaoRendimento()" title="Rendimento dos alunos">
+        <div class="stat-num" id="stat-gestao-rendimento">—</div>
+        <div class="stat-label">Rendimento</div>
+        <div class="stat-hint">toque para ver</div>
+      </div>
     </div>
 
     <div id="dash-codigos-escola-wrap"></div>
@@ -2621,100 +2636,7 @@ body.dark-mode .stat-card-btn:active{
     <div class="turmas-grid" id="dash-turmas-grid">
       <div class="ob-empty">Carregando turmas...</div>
     </div>
-
-    <!-- ═══════════════════════════════════════════
-         GESTÃO DA ESCOLA (Fase C) — embutida no dashboard,
-         no mesmo estilo visual do resto do app
-         ═══════════════════════════════════════════ -->
-    <div id="dash-gestao-section" style="display:none;margin-top:28px;">
-      <div class="section-title">
-        <span id="gestao-escola-nome">Gestão da escola</span>
-        <select id="dash-gestao-escola-select" onchange="abrirGestaoEscola(this.value)"
-          style="display:none;font-size:.78rem;font-weight:700;padding:5px 10px;border-radius:8px;
-                 border:1.5px solid var(--pe-border);color:var(--pe-navy);background:#fff;">
-        </select>
-      </div>
-      <p id="gestao-escola-sub" style="font-size:.78rem;color:var(--pe-muted);margin-top:-8px;margin-bottom:14px;">—</p>
-
-      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
-        <button type="button" class="ano-chip active" id="gtab-btn-turmas" onclick="gestaoAbrirAba('turmas')">Turmas</button>
-        <button type="button" class="ano-chip" id="gtab-btn-equipe" onclick="gestaoAbrirAba('equipe')">Equipe</button>
-        <button type="button" class="ano-chip" id="gtab-btn-rendimento" onclick="gestaoAbrirAba('rendimento')">Rendimento</button>
-      </div>
-
-      <!-- ── ABA: TURMAS ── -->
-      <div class="profile-section gestao-tab-content active" id="gtab-turmas">
-        <div class="profile-section-header">
-          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M3 21h18"/><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M6 10.5V16c0 1.1 2.7 2 6 2s6-.9 6-2v-5.5"/></svg> Turmas da escola</h3>
-        </div>
-        <div class="profile-section-body">
-          <div class="add-escola-box">
-            <label>Nova turma da escola</label>
-            <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:8px;">
-              Crie a turma de forma genérica (só a turma em si — sem disciplina). Depois, cada
-              professor entra e faz sua própria cópia dessa turma pra disciplina que leciona, com
-              o número de atividades que quiser.
-            </div>
-            <div class="add-turma-grid">
-              <input type="number" id="gt-ano" placeholder="Ano letivo * (ex.: 2025)" min="2020" max="2040" style="grid-column:span 2">
-              <select id="gt-nivel" style="grid-column:span 2">
-                <option value="">Nível de ensino *</option>
-                <option value="fund2">Fundamental II</option>
-                <option value="medio">Ensino Médio</option>
-              </select>
-              <select id="gt-turno">
-                <option value="">Turno *</option>
-                <option value="manha">Manhã</option>
-                <option value="tarde">Tarde</option>
-                <option value="turno1">Turno 1</option>
-                <option value="turno2">Turno 2</option>
-              </select>
-              <input type="text" id="gt-serie" placeholder="Série * (ex.: 6º, 7º, 1ª)">
-              <input type="text" id="gt-turma" placeholder="Turma * (ex.: A, B, C)" style="grid-column:span 2">
-              <textarea id="gt-alunos" placeholder="Cole aqui a lista de alunos, um por linha (opcional — dá pra adicionar depois também)"
-                style="grid-column:span 2;min-height:80px;padding:10px;border:1px solid var(--pe-border,#ccc);border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;"></textarea>
-            </div>
-            <button class="btn-sm btn-sm-primary" style="margin-top:10px;" onclick="gestaoCriarTurma()">+ Adicionar turma</button>
-            <div class="ob-msg" id="gestao-turmas-msg"></div>
-          </div>
-          <div id="gestao-turmas-list" style="margin-top:14px;"></div>
-        </div>
-      </div>
-
-      <!-- ── ABA: EQUIPE ── -->
-      <div class="profile-section gestao-tab-content" id="gtab-equipe">
-        <div class="profile-section-header">
-          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Equipe da escola</h3>
-        </div>
-        <div class="profile-section-body">
-          <div class="add-escola-box" style="background:#eef5ff;border-color:var(--pe-blue,#0056b3);">
-            <label>Convidar professores</label>
-            <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:8px;">
-              Compartilhe o código abaixo (ou o link) com a equipe. Ao usar, as turmas dessa escola
-              aparecem automaticamente para eles.
-            </div>
-            <div class="add-escola-row">
-              <input type="text" id="gestao-codigo-escola" readonly style="flex:2;font-weight:800;letter-spacing:1px;">
-              <button type="button" class="btn-sm btn-sm-primary" onclick="copiarCodigoEscolaGestao()">Copiar código</button>
-              <button type="button" class="btn-sm" style="background:#eef5ff;color:var(--pe-blue);" onclick="copiarLinkEscolaGestao()">Copiar link</button>
-            </div>
-          </div>
-          <div id="gestao-equipe-list" style="margin-top:14px;"></div>
-        </div>
-      </div>
-
-      <!-- ── ABA: RENDIMENTO ── -->
-      <div class="profile-section gestao-tab-content" id="gtab-rendimento">
-        <div class="profile-section-header">
-          <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Rendimento dos alunos</h3>
-          <button class="ps-edit-btn" onclick="gestaoExportarPDF()">Exportar PDF</button>
-        </div>
-        <div class="profile-section-body">
-          <div id="gestao-rendimento-list"></div>
-        </div>
-      </div>
-    </div>
-    </div>
+  </div>
 
   <!-- FAB: Backup por escola (canto inferior esquerdo) -->
   <button id="dash-bkp-fab" onclick="abrirBkpModal()" title="Backup por escola"
@@ -4097,25 +4019,32 @@ let _gestaoEquipeEscolaId = null; // de qual escola é o cache acima (evita refe
 let _gestaoAbaAtiva = 'turmas';
 
 // Botão(ões) de acesso à Gestão no navbar do dashboard
+// Mostra/esconde os 3 cards de estatística de Gestão e atualiza os números
 function renderDashboardGestaoBtn(){
-  const wrap = document.getElementById('dash-gestao-btn-wrap');
-  if(!wrap) return;
   const gerenciaveis = _escolasGeridas.filter(e => e.role==='gestor' || e.role==='coordenador');
-  if(gerenciaveis.length===0){ wrap.style.display='none'; wrap.innerHTML=''; return; }
-  wrap.style.display = 'inline-flex';
-  // Sempre abre a escola já selecionada (ou a primeira); se houver mais de
-  // uma escola gerida, o seletor dentro da própria seção permite trocar.
-  const alvo = (_gestaoEscolaAtual && gerenciaveis.some(e=>e.id===_gestaoEscolaAtual.id))
-    ? _gestaoEscolaAtual.id : gerenciaveis[0].id;
-  wrap.innerHTML = `<button class="user-badge" onclick="abrirGestaoEscola('${alvo}')" title="Gestão da escola">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M3 21h18"/><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M6 10.5V16c0 1.1 2.7 2 6 2s6-.9 6-2v-5.5"/></svg>
-    <span>Gestão</span>
-  </button>`;
+  const cards = ['stat-card-gestao-turmas','stat-card-gestao-equipe','stat-card-gestao-rendimento'];
+  if(gerenciaveis.length===0){
+    cards.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display='none'; });
+    return;
+  }
+  cards.forEach(id=>{ const el=document.getElementById(id); if(el) el.style.display=''; });
+
+  // Garante que há uma escola "ativa" pra Gestão escolhida
+  if(!_gestaoEscolaAtual || !gerenciaveis.some(e=>e.id===_gestaoEscolaAtual.id)){
+    _gestaoEscolaAtual = gerenciaveis[0];
+  }
+  const escolaAtualId = _gestaoEscolaAtual.id;
+
+  const turmasEscola = _turmas.filter(t=>t.escolaId===escolaAtualId && t.ativo!==false && !ehTurmaGenerica(t));
+  document.getElementById('stat-gestao-turmas').textContent = turmasEscola.length;
+  document.getElementById('stat-gestao-equipe').textContent =
+    (_gestaoEquipeEscolaId===escolaAtualId ? _gestaoEquipe.length : '—');
+  document.getElementById('stat-gestao-rendimento').textContent = turmasEscola.length ? '' : '—';
 }
 
 // Mostra, direto no dashboard, o código de cada escola gerida da qual o
 // usuário é gestor(a) ou coordenador(a) — pra copiar e passar pra equipe
-// sem precisar entrar na tela de Gestão.
+// sem precisar abrir nenhum modal.
 function renderDashboardCodigosEscola(){
   const wrap = document.getElementById('dash-codigos-escola-wrap');
   if(!wrap) return;
@@ -4143,7 +4072,7 @@ window._copiarCodigoEscolaDash = function(codigo){
 function renderTurmasDisponiveisParaCopiar(){
   const wrap = document.getElementById('dash-turmas-copiar-wrap');
   if(!wrap) return;
-  const disponiveis = sortTurmas(_turmas.filter(t=>t.generica && t.ativo!==false));
+  const disponiveis = sortTurmas(_turmas.filter(t=>ehTurmaGenerica(t) && t.ativo!==false));
   if(disponiveis.length===0){ wrap.innerHTML=''; return; }
 
   wrap.innerHTML = `
@@ -4175,66 +4104,85 @@ function renderTurmasDisponiveisParaCopiar(){
     </div>`;
 }
 
-window.abrirGestaoEscola = async function(escolaId, opts){
-  const { scroll = true } = opts || {};
-  const escola = _escolasGeridas.find(e=>e.id===escolaId);
-  if(!escola){ showToast('Escola não encontrada.','error'); return; }
-  _gestaoEscolaAtual = escola;
-  _gestaoAbaAtiva = 'turmas';
-
-  document.getElementById('gestao-escola-nome').textContent = escola.nome;
-  const roleLabel = escola.role==='gestor' ? 'Gestor(a)' : 'Coordenador(a)';
-  document.getElementById('gestao-escola-sub').textContent =
-    `${roleLabel} · ${escolaTipoLabel(escola.tipo)}${escola.cidade?' · '+escola.cidade:''}`;
-  document.getElementById('gestao-codigo-escola').value = escola.codigo || '';
-
-  // Se o professor gerencia mais de uma escola, mostra o seletor
+// ── Preenche o seletor de escola (quando o usuário gerencia mais de uma)
+// dentro do modal indicado, e mantém _gestaoEscolaAtual sincronizado ──
+function _gestaoPopularSeletor(selectId, escolaAtualId){
   const gerenciaveis = _escolasGeridas.filter(e => e.role==='gestor' || e.role==='coordenador');
-  const sel = document.getElementById('dash-gestao-escola-select');
-  if(sel){
-    if(gerenciaveis.length > 1){
-      sel.style.display = '';
-      sel.innerHTML = gerenciaveis.map(e=>`<option value="${e.id}" ${e.id===escolaId?'selected':''}>${e.nome}</option>`).join('');
-    } else {
-      sel.style.display = 'none';
-    }
+  const sel = document.getElementById(selectId);
+  if(!sel) return;
+  if(gerenciaveis.length > 1){
+    sel.style.display = '';
+    sel.innerHTML = gerenciaveis.map(e=>`<option value="${e.id}" ${e.id===escolaAtualId?'selected':''}>${e.nome}</option>`).join('');
+  } else {
+    sel.style.display = 'none';
   }
+}
+window._gestaoTrocarEscolaModal = function(novoId, aba){
+  const escola = _escolasGeridas.find(e=>e.id===novoId);
+  if(!escola) return;
+  _gestaoEscolaAtual = escola;
+  if(aba==='turmas') abrirModalGestaoTurmas();
+  if(aba==='equipe') abrirModalGestaoEquipe();
+  if(aba==='rendimento') abrirModalGestaoRendimento();
+};
 
-  // Mostra a seção (embutida no próprio dashboard) e, se pedido, rola até ela
-  const secao = document.getElementById('dash-gestao-section');
-  if(secao){
-    secao.style.display = 'block';
-    if(scroll) secao.scrollIntoView({ behavior:'smooth', block:'start' });
+// Garante escola selecionada + equipe carregada antes de qualquer modal abrir
+async function _gestaoPrepararEscolaAtiva(){
+  const gerenciaveis = _escolasGeridas.filter(e => e.role==='gestor' || e.role==='coordenador');
+  if(gerenciaveis.length===0) return null;
+  if(!_gestaoEscolaAtual || !gerenciaveis.some(e=>e.id===_gestaoEscolaAtual.id)){
+    _gestaoEscolaAtual = gerenciaveis[0];
   }
-  gestaoAbrirAba('turmas');
-
-  // Carrega equipe (com cache simples — renderDashboard chama isso toda
-  // hora, não precisa buscar de novo se já é a mesma escola).
-  if(_gestaoEquipeEscolaId !== escolaId){
+  if(_gestaoEquipeEscolaId !== _gestaoEscolaAtual.id){
     try {
-      const snap = await getDocs(collection(db,'escolas',escolaId,'professores'));
+      const snap = await getDocs(collection(db,'escolas',_gestaoEscolaAtual.id,'professores'));
       _gestaoEquipe = snap.docs.map(d=>({ uid:d.id, ...d.data() }));
-      _gestaoEquipeEscolaId = escolaId;
+      _gestaoEquipeEscolaId = _gestaoEscolaAtual.id;
     } catch(e){
       console.warn('Erro ao carregar equipe da escola:', e);
       _gestaoEquipe = [];
     }
   }
-  if(_gestaoAbaAtiva==='equipe') renderGestaoEquipe();
-  if(_gestaoAbaAtiva==='turmas') renderGestaoTurmas(); // atualiza nome do professor responsável
+  return _gestaoEscolaAtual;
+}
+
+// ── Modal: Turmas da escola ──────────────────────────────────────────
+window.abrirModalGestaoTurmas = async function(){
+  const escola = await _gestaoPrepararEscolaAtiva();
+  if(!escola){ showToast('Você não gerencia nenhuma escola.','error'); return; }
+  document.getElementById('dm-gestao-escola-nome').textContent = escola.nome;
+  _gestaoPopularSeletor('dm-gestao-turmas-escola-select', escola.id);
+  renderGestaoTurmas();
+  document.getElementById('dm-gestao-turmas-overlay').style.display = 'flex';
+};
+window.fecharModalGestaoTurmas = function(){
+  document.getElementById('dm-gestao-turmas-overlay').style.display = 'none';
 };
 
-window.gestaoAbrirAba = function(aba){
-  _gestaoAbaAtiva = aba;
-  ['turmas','equipe','rendimento'].forEach(a=>{
-    document.getElementById(`gtab-btn-${a}`)?.classList.toggle('active', a===aba);
-  });
-  document.querySelectorAll('.gestao-tab-content').forEach(c=>c.classList.remove('active'));
-  document.getElementById(`gtab-${aba}`)?.classList.add('active');
+// ── Modal: Equipe da escola ──────────────────────────────────────────
+window.abrirModalGestaoEquipe = async function(){
+  const escola = await _gestaoPrepararEscolaAtiva();
+  if(!escola){ showToast('Você não gerencia nenhuma escola.','error'); return; }
+  document.getElementById('dm-gestao-escola-nome-equipe').textContent = escola.nome;
+  document.getElementById('gestao-codigo-escola').value = escola.codigo || '';
+  _gestaoPopularSeletor('dm-gestao-equipe-escola-select', escola.id);
+  renderGestaoEquipe();
+  document.getElementById('dm-gestao-equipe-overlay').style.display = 'flex';
+};
+window.fecharModalGestaoEquipe = function(){
+  document.getElementById('dm-gestao-equipe-overlay').style.display = 'none';
+};
 
-  if(aba==='turmas') renderGestaoTurmas();
-  if(aba==='equipe') renderGestaoEquipe();
-  if(aba==='rendimento') renderGestaoRendimento();
+// ── Modal: Rendimento dos alunos ──────────────────────────────────────
+window.abrirModalGestaoRendimento = async function(){
+  const escola = await _gestaoPrepararEscolaAtiva();
+  if(!escola){ showToast('Você não gerencia nenhuma escola.','error'); return; }
+  _gestaoPopularSeletor('dm-gestao-rendimento-escola-select', escola.id);
+  renderGestaoRendimento();
+  document.getElementById('dm-gestao-rendimento-overlay').style.display = 'flex';
+};
+window.fecharModalGestaoRendimento = function(){
+  document.getElementById('dm-gestao-rendimento-overlay').style.display = 'none';
 };
 
 // ── ABA TURMAS ──────────────────────────────────────────────────────────
@@ -4251,8 +4199,8 @@ function renderGestaoTurmas(){
 
   const renderItem = (t) => {
     const responsavel = t.criadoPor===_uid ? 'Você' : (_gestaoEquipe.find(p=>p.uid===t.criadoPor)?.nome || 'Outro(a) professor(a)');
-    const tagGenerica = t.generica ? ' <span style="font-size:.65rem;font-weight:700;background:#eef5ff;color:var(--pe-blue);padding:1px 7px;border-radius:8px;">Genérica</span>' : '';
-    const disciplinaOuInfo = t.generica
+    const tagGenerica = ehTurmaGenerica(t) ? ' <span style="font-size:.65rem;font-weight:700;background:#eef5ff;color:var(--pe-blue);padding:1px 7px;border-radius:8px;">Genérica</span>' : '';
+    const disciplinaOuInfo = ehTurmaGenerica(t)
       ? 'Sem disciplina — cada professor cria sua própria cópia'
       : (t.turmaMaeId ? `${t.disciplina||'(sem disciplina)'} · cópia da turma genérica` : (t.disciplina||''));
     return `
@@ -4262,7 +4210,7 @@ function renderGestaoTurmas(){
         <div class="gestao-list-item-sub">${t.turno? turnoLabel(t.turno)+' · ':''}${disciplinaOuInfo} · Responsável: ${responsavel} · ${(t.alunos||[]).filter(a=>a.ativo!==false).length} aluno(s)</div>
       </div>
       <div class="gestao-list-item-actions">
-        <button class="pe-act-btn pe-act-edit" onclick="${t.generica ? `window.openEditTurma('${t.id}')` : `window.openTurmaScreen('${t.id}')`}">${t.generica ? 'Editar alunos' : 'Ver'}</button>
+        <button class="pe-act-btn pe-act-edit" onclick="${ehTurmaGenerica(t) ? `window.openEditTurma('${t.id}')` : `window.openTurmaScreen('${t.id}')`}">${ehTurmaGenerica(t) ? 'Editar alunos' : 'Ver'}</button>
         ${t.ativo===false
           ? `<button class="pe-act-btn pe-act-react" onclick="gestaoReativarTurma('${t.id}')">Reativar</button>
              <button class="pe-act-btn pe-act-del" onclick="gestaoExcluirTurma('${t.id}')">Excluir</button>`
@@ -4347,10 +4295,26 @@ window.gestaoReativarTurma = async function(turmaId){
 window.gestaoExcluirTurma = async function(turmaId){
   if(!confirm('Excluir esta turma definitivamente? Essa ação não pode ser desfeita.')) return;
   try {
+    // Desvincula as cópias por disciplina desta turma (se houver) ANTES de
+    // excluir — elas continuam existindo com todas as notas já lançadas,
+    // só deixam de referenciar a turma-mãe que está sendo apagada.
+    const copias = _turmas.filter(t=>t.turmaMaeId===turmaId);
+    for(const c of copias){
+      try {
+        await setDoc(doc(db,...turmaPath(c.id)), { turmaMaeId: null }, { merge:true });
+        c.turmaMaeId = null;
+      } catch(e){ console.warn('Erro ao desvincular cópia', c.id, e); }
+    }
+
     await deleteDoc(doc(db,...turmaPath(turmaId)));
     _turmas = _turmas.filter(x=>x.id!==turmaId);
     renderGestaoTurmas();
-    showToast('Turma excluída.','success');
+    showToast(
+      copias.length
+        ? `Turma excluída. ${copias.length} disciplina(s) já criada(s) pelos professores continuam intactas.`
+        : 'Turma excluída.',
+      'success'
+    );
   } catch(e){ console.error(e); showToast('Erro ao excluir turma.','error'); }
 };
 
@@ -4477,7 +4441,7 @@ async function calcularResumoOficialTurma(turma){
 async function renderGestaoRendimento(){
   const list = document.getElementById('gestao-rendimento-list');
   if(!list || !_gestaoEscolaAtual) return;
-  const turmas = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.ativo!==false && !t.generica);
+  const turmas = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.ativo!==false && !ehTurmaGenerica(t));
   if(turmas.length===0){
     list.innerHTML = '<div class="ob-empty">Nenhuma turma ativa nesta escola.</div>';
     return;
@@ -4531,7 +4495,7 @@ async function renderGestaoRendimento(){
 window.gestaoExportarPDF = async function(){
   if(!_gestaoEscolaAtual) return;
   showLoading('Preparando PDF...');
-  const turmas = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.ativo!==false && !t.generica);
+  const turmas = _turmas.filter(t=>t.escolaId===_gestaoEscolaAtual.id && t.ativo!==false && !ehTurmaGenerica(t));
 
   const linhas = await Promise.all(turmas.map(async t=>{
     let resumo = null;
@@ -5501,6 +5465,19 @@ function parseStudents(raw){
     .filter(l=>l.length>1);
 }
 
+// Identifica turma genérica de forma robusta: usa o campo generica quando
+// existe, mas também reconhece turmas mais antigas (criadas antes desse
+// campo existir) que são de escola gerida, não são cópia de ninguém
+// (sem turmaMaeId) e não têm disciplina definida — exatamente o padrão de
+// uma turma "crua" feita pela gestão antes dessa marcação existir.
+// Nunca afeta turmas pessoais (sem vínculo), só as de escola gerida.
+function ehTurmaGenerica(t){
+  if(!t) return false;
+  if(t.generica === true) return true;
+  if(t.generica === false) return false;
+  return !!_turmaOrigem[t.id] && !t.turmaMaeId && !t.disciplina;
+}
+
 function nivelLabel(v){ return {fund2:'Fund. II',medio:'Ens. Médio'}[v]||v; }
 function turnoLabel(v){ return {manha:'Manhã',tarde:'Tarde',turno1:'Turno 1',turno2:'Turno 2'}[v]||v; }
 
@@ -5752,7 +5729,8 @@ window.criarEscolaGestaoOnboarding = async function(){
     hideLoading();
     showDashboard();
     showToast(`Escola ${nomeEscola} criada! Código de acesso: ${codigoGerado}`,'success');
-    abrirGestaoEscola(escolaRef.id);
+    _gestaoEscolaAtual = _escolasGeridas.find(e=>e.id===escolaRef.id) || null;
+    abrirModalGestaoTurmas();
   } catch(e){
     console.error('Erro ao criar escola com gestão:', e);
     hideLoading();
@@ -5942,21 +5920,8 @@ function renderDashboard(){
   renderDashboardCodigosEscola();
   renderTurmasDisponiveisParaCopiar();
 
-  // Mostra a seção de Gestão já embutida no dashboard (sem precisar clicar
-  // em nada), sem rolar a tela — o botão "Gestão" do navbar continua
-  // servindo de atalho pra rolar direto até ela.
-  const gerenciaveis = _escolasGeridas.filter(e => e.role==='gestor' || e.role==='coordenador');
-  if(gerenciaveis.length>0){
-    const alvo = (_gestaoEscolaAtual && gerenciaveis.some(e=>e.id===_gestaoEscolaAtual.id))
-      ? _gestaoEscolaAtual.id : gerenciaveis[0].id;
-    abrirGestaoEscola(alvo, { scroll:false });
-  } else {
-    const secao = document.getElementById('dash-gestao-section');
-    if(secao) secao.style.display = 'none';
-  }
-
-  const ativas   = _turmas.filter(t=>t.ativo!==false && !t.generica);
-  const inativas = _turmas.filter(t=>t.ativo===false && !t.generica);
+  const ativas   = _turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t));
+  const inativas = _turmas.filter(t=>t.ativo===false && !ehTurmaGenerica(t));
   const totalAlunos = ativas.reduce((acc,t)=>acc+(t.alunos?.filter(a=>a.ativo!==false).length||0),0);
 
   document.getElementById('stat-escolas').textContent       = _escolas.length;
@@ -6009,7 +5974,13 @@ function renderDashboard(){
   // Turmas genéricas (moldes criados pela gestão) NÃO aparecem aqui — elas
   // não são "uma turma sua". Ficam só na seção "Turmas disponíveis pra
   // copiar" (renderTurmasDisponiveisParaCopiar), bem separada desta lista.
-  const turmasRestantes = turmasFiltradas.filter(t=>!t.generica);
+  // "Minhas turmas" só mostra turmas próprias — pessoais (sem vínculo) ou
+  // cópias por disciplina que o PRÓPRIO usuário criou. Cópias feitas por
+  // outros professores da mesma escola gerida não aparecem aqui (só a
+  // gestão/coordenação as vê, pela aba "Turmas da escola").
+  const turmasRestantes = turmasFiltradas.filter(t=>
+    !ehTurmaGenerica(t) && (!_turmaOrigem[t.id] || t.criadoPor===_uid)
+  );
   const ativasFilt   = sortTurmas(turmasRestantes.filter(t=>t.ativo!==false));
   const inativasFilt = sortTurmas(turmasRestantes.filter(t=>t.ativo===false));
 
@@ -6309,7 +6280,7 @@ window.renderModalTurmasDash = function(){
   const mostrarInativas = document.getElementById('dm-trm-mostrar-inativas')?.checked;
   const body = document.getElementById('dm-turmas-dash-body');
   if(!body) return;
-  let turmas = [..._turmas].filter(t=>!t.generica);
+  let turmas = [..._turmas].filter(t=>!ehTurmaGenerica(t));
   if(!mostrarInativas) turmas = turmas.filter(t => t.ativo !== false);
   turmas.sort((a,b) => {
     const ea = (_escolas.find(e=>e.id===a.escolaId)||{}).nome||'';
@@ -6760,7 +6731,7 @@ window.saveTurmaModal = async function(){
       updatedAt: serverTimestamp()
     },{merge:true});
     const idx = _turmas.findIndex(t=>t.id===id);
-    const eraGenerica = idx!==-1 && _turmas[idx].generica === true;
+    const eraGenerica = idx!==-1 && ehTurmaGenerica(_turmas[idx]);
     if(idx!==-1){
       _turmas[idx].atividades = ativ;
       _turmas[idx].disciplina = disc;
@@ -12471,6 +12442,9 @@ const modaisDisplay = [
 'dm-turmas-overlay',
 'dm-alunos-overlay',
 'dm-turma-mae-overlay',
+'dm-gestao-turmas-overlay',
+'dm-gestao-equipe-overlay',
+'dm-gestao-rendimento-overlay',
 'phone-modal-overlay',
 'escola-tipo-modal',
 'nova-escola-modal',
@@ -12658,6 +12632,113 @@ return false;
       </div>
     </div>
     <div class="dash-modal-body" id="dm-alunos-body"></div>
+  </div>
+</div>
+
+<!-- ── Modal: Turmas da escola (Gestão/Coordenação) ── -->
+<div id="dm-gestao-turmas-overlay" class="dash-modal-overlay" style="display:none;"
+     onclick="if(event.target===this)fecharModalGestaoTurmas()">
+  <div class="dash-modal">
+    <div class="dash-modal-header">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M3 21h18"/><path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M6 10.5V16c0 1.1 2.7 2 6 2s6-.9 6-2v-5.5"/></svg> Turmas da escola</h3>
+      <button onclick="fecharModalGestaoTurmas()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
+    </div>
+    <div class="dash-modal-toolbar">
+      <span id="dm-gestao-escola-nome" style="font-size:.8rem;color:#666;font-weight:700;">—</span>
+      <select id="dm-gestao-turmas-escola-select" onchange="_gestaoTrocarEscolaModal(this.value,'turmas')"
+        style="display:none;margin-left:auto;font-size:.78rem;font-weight:700;padding:5px 10px;border-radius:8px;
+               border:1.5px solid var(--pe-border);color:var(--pe-navy);background:#fff;"></select>
+    </div>
+    <div class="dash-modal-body">
+      <div style="padding:14px;">
+        <div class="add-escola-box">
+          <label>Nova turma da escola</label>
+          <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:8px;">
+            Crie a turma de forma genérica (só a turma em si — sem disciplina). Depois, cada
+            professor entra e faz sua própria cópia dessa turma pra disciplina que leciona, com
+            o número de atividades que quiser.
+          </div>
+          <div class="add-turma-grid">
+            <input type="number" id="gt-ano" placeholder="Ano letivo * (ex.: 2025)" min="2020" max="2040" style="grid-column:span 2">
+            <select id="gt-nivel" style="grid-column:span 2">
+              <option value="">Nível de ensino *</option>
+              <option value="fund2">Fundamental II</option>
+              <option value="medio">Ensino Médio</option>
+            </select>
+            <select id="gt-turno">
+              <option value="">Turno *</option>
+              <option value="manha">Manhã</option>
+              <option value="tarde">Tarde</option>
+              <option value="turno1">Turno 1</option>
+              <option value="turno2">Turno 2</option>
+            </select>
+            <input type="text" id="gt-serie" placeholder="Série * (ex.: 6º, 7º, 1ª)">
+            <input type="text" id="gt-turma" placeholder="Turma * (ex.: A, B, C)" style="grid-column:span 2">
+            <textarea id="gt-alunos" placeholder="Cole aqui a lista de alunos, um por linha (opcional — dá pra adicionar depois também)"
+              style="grid-column:span 2;min-height:80px;padding:10px;border:1px solid var(--pe-border,#ccc);border-radius:8px;font-family:inherit;font-size:.85rem;resize:vertical;"></textarea>
+          </div>
+          <button class="btn-sm btn-sm-primary" style="margin-top:10px;" onclick="gestaoCriarTurma()">+ Adicionar turma</button>
+          <div class="ob-msg" id="gestao-turmas-msg"></div>
+        </div>
+        <div id="gestao-turmas-list" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Equipe da escola (Gestão/Coordenação) ── -->
+<div id="dm-gestao-equipe-overlay" class="dash-modal-overlay" style="display:none;"
+     onclick="if(event.target===this)fecharModalGestaoEquipe()">
+  <div class="dash-modal">
+    <div class="dash-modal-header">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Equipe da escola</h3>
+      <button onclick="fecharModalGestaoEquipe()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
+    </div>
+    <div class="dash-modal-toolbar">
+      <span id="dm-gestao-escola-nome-equipe" style="font-size:.8rem;color:#666;font-weight:700;">—</span>
+      <select id="dm-gestao-equipe-escola-select" onchange="_gestaoTrocarEscolaModal(this.value,'equipe')"
+        style="display:none;margin-left:auto;font-size:.78rem;font-weight:700;padding:5px 10px;border-radius:8px;
+               border:1.5px solid var(--pe-border);color:var(--pe-navy);background:#fff;"></select>
+    </div>
+    <div class="dash-modal-body">
+      <div style="padding:14px;">
+        <div class="add-escola-box" style="background:#eef5ff;border-color:var(--pe-blue,#0056b3);">
+          <label>Convidar professores</label>
+          <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:8px;">
+            Compartilhe o código abaixo (ou o link) com a equipe. Ao usar, as turmas dessa escola
+            aparecem automaticamente para eles.
+          </div>
+          <div class="add-escola-row">
+            <input type="text" id="gestao-codigo-escola" readonly style="flex:2;font-weight:800;letter-spacing:1px;">
+            <button type="button" class="btn-sm btn-sm-primary" onclick="copiarCodigoEscolaGestao()">Copiar código</button>
+            <button type="button" class="btn-sm" style="background:#eef5ff;color:var(--pe-blue);" onclick="copiarLinkEscolaGestao()">Copiar link</button>
+          </div>
+        </div>
+        <div id="gestao-equipe-list" style="margin-top:14px;"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal: Rendimento dos alunos (Gestão/Coordenação) ── -->
+<div id="dm-gestao-rendimento-overlay" class="dash-modal-overlay" style="display:none;"
+     onclick="if(event.target===this)fecharModalGestaoRendimento()">
+  <div class="dash-modal">
+    <div class="dash-modal-header">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Rendimento dos alunos</h3>
+      <button onclick="fecharModalGestaoRendimento()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
+    </div>
+    <div class="dash-modal-toolbar">
+      <button onclick="gestaoExportarPDF()">Exportar PDF</button>
+      <select id="dm-gestao-rendimento-escola-select" onchange="_gestaoTrocarEscolaModal(this.value,'rendimento')"
+        style="display:none;margin-left:auto;font-size:.78rem;font-weight:700;padding:5px 10px;border-radius:8px;
+               border:1.5px solid var(--pe-border);color:var(--pe-navy);background:#fff;"></select>
+    </div>
+    <div class="dash-modal-body">
+      <div style="padding:14px;">
+        <div id="gestao-rendimento-list"></div>
+      </div>
+    </div>
   </div>
 </div>
 </body>
