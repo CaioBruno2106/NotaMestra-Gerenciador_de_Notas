@@ -6535,7 +6535,7 @@ window.renderModalTurmasDash = function(){
     const ativa = t.ativo !== false;
     const escola = _escolas.find(e => e.id === t.escolaId);
     const escolaNome = escola ? escola.nome : (t.escolaNome || '—');
-    const nAlunos = countStudents(t.alunosRaw);
+    const nAlunos = (t.alunos||[]).filter(a=>a.ativo!==false).length;
     const turno = turnoLabel(t.turno || '');
     return `
     <div class="dm-item ${ativa ? '' : 'inativo'}">
