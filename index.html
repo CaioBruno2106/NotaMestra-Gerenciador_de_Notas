@@ -10276,6 +10276,9 @@ function renderConsolidacao(turma, unidades){
     const notasUnid = unidades.map(u=>calcularNotaUnidadeAluno(u.id, ai, regras));
     const notasValidas = notasUnid.filter(n=>n!=null);
     const todasLancadas = notasUnid.length>0 && notasValidas.length===notasUnid.length;
+    // Unidades que ainda faltam ter nota lançada — usado pra deixar bem
+    // visível pro professor por que o campo de Rec. Final ainda tá bloqueado.
+    const faltantes = unidades.filter((u,i)=>notasUnid[i]==null).map(u=>u.label);
 
     let sit='sem_dados', mediaAnual=0, notaFinal=0;
     if(todasLancadas){
@@ -10294,12 +10297,15 @@ function renderConsolidacao(turma, unidades){
 
     const rfVal = recFinalMap[ai];
     const podeRec = sit==='recuperacao' || sit==='aprovado' || sit==='reprovado';
+    const tituloFaltam = faltantes.length ? `Faltam lançar notas em: ${faltantes.join(', ')}` : '';
     const inputRec = (todasLancadas && (sit==='recuperacao' || (rfVal!=null && rfVal!=='')))
       ? `<input type="number" min="0" max="10" step="0.1" class="nota-input"
               value="${rfVal!=null?rfVal:''}"
               style="width:60px;text-align:center;"
               onchange="onChangeRecFinal('${turma.id}',${ai},this.value)">`
-      : (todasLancadas && sit!=='aprovado' && sit!=='reprovado' ? '—' : '—');
+      : (!todasLancadas
+          ? `<span title="${tituloFaltam}" style="cursor:help;color:var(--pe-muted);font-size:.95rem;">🔒</span>`
+          : '—');
 
     const corSit = {
       'aprovado':'#2e7d32',
@@ -10312,8 +10318,8 @@ function renderConsolidacao(turma, unidades){
       'aprovado':'Aprovado(a)',
       'reprovado':'Reprovado(a)',
       'recuperacao':'Recuperação Final',
-      'pendente':'Pendente',
-      'sem_dados':'—'
+      'pendente':`Faltam: ${faltantes.join(', ')}`,
+      'sem_dados':faltantes.length ? `Faltam: ${faltantes.join(', ')}` : '—'
     }[sit];
 
     const notaFinalTxt = (sit==='aprovado'||sit==='reprovado') && rfVal!=null && rfVal!==''
@@ -10377,8 +10383,11 @@ function renderConsolidacao(turma, unidades){
       </table>
     </div>
     <p style="color:var(--pe-muted);font-size:.78rem;margin-top:10px;">
-      O campo <strong>Rec. Final</strong> só aceita entrada para alunos em recuperação final.
-      Cada digitação salva automaticamente. Pendentes só aparecem após todas as unidades terem notas lançadas.
+      O campo <strong>Rec. Final</strong> só libera para digitação depois que <strong>todas</strong> as unidades
+      (bimestres/trimestres) da turma tiverem notas lançadas para aquele aluno — até lá aparece um <strong>🔒</strong>
+      no lugar do campo; passe o mouse sobre ele (ou toque, no celular) pra ver quais unidades ainda faltam.
+      A coluna <strong>Situação</strong> também mostra "Faltam: ..." com o nome das unidades pendentes.
+      Cada digitação no Rec. Final salva automaticamente.
     </p>
   </div>`;
 }
@@ -11357,12 +11366,12 @@ function _renderTelaExportacao(turma, unidades){
       </div>
     </div>
 
-    <!-- 4. Exportar para a extensão (preenchimento no SIEPE ou SIEC) -->
+    <!-- 4. Exportar para a extensão (preenchimento no SIEPE) -->
     <div class="medias-card">
-      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE ou SIEC</h4>
+      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         Gera um JSON da unidade selecionada, pronto pra carregar na extensão
-        que preenche as notas no SIEPE ou SIEC.
+        que preenche as notas no SIEPE.
       </p>
       ${isApk ? `
       <div style="background:#fff3cd;color:#7a5b00;border:1px solid #ffe08a;border-radius:8px;
@@ -11376,7 +11385,7 @@ function _renderTelaExportacao(turma, unidades){
         <button class="btn-aplicar-qtd" style="background:#0f6e56;${isApk?'opacity:.5;cursor:not-allowed;':''}"
           ${isApk?'disabled title="Disponível apenas no computador"':''}
           onclick="exportarUnidadeParaSiepe(document.getElementById('exp-siepe-unid-sel').value)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Baixar JSON para o SIEPE ou SIEC
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Baixar JSON para o SIEPE
         </button>
       </div>
     </div>
@@ -11460,7 +11469,7 @@ window.exportarUnidadeParaSiepe = function(uidStr){
     a.href = url;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`Exportado para o SIEPE ou SIEC: ${alunosOut.length} aluno(s) <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`, 'success');
+    showToast(`Exportado para o SIEPE: ${alunosOut.length} aluno(s) <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`, 'success');
   } catch(e){
     showToast('Erro ao exportar: '+e.message, 'error');
   }
