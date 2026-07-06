@@ -11357,12 +11357,12 @@ function _renderTelaExportacao(turma, unidades){
       </div>
     </div>
 
-    <!-- 4. Exportar para a extensão (preenchimento no SIEPE) -->
+    <!-- 4. Exportar para a extensão (preenchimento no SIEPE ou SIEC) -->
     <div class="medias-card">
-      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE</h4>
+      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE ou SIEC</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         Gera um JSON da unidade selecionada, pronto pra carregar na extensão
-        que preenche as notas no SIEPE.
+        que preenche as notas no SIEPE ou SIEC.
       </p>
       ${isApk ? `
       <div style="background:#fff3cd;color:#7a5b00;border:1px solid #ffe08a;border-radius:8px;
@@ -11376,7 +11376,7 @@ function _renderTelaExportacao(turma, unidades){
         <button class="btn-aplicar-qtd" style="background:#0f6e56;${isApk?'opacity:.5;cursor:not-allowed;':''}"
           ${isApk?'disabled title="Disponível apenas no computador"':''}
           onclick="exportarUnidadeParaSiepe(document.getElementById('exp-siepe-unid-sel').value)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Baixar JSON para o SIEPE
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Baixar JSON para o SIEPE ou SIEC
         </button>
       </div>
     </div>
@@ -11460,7 +11460,7 @@ window.exportarUnidadeParaSiepe = function(uidStr){
     a.href = url;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`Exportado para o SIEPE: ${alunosOut.length} aluno(s) <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`, 'success');
+    showToast(`Exportado para o SIEPE ou SIEC: ${alunosOut.length} aluno(s) <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`, 'success');
   } catch(e){
     showToast('Erro ao exportar: '+e.message, 'error');
   }
