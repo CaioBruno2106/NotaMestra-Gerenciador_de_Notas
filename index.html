@@ -7869,6 +7869,7 @@ window.abrirImportsPendentes = function(){
 };
 
 function renderCardImportPendente(imp){
+  if(imp.origem === 'simulado-caed') return renderCardImportPendenteCAED(imp);
   const unidade   = (_unidades[_turmaAtual?.id]||[]).find(u=>u.id===imp.unidadeId);
   const dataEnvio = imp.criadoEm && typeof imp.criadoEm.toDate === 'function' ? imp.criadoEm.toDate() : null;
   const tipoLabel = imp.tipo==='prova' ? 'Prova da unidade' : `Atividade ${String(imp.atividadeAlvo||'').replace('atv','')}`;
@@ -7879,6 +7880,32 @@ function renderCardImportPendente(imp){
           <div style="font-weight:700;font-size:.9rem;color:var(--pe-navy);">${imp.provaNome||'Prova sem nome'}</div>
           <div style="font-size:.78rem;color:var(--pe-muted);margin-top:2px;">
             ${unidade?.label || imp.unidadeLabel || '—'} · ${tipoLabel}${imp.disciplina ? ' · '+imp.disciplina : ''}
+          </div>
+          <div style="font-size:.72rem;color:var(--pe-muted);margin-top:2px;">
+            ${(imp.alunos||[]).length} aluno(s) · enviado por ${imp.enviadoPor||'—'}${dataEnvio ? ' em '+dataEnvio.toLocaleString('pt-BR') : ''}
+          </div>
+        </div>
+        <span style="font-size:.68rem;background:#fff3cd;color:#856404;padding:2px 8px;border-radius:10px;font-weight:700;white-space:nowrap;">Pendente</span>
+      </div>
+      <button class="btn-aplicar-qtd" style="margin-top:10px;width:100%;" onclick="revisarImportPendente('${imp.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Revisar e aplicar
+      </button>
+      <button class="btn-aplicar-qtd" style="margin-top:6px;width:100%;background:transparent;color:var(--pe-red);border:1px solid var(--pe-red);"
+        onclick="excluirImportPendente('${imp.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Excluir importação
+      </button>
+    </div>`;
+}
+
+function renderCardImportPendenteCAED(imp){
+  const dataEnvio = imp.criadoEm && typeof imp.criadoEm.toDate === 'function' ? imp.criadoEm.toDate() : null;
+  return `
+    <div class="medias-card" style="margin-bottom:10px;">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div>
+          <div style="font-weight:700;font-size:.9rem;color:var(--pe-navy);">${imp.simuladoNome||imp.provaNome||'Simulado CAED'}</div>
+          <div style="font-size:.78rem;color:var(--pe-muted);margin-top:2px;">
+            Simulado CAED${imp.disciplina ? ' · '+imp.disciplina : ''}
           </div>
           <div style="font-size:.72rem;color:var(--pe-muted);margin-top:2px;">
             ${(imp.alunos||[]).length} aluno(s) · enviado por ${imp.enviadoPor||'—'}${dataEnvio ? ' em '+dataEnvio.toLocaleString('pt-BR') : ''}
@@ -7910,6 +7937,7 @@ window.revisarImportPendente = function(id){
 };
 
 function renderRevisaoImportPendente(imp){
+  if(imp.origem === 'simulado-caed'){ renderRevisaoImportPendenteCAED(imp); return; }
   const el = document.getElementById('unidade-content');
   if(!el) return;
 
@@ -7976,6 +8004,139 @@ function renderRevisaoImportPendente(imp){
   `;
 }
 
+function renderRevisaoImportPendenteCAED(imp){
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+
+  const alunosTurma = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+
+  const pares = (imp.alunos||[]).map(a=>{
+    const nNorm = _normNome(a.nome);
+    const match = alunosTurma.findIndex(at=>_normNome(typeof at==='string'?at:at.nome)===nNorm);
+    return { nome:a.nome, nota:a.nota, nivel:a.nivel, match };
+  });
+  const casados    = pares.filter(p=>p.match>=0).length;
+  const naoCasados = pares.length - casados;
+
+  const linhas = pares.map(p=>{
+    const nomeTurma = p.match>=0 ? (typeof alunosTurma[p.match]==='string'?alunosTurma[p.match]:alunosTurma[p.match].nome) : null;
+    return `
+    <tr>
+      <td style="font-size:.78rem;padding:4px 6px;">${p.nome}</td>
+      <td style="font-size:.78rem;padding:4px 6px;text-align:center;font-weight:700;">${p.nota!=null?Number(p.nota).toFixed(1):'—'}</td>
+      <td style="font-size:.78rem;padding:4px 6px;text-align:center;">${p.nivel?(NIVEIS_SAEB_LABEL[p.nivel]||p.nivel):'—'}</td>
+      <td style="font-size:.78rem;padding:4px 6px;text-align:center;">
+        ${ p.match>=0
+          ? `<span style="color:#28a745;font-weight:700;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg> ${nomeTurma}</span>`
+          : `<span style="color:var(--pe-red);font-size:.72rem;">Não encontrado</span>` }
+      </td>
+    </tr>`;
+  }).join('');
+
+  el.innerHTML = `
+    <div class="medias-card" style="margin-bottom:14px;">
+      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg> Revisar simulado CAED</h4>
+      <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
+        ${imp.simuladoNome||imp.provaNome||'Simulado CAED'}${imp.disciplina?' · '+imp.disciplina:''}
+      </p>
+      <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">
+        <span style="font-size:.72rem;background:#e8f5e9;color:#2e7d32;padding:2px 8px;border-radius:10px;font-weight:700;">${casados} aluno(s) casado(s)</span>
+        ${naoCasados>0?`<span style="font-size:.72rem;background:#fdecea;color:var(--pe-red);padding:2px 8px;border-radius:10px;font-weight:700;">${naoCasados} não encontrado(s)</span>`:''}
+      </div>
+    </div>
+    <div class="medias-card" style="margin-bottom:14px;padding:8px;">
+      <table style="width:100%;border-collapse:collapse;">
+        <thead><tr>
+          <th style="background:#f1f3f5;font-size:.7rem;padding:4px 6px;text-align:left;">Aluno (enviado)</th>
+          <th style="background:#f1f3f5;font-size:.7rem;padding:4px 6px;text-align:center;">Nota</th>
+          <th style="background:#f1f3f5;font-size:.7rem;padding:4px 6px;text-align:center;">Nível</th>
+          <th style="background:#f1f3f5;font-size:.7rem;padding:4px 6px;text-align:center;">Casamento na turma</th>
+        </tr></thead>
+        <tbody>${linhas || `<tr><td colspan="4" style="font-size:.78rem;padding:10px;text-align:center;color:var(--pe-muted);">Nenhum aluno neste envio.</td></tr>`}</tbody>
+      </table>
+    </div>
+    ${naoCasados>0?`
+    <div style="background:#fdecea;color:var(--pe-red);padding:8px 10px;border-radius:8px;font-size:.78rem;margin-bottom:10px;">
+      ${naoCasados} aluno(s) não foram encontrados nesta turma pelo nome e NÃO serão aplicados.
+    </div>`:''}
+    <button class="btn-aplicar-qtd" id="btn-confirmar-aplicar-${imp.id}" style="width:100%;${casados===0?'opacity:.5;pointer-events:none;':''}"
+      onclick="confirmarAplicacaoImportPendente('${imp.id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Confirmar e aplicar (${casados} aluno${casados===1?'':'s'})
+    </button>
+    <button class="btn-aplicar-qtd" style="width:100%;margin-top:8px;background:var(--pe-muted);" onclick="abrirImportsPendentes()">‹ Voltar</button>
+    <button class="btn-aplicar-qtd" style="width:100%;margin-top:8px;background:transparent;color:var(--pe-red);border:1px solid var(--pe-red);"
+      onclick="excluirImportPendente('${imp.id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Excluir esta importação
+    </button>
+  `;
+}
+
+/* Cria um novo simulado CAED na turma a partir de um envio pendente do
+   Correção Mestra, casando alunos por nome (mesma lógica _normNome usada
+   no resto da integração). */
+async function _aplicarSimuladoCAEDImportPendente(imp){
+  const alunosTurma = (_turmaAtual.alunos||[]).filter(a=>a.ativo!==false);
+  const resultados = {};
+  let importados = 0, naoCasados = 0;
+
+  (imp.alunos||[]).forEach(a=>{
+    const nNorm = _normNome(a.nome);
+    const turmaIdx = alunosTurma.findIndex(at=>_normNome(typeof at==='string'?at:at.nome)===nNorm);
+    if(turmaIdx < 0){ naoCasados++; return; }
+    resultados[turmaIdx] = { nota: (a.nota!=null && !isNaN(parseFloat(a.nota))) ? parseFloat(a.nota) : null, nivel: a.nivel||'' };
+    importados++;
+  });
+
+  if(importados === 0) return { importados, naoCasados };
+
+  const payload = {
+    nome: imp.simuladoNome || imp.provaNome || 'Simulado CAED',
+    disciplina: imp.disciplina || '',
+    data: imp.data || new Date().toISOString().slice(0,10),
+    anoLetivo: _turmaAtual.anoLetivo || String(new Date().getFullYear()),
+    resultados,
+    origemImportId: imp.id,
+    criadoEm: serverTimestamp(),
+  };
+  await addDoc(collection(db, ...turmaPath(_turmaAtual.id), 'simuladosCAED'), payload);
+
+  return { importados, naoCasados };
+}
+
+async function confirmarAplicacaoSimuladoCAEDPendente(imp){
+  showLoading('Aplicando simulado...');
+  try {
+    const resultado = await _aplicarSimuladoCAEDImportPendente(imp);
+
+    if(resultado.erro || resultado.importados === 0){
+      hideLoading();
+      showToast(resultado.erro || 'Nenhum aluno pôde ser casado — nada foi aplicado.', 'error');
+      return;
+    }
+
+    await setDoc(
+      doc(db,...turmaPath(_turmaAtual.id),'importsPendentes',imp.id),
+      { status:'aplicado', aplicadoEm: serverTimestamp() },
+      { merge:true }
+    );
+
+    _importsPendentes       = _importsPendentes.filter(i=>i.id!==imp.id);
+    _importsPendentesGlobal = _importsPendentesGlobal.filter(i=>i.id!==imp.id);
+    atualizarBadgeSinoNM();
+    renderUnidadesTabs(_unidades[_turmaAtual.id]||[]);
+
+    await carregarSimuladosCAED(_turmaAtual.id, true);
+    abrirSimuladosCAED();
+
+    hideLoading();
+    const aviso = resultado.naoCasados>0 ? ` (${resultado.naoCasados} não encontrado(s) ficaram de fora)` : '';
+    showToast(`Simulado CAED aplicado: ${resultado.importados} aluno(s)!${aviso}`, 'success');
+  } catch(e){
+    hideLoading();
+    showToast('Erro ao aplicar: '+e.message, 'error');
+  }
+}
+
 /* Aplica de fato as notas no _notasCache da unidade certa, reaproveitando
    a mesma lógica de indexação usada em confirmarImportacaoBKP. Sempre
    recarrega o estado salvo mais recente da unidade ANTES de sobrepor,
@@ -8034,6 +8195,11 @@ async function _aplicarNotasImportPendente(imp){
 window.confirmarAplicacaoImportPendente = async function(id){
   const imp = _importsPendentes.find(i=>i.id===id);
   if(!imp) return;
+
+  if(imp.origem === 'simulado-caed'){
+    await confirmarAplicacaoSimuladoCAEDPendente(imp);
+    return;
+  }
 
   showLoading('Aplicando notas...');
   try {
@@ -10334,19 +10500,18 @@ function formatarDataBR(iso){
 }
 
 /* ── Novo simulado / edição ── */
-function abrirNovoSimuladoCAED(){
+window.abrirNovoSimuladoCAED = function(){
   const turma = _turmaAtual;
   _caedForm = {
     id: null,
     nome: '',
     disciplina: turma.disciplina || '',
     data: new Date().toISOString().slice(0,10),
-    bimestre: '1',
     anoLetivo: turma.anoLetivo || String(new Date().getFullYear()),
     resultados: {},
   };
   renderFormSimuladoCAED();
-}
+};
 
 window.abrirEdicaoSimuladoCAED = function(id){
   const turma = _turmaAtual;
@@ -10358,11 +10523,29 @@ window.abrirEdicaoSimuladoCAED = function(id){
     nome: s.nome || '',
     disciplina: s.disciplina || '',
     data: s.data || new Date().toISOString().slice(0,10),
-    bimestre: s.bimestre || '1',
     anoLetivo: s.anoLetivo || String(new Date().getFullYear()),
     resultados: JSON.parse(JSON.stringify(s.resultados||{})),
   };
   renderFormSimuladoCAED();
+};
+
+// ── Helpers expostos em window: os campos do formulário usam onchange/oninput
+// inline no HTML, que rodam no escopo global — como este app usa <script
+// type="module">, funções e variáveis de nível de módulo (como _caedForm)
+// NÃO ficam visíveis nesse escopo. Por isso os inputs chamam estas funções
+// (expostas em window) em vez de mexer em _caedForm diretamente no atributo.
+window.caedSetCampo = function(campo, valor){
+  if(_caedForm) _caedForm[campo] = valor;
+};
+window.caedSetNota = function(ai, valor){
+  if(!_caedForm) return;
+  _caedForm.resultados[ai] = _caedForm.resultados[ai] || {};
+  _caedForm.resultados[ai].nota = valor === '' ? '' : parseFloat(valor);
+};
+window.caedSetNivel = function(ai, valor){
+  if(!_caedForm) return;
+  _caedForm.resultados[ai] = _caedForm.resultados[ai] || {};
+  _caedForm.resultados[ai].nivel = valor;
 };
 
 function renderFormSimuladoCAED(){
@@ -10379,10 +10562,10 @@ function renderFormSimuladoCAED(){
       <td class="col-aluno">${ai+1}. ${escapeHtmlNM(nome)}</td>
       <td style="text-align:center">
         <input type="number" min="0" max="10" step="0.1" value="${r.nota}" style="width:64px;text-align:center"
-               onchange="_caedForm.resultados[${ai}]=_caedForm.resultados[${ai}]||{};_caedForm.resultados[${ai}].nota=this.value===''?'':parseFloat(this.value)">
+               onchange="caedSetNota(${ai}, this.value)">
       </td>
       <td style="text-align:center">
-        <select style="font-size:.8rem;padding:3px" onchange="_caedForm.resultados[${ai}]=_caedForm.resultados[${ai}]||{};_caedForm.resultados[${ai}].nivel=this.value">
+        <select style="font-size:.8rem;padding:3px" onchange="caedSetNivel(${ai}, this.value)">
           <option value="">—</option>
           ${NIVEIS_SAEB.map(n => `<option value="${n}" ${r.nivel===n?'selected':''}>${NIVEIS_SAEB_LABEL[n]}</option>`).join('')}
         </select>
@@ -10398,17 +10581,14 @@ function renderFormSimuladoCAED(){
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px">
       <div><label style="font-size:.75rem;color:var(--pe-muted)">Nome do simulado</label>
         <input type="text" value="${escapeHtmlNM(f.nome)}" placeholder="Ex: 1º Simulado CAED"
-               oninput="_caedForm.nome=this.value" style="width:100%"></div>
+               oninput="caedSetCampo('nome', this.value)" style="width:100%"></div>
       <div><label style="font-size:.75rem;color:var(--pe-muted)">Disciplina</label>
-        <input type="text" value="${escapeHtmlNM(f.disciplina)}" oninput="_caedForm.disciplina=this.value" style="width:100%"></div>
+        <input type="text" value="${escapeHtmlNM(f.disciplina)}" oninput="caedSetCampo('disciplina', this.value)" style="width:100%"></div>
       <div><label style="font-size:.75rem;color:var(--pe-muted)">Data de aplicação</label>
-        <input type="date" value="${f.data}" onchange="_caedForm.data=this.value" style="width:100%"></div>
-      <div><label style="font-size:.75rem;color:var(--pe-muted)">Unidade letiva</label>
-        <select onchange="_caedForm.bimestre=this.value" style="width:100%">
-          ${['1','2','3','4'].map(b=>`<option value="${b}" ${f.bimestre===b?'selected':''}>${b}ª unidade</option>`).join('')}
-        </select></div>
+        <input type="date" value="${f.data}" onchange="caedSetCampo('data', this.value)" style="width:100%"></div>
     </div>
     <div style="font-size:.8rem;color:var(--pe-muted);margin-bottom:8px">
+      Simulados CAED não são vinculados a uma unidade letiva — eles ficam só nesta aba, separados das notas bimestrais.
       Lance a nota final e o nível de proficiência já apurados (no Correção Mestra ou por outro meio) de cada aluno.
     </div>
     <table style="width:100%;border-collapse:collapse">
@@ -10426,7 +10606,7 @@ function renderFormSimuladoCAED(){
   `;
 }
 
-async function salvarSimuladoCAED(){
+window.salvarSimuladoCAED = async function(){
   const turma = _turmaAtual;
   const f = _caedForm;
   if(!f.nome.trim()){ showToast('Dê um nome ao simulado','error'); return; }
@@ -10443,7 +10623,6 @@ async function salvarSimuladoCAED(){
     nome: f.nome.trim(),
     disciplina: f.disciplina.trim(),
     data: f.data,
-    bimestre: f.bimestre,
     anoLetivo: f.anoLetivo,
     resultados,
   };
