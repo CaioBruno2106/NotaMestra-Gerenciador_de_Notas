@@ -8674,10 +8674,32 @@ function calcNotaTrabalhoNum(atv, criteriosAluno){
   return v === '—' ? 0 : parseFloat(v);
 }
 
+// Verifica se um aluno já possui nota definida para esta atividade de trabalho —
+// seja por critérios já avaliados (em qualquer grupo) ou por nota anterior
+// preservada (lançamento direto/vistos/importação, antes de virar Trabalho).
+function _trabAlunoTemNotaExistente(uid, idx, atv, ai){
+  const notas = _notasCache[uid]?.atv?.[idx] || {};
+  const crits = (notas[ai] && typeof notas[ai] === 'object') ? notas[ai] : {};
+  if(Object.keys(crits).length && calcNotaTrabalho(atv, crits) !== '—') return true;
+  if(atv.notaAnteriorAluno && atv.notaAnteriorAluno[ai] != null) return true;
+  return false;
+}
+
+// HTML da célula de nota do trabalho: usa a nota calculada pelos critérios
+// já preenchidos; se ainda não há critérios, cai para a nota anterior
+// preservada (Requisito: manter nota já salva antes da atividade virar Trabalho).
+function _trabNotaExibicaoHtml(atv, crits, ai){
+  const temNota = crits && Object.keys(crits).length > 0;
+  if(temNota) return `<strong>${calcNotaTrabalho(atv,crits)}</strong>`;
+  const anterior = atv.notaAnteriorAluno && atv.notaAnteriorAluno[ai];
+  if(anterior != null) return `<strong>${anterior}</strong><span title="Nota anterior preservada (antes de virar Trabalho)" style="font-size:.62rem;color:var(--pe-muted);margin-left:2px;">*</span>`;
+  return `<span style="color:var(--pe-muted);">—</span>`;
+}
+
 function defaultAtv(idx){
   return { tipo:'direto', teto:10.0, nome:'', vistos:[],
            subtipos:['apres'], modalidade:{}, formato:'escala', maxFolha:10,
-           tema:'', grupos:[], alunoGrupo:{} };
+           tema:'', grupos:[], alunoGrupo:{}, notaAnteriorAluno:{} };
 }
 
 // ── Renderizar conteúdo da unidade ───────────────────────────────────
@@ -9166,13 +9188,21 @@ function renderTrabalhoConfig(uid, idx){
         onclick="trabGoStep('${uid}',${idx},${step+1})">Avançar →</button>
     </div>`;
 
+  const collKeyT  = `trab-${uid}-${idx}`;
+  const colapsadoT = !!window._painelColapsado[collKeyT];
+
   panel.innerHTML = `
   <div class="vistos-config trab-config" style="border-left:3px solid #8e24aa;">
-    <div class="vistos-config-title" style="color:#6a1b9a;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> Configuração do Trabalho Acadêmico</div>
+    <div class="vistos-config-title" onclick="toggleAtvSubPainel('trab','${uid}',${idx})" style="color:#6a1b9a;cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;user-select:none;">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> Configuração do Trabalho Acadêmico</span>
+      <span id="trab-painel-chevron-${uid}-${idx}" style="font-size:.68rem;transition:transform .2s;flex-shrink:0;${colapsadoT?'transform:rotate(-90deg);':''}">▼</span>
+    </div>
+    <div id="trab-painel-body-${uid}-${idx}" style="${colapsadoT?'display:none;':''}">
     ${resumo}
     <div class="trab-steps-bar">${ind}</div>
     <div class="trab-step-body">${conteudo}</div>
     ${nav}
+    </div>
   </div>`;
 }
 
@@ -9374,7 +9404,9 @@ function _trabStep3(uid, idx, atv, alunos){
       livresIdx.map(ai=>{
         const a = alunos[ai];
         const nome = typeof a==='string'?a:a.nome;
-        return `<option value="${ai}" ${ai===extra?'selected':''}>${ai+1}. ${nome}</option>`;
+        const temNota = _trabAlunoTemNotaExistente(uid, idx, atv, ai);
+        const marcador = temNota ? ' ⚠ (já tem nota)' : '';
+        return `<option value="${ai}" ${ai===extra?'selected':''} ${temNota?'style="color:#c62828;font-weight:700;"':''}>${ai+1}. ${nome}${marcador}</option>`;
       }).join('');
 
     const selects = Array.from({length: qtdAtual}, (_,si)=>{
@@ -9531,7 +9563,9 @@ function _grpRenderSelects(uid, idx, atv, alunos, qtd){
   });
   const optsBase = `<option value="">— Selecionar —</option>` +
     livresIdx.map(ai=>{ const a=alunos[ai]; const nome=typeof a==='string'?a:a.nome;
-      return `<option value="${ai}">${ai+1}. ${nome}</option>`; }).join('');
+      const temNota = _trabAlunoTemNotaExistente(uid, idx, atv, ai);
+      const marcador = temNota ? ' ⚠ (já tem nota)' : '';
+      return `<option value="${ai}" ${temNota?'style="color:#c62828;font-weight:700;"':''}>${ai+1}. ${nome}${marcador}</option>`; }).join('');
   return Array.from({length: qtd}, (_,si)=>`
     <div class="grp-integrante-row">
       <label>${si+1}.</label>
@@ -9578,10 +9612,7 @@ function renderTabelaTrabalho(uid, idx, atv, alunos, notas){
         return `<tr><td class="col-aluno">${nome}</td><td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><span style="color:var(--pe-blue);font-weight:600;">${MSG_PCD}</span></td></tr>`;
       }
       const crits  = (notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
-      const temNota = Object.keys(crits).length > 0;
-      const notaExib = temNota
-        ? `<strong>${calcNotaTrabalho(atv,crits)}</strong>`
-        : `<span style="color:var(--pe-muted);">—</span>`;
+      const notaExib = _trabNotaExibicaoHtml(atv, crits, ai);
       return `<tr><td class="col-aluno">${nome}</td><td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}">${notaExib}</td></tr>`;
     }).join('');
     return `<div class="lancamento-tabela">${titulo}<div style="overflow-x:auto;"><table class="notas-table"><thead><tr><th class="col-aluno">Aluno</th><th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table></div></div>`;
@@ -9600,12 +9631,8 @@ function renderTabelaTrabalho(uid, idx, atv, alunos, notas){
         <td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><span style="color:var(--pe-blue);font-weight:600;">${MSG_PCD}</span></td>
       </tr>`;
     }
-    const gi    = atv.alunoGrupo?.[ai];
     const crits = (notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
-    const temNota = gi !== undefined && Object.keys(crits).length > 0;
-    const notaExib = temNota
-      ? `<strong>${calcNotaTrabalho(atv,crits)}</strong>`
-      : `<span style="color:var(--pe-muted);">—</span>`;
+    const notaExib = _trabNotaExibicaoHtml(atv, crits, ai);
     return `<tr>
       <td class="col-aluno">${nome}</td>
       <td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}">${notaExib}</td>
@@ -9639,6 +9666,35 @@ function _trabSetVal(uid, idx, ai, sub, critId, val){
   const atv=_atvConfig[uid]?.atividades[idx];
   const obj=_trabEnsureCrit(uid,idx,ai);
   const k=trabCritKey(sub,critId);
+
+  // Se o aluno já tem nota vinda de outro contexto (outro grupo já avaliado
+  // nesta mesma atividade, ou nota anterior preservada de antes de virar
+  // Trabalho), confirma antes de substituir. Só pergunta uma vez por
+  // grupo/sessão — edições seguintes no mesmo grupo não repetem o aviso.
+  if(val!==''&&val!=null){
+    const giAtual   = atv.alunoGrupo?.[ai];
+    const origemKey = `${uid}-${idx}-${ai}`;
+    if(!window._trabOrigemAprovada) window._trabOrigemAprovada = {};
+    const jaAprovado       = window._trabOrigemAprovada[origemKey] === giAtual;
+    const temOutrosValores = Object.keys(obj).length > 0;
+    const temNotaAnterior  = !temOutrosValores && atv.notaAnteriorAluno && atv.notaAnteriorAluno[ai] != null;
+
+    if(!jaAprovado && (temOutrosValores || temNotaAnterior)){
+      const alunos = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+      const a = alunos[ai]; const nome = typeof a==='string'?a:(a?.nome||'Este aluno');
+      const msg = temOutrosValores
+        ? `${nome} já possui nota lançada neste trabalho (possivelmente de outro grupo). Definir a nota aqui irá substituí-la. Deseja continuar?`
+        : `${nome} já possui uma nota anterior (${atv.notaAnteriorAluno[ai]}), lançada antes desta atividade virar Trabalho. Definir a nova nota irá substituí-la. Deseja continuar?`;
+      if(!confirm(msg)){
+        renderTrabalhoConfig(uid, idx);
+        return;
+      }
+      window._trabOrigemAprovada[origemKey] = giAtual;
+    } else if(!jaAprovado){
+      window._trabOrigemAprovada[origemKey] = giAtual;
+    }
+  }
+
   if(val===''||val==null){ delete obj[k]; }
   else { obj[k]= trabFormato(atv)==='caixa' ? (parseFloat(val)||0) : parseInt(val); }
   _trabUpdNotaCell(uid,idx,ai);
@@ -9866,8 +9922,14 @@ window.onLimparNotasAtv = function(uid, idx){
     _trabNormalizar(atv);
     atv.grupos     = [];
     atv.alunoGrupo = {};
+    atv.notaAnteriorAluno = {};
     const key = `${uid}-${idx}`;
     if(window._grpWizard) window._grpWizard[key] = { gi:0, tela:'A', injetado:false };
+    if(window._trabOrigemAprovada){
+      Object.keys(window._trabOrigemAprovada).forEach(k=>{
+        if(k.startsWith(`${uid}-${idx}-`)) delete window._trabOrigemAprovada[k];
+      });
+    }
   }
 
   // Recalcula a prévia de todos os alunos
@@ -10131,6 +10193,7 @@ function montarPayload(uid, nc, cfg){
             grupos:     atv.grupos || [],
             alunoGrupo: atv.alunoGrupo || {},
             tema:       atv.tema || '',
+            notaAnteriorAluno: atv.notaAnteriorAluno || {},
             subtipo:    (atv.subtipos && atv.subtipos[0]) || atv.subtipo || 'apres' // compat
           } : {})
     };
@@ -10243,6 +10306,21 @@ async function carregarNotasUnidade(turmaId, unidade){
           if(Array.isArray(atv.grupos))  dst.grupos   = atv.grupos;
           if(atv.alunoGrupo) dst.alunoGrupo = atv.alunoGrupo;
           if(atv.tema !== undefined) dst.tema = atv.tema;
+          if(atv.notaAnteriorAluno) dst.notaAnteriorAluno = atv.notaAnteriorAluno;
+
+          // Migração retroativa: se a atividade já era "trabalho" ANTES desta
+          // versão (que passou a preservar notaAnteriorAluno na troca de tipo),
+          // pode haver notas simples "escondidas" — números ainda salvos em
+          // atv.notas que nunca foram convertidos para o objeto de critérios
+          // porque o aluno nunca teve nenhum critério lançado. Recupera-as aqui.
+          if(atv.tipo === 'trabalho'){
+            if(!dst.notaAnteriorAluno) dst.notaAnteriorAluno = {};
+            Object.entries(atv.notas || {}).forEach(([ai, v])=>{
+              if(typeof v === 'number' && !Number.isNaN(v) && dst.notaAnteriorAluno[ai] == null){
+                dst.notaAnteriorAluno[ai] = v;
+              }
+            });
+          }
         }
       });
       if(dados.qtdAtividades !== undefined && _atvConfig[uid]){
@@ -11494,7 +11572,21 @@ window.onTipoAtvChange = function(uid, idx){
   const sel  = document.getElementById(`tipo-atv-${uid}-${idx}`);
   if(!sel) return;
   const tipo = sel.value;
-  if(_atvConfig[uid]?.atividades[idx]) _atvConfig[uid].atividades[idx].tipo = tipo;
+  const atv  = _atvConfig[uid]?.atividades[idx];
+  if(atv){
+    const tipoAnterior = atv.tipo;
+    atv.tipo = tipo;
+    // Ao transformar a atividade em Trabalho, preserva notas simples já
+    // lançadas antes (lançamento direto, vistos, ou importação) para que
+    // não sejam perdidas — ficam guardadas em atv.notaAnteriorAluno.
+    if(tipo==='trabalho' && tipoAnterior!=='trabalho'){
+      const notasAtuais = _notasCache[uid]?.atv?.[idx] || {};
+      if(!atv.notaAnteriorAluno) atv.notaAnteriorAluno = {};
+      Object.entries(notasAtuais).forEach(([ai,v])=>{
+        if(typeof v === 'number' && !Number.isNaN(v)) atv.notaAnteriorAluno[ai] = v;
+      });
+    }
+  }
 
   const map = {
     direto:   ['tipo-badge-direto',  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="6" y="4" width="12" height="18" rx="2"/><path d="M9 14l2 2 4-4"/></svg> Lançamento direto'],
@@ -11564,6 +11656,19 @@ function calcMinVistos(uid, idx, qtdAtual){
   return 1; // mínimo absoluto: 1 visto
 }
 
+// ── Estado de recolhimento dos painéis de configuração (vistos/trabalho) ──
+if(!window._painelColapsado) window._painelColapsado = {}; // chave: 'vistos-uid-idx' | 'trab-uid-idx'
+
+window.toggleAtvSubPainel = function(tipo, uid, idx){
+  const key = `${tipo}-${uid}-${idx}`;
+  const colapsado = !window._painelColapsado[key];
+  window._painelColapsado[key] = colapsado;
+  const body    = document.getElementById(`${tipo}-painel-body-${uid}-${idx}`);
+  const chevron = document.getElementById(`${tipo}-painel-chevron-${uid}-${idx}`);
+  if(body)    body.style.display = colapsado ? 'none' : '';
+  if(chevron) chevron.style.transform = colapsado ? 'rotate(-90deg)' : '';
+};
+
 function renderVistosConfig(uid, idx){
   const atv   = _atvConfig[uid]?.atividades[idx];
   const panel = document.getElementById(`vistos-panel-${uid}-${idx}`);
@@ -11573,11 +11678,16 @@ function renderVistosConfig(uid, idx){
   const qtd = atv.vistos.length;
   const min = calcMinVistos(uid, idx, qtd);
   const podeRemover = qtd > min;
+  const collKey  = `vistos-${uid}-${idx}`;
+  const colapsado = !!window._painelColapsado[collKey];
 
   panel.innerHTML = `
   <div class="vistos-config">
-    <div class="vistos-config-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Atividades de Visto</div>
-
+    <div class="vistos-config-title" onclick="toggleAtvSubPainel('vistos','${uid}',${idx})" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;user-select:none;">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Atividades de Visto</span>
+      <span id="vistos-painel-chevron-${uid}-${idx}" style="font-size:.68rem;transition:transform .2s;flex-shrink:0;${colapsado?'transform:rotate(-90deg);':''}">▼</span>
+    </div>
+    <div id="vistos-painel-body-${uid}-${idx}" style="${colapsado?'display:none;':''}">
     <!-- Controle de quantidade -->
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:10px 12px;background:#f8f9fa;border-radius:6px;flex-wrap:wrap;">
       <span style="font-size:.78rem;font-weight:700;color:var(--pe-navy);">Qtd. de vistos:</span>
@@ -11621,6 +11731,7 @@ function renderVistosConfig(uid, idx){
 
     <div style="font-size:.7rem;color:var(--pe-muted);margin-top:8px;">
       Nota = (vistos marcados ÷ total) × teto da atividade
+    </div>
     </div>
   </div>`;
 }
