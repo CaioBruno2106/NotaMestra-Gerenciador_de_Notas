@@ -1769,6 +1769,70 @@ body{ box-sizing:border-box; }
   margin-bottom:12px;
 }
 
+/* ── Simulados CAED ── */
+.caed-toolbar{
+  display:flex;justify-content:space-between;align-items:center;
+  flex-wrap:wrap;gap:10px;margin-bottom:14px;
+}
+.caed-toolbar h3{
+  margin:0;font-size:1rem;font-weight:800;color:var(--pe-navy);
+}
+.caed-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.btn-caed-outline{
+  padding:7px 14px;border-radius:6px;font-size:.78rem;font-weight:700;
+  cursor:pointer;background:#fff;color:var(--pe-blue);border:1.5px solid var(--pe-blue);
+}
+.btn-caed-outline:hover{background:#eef5ff;}
+.caed-empty{
+  background:#fff;border:1.5px dashed var(--pe-border);border-radius:var(--radius-md);
+  padding:24px 16px;text-align:center;color:var(--pe-muted);font-size:.85rem;
+}
+.col-simulado{min-width:150px;font-weight:600;color:var(--pe-navy);}
+.col-acoes{width:70px;text-align:center;}
+.link-tabela{
+  background:none;border:none;color:var(--pe-blue);font-weight:700;
+  font-size:.78rem;cursor:pointer;padding:0;
+}
+.link-tabela:hover{text-decoration:underline;}
+.link-excluir{
+  background:none;border:none;color:var(--pe-red);font-weight:700;
+  font-size:.72rem;cursor:pointer;padding:0;
+}
+.nivel-badge{
+  display:inline-block;font-size:.68rem;font-weight:700;
+  padding:2px 8px;border-radius:10px;white-space:nowrap;
+}
+.nivel-abaixo     {background:#fdecea;color:var(--pe-red);}
+.nivel-elementarI {background:#fff3e0;color:#e65100;}
+.nivel-elementarII{background:#fff8e1;color:#a67c00;}
+.nivel-basico     {background:#e3f2fd;color:var(--pe-blue);}
+.nivel-desejavel  {background:#e8f5e9;color:#2e7d32;}
+.caed-chip{
+  padding:5px 12px;border-radius:14px;font-size:.76rem;font-weight:600;
+  background:#f1f3f5;color:var(--pe-navy);border:1.5px solid var(--pe-border);
+  cursor:pointer;
+}
+.caed-chip:hover{background:#eef5ff;border-color:var(--pe-blue);color:var(--pe-blue);}
+.caed-form-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+  gap:12px;margin-bottom:16px;
+}
+.caed-form-grid label{
+  display:block;font-size:.72rem;font-weight:700;color:var(--pe-muted);
+  text-transform:uppercase;letter-spacing:.03em;margin-bottom:4px;
+}
+.caed-form-grid input, .caed-form-grid select{
+  width:100%;padding:8px 10px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.85rem;outline:none;background:#fff;color:var(--pe-text);
+}
+.caed-form-grid input:focus, .caed-form-grid select:focus{border-color:var(--pe-blue);}
+body.dark-mode .caed-empty{background:var(--pe-card);border-color:#444;}
+body.dark-mode .caed-chip{background:#2a2a2a;color:var(--pe-text);border-color:#444;}
+body.dark-mode .caed-form-grid input, body.dark-mode .caed-form-grid select{
+  background:#2a2a2a;color:var(--pe-text);border-color:#444;
+}
+body.dark-mode .btn-caed-outline{background:transparent;}
+
 /* ─── TOAST ─── */
 #toast{
   position:fixed;top:74px;left:50%;transform:translateX(-50%) translateY(-12px);
@@ -8098,9 +8162,9 @@ async function _aplicarSimuladoCAEDImportPendente(imp){
     origemImportId: imp.id,
     criadoEm: serverTimestamp(),
   };
-  await addDoc(collection(db, ...turmaPath(_turmaAtual.id), 'simuladosCAED'), payload);
+  const docRef = await addDoc(collection(db, ...turmaPath(_turmaAtual.id), 'simuladosCAED'), payload);
 
-  return { importados, naoCasados };
+  return { importados, naoCasados, novoId: docRef.id };
 }
 
 async function confirmarAplicacaoSimuladoCAEDPendente(imp){
@@ -8126,7 +8190,11 @@ async function confirmarAplicacaoSimuladoCAEDPendente(imp){
     renderUnidadesTabs(_unidades[_turmaAtual.id]||[]);
 
     await carregarSimuladosCAED(_turmaAtual.id, true);
-    abrirSimuladosCAED();
+    if(resultado.novoId){
+      abrirTabelaSimuladoCAED(resultado.novoId);
+    } else {
+      abrirSimuladosCAED();
+    }
 
     hideLoading();
     const aviso = resultado.naoCasados>0 ? ` (${resultado.naoCasados} não encontrado(s) ficaram de fora)` : '';
@@ -10452,47 +10520,142 @@ function renderSimuladosCAEDList(turma, lista){
 
   const linhas = lista.map(s => {
     const nAlunos = Object.keys(s.resultados||{}).length;
-    return `<tr style="cursor:pointer" onclick="abrirEdicaoSimuladoCAED('${s.id}')">
-      <td class="col-aluno">${escapeHtmlNM(s.nome||'—')}</td>
+    return `<tr>
+      <td class="col-simulado">${escapeHtmlNM(s.nome||'—')}</td>
       <td style="text-align:center">${escapeHtmlNM(s.disciplina||'—')}</td>
       <td style="text-align:center">${s.data ? formatarDataBR(s.data) : '—'}</td>
       <td style="text-align:center">${nAlunos} aluno(s)</td>
-      <td style="text-align:center"><button onclick="event.stopPropagation();excluirSimuladoCAED('${s.id}')" style="color:#c62828;background:none;border:none;cursor:pointer;font-size:.85rem;font-weight:600">Excluir</button></td>
+      <td class="col-acoes">
+        <button class="link-tabela" onclick="abrirTabelaSimuladoCAED('${s.id}')">Ver</button>
+      </td>
+      <td class="col-acoes">
+        <button class="link-excluir" onclick="excluirSimuladoCAED('${s.id}')">Excluir</button>
+      </td>
     </tr>`;
   }).join('');
 
   el.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
-      <h3 style="margin:0">Simulados CAED — ${escapeHtmlNM(turma.serie||'')} ${escapeHtmlNM(turma.turma||'')}</h3>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        <button style="padding:8px 14px;border-radius:6px;border:1px solid var(--pe-blue);background:#fff;color:var(--pe-blue);font-weight:700;font-size:.82rem;cursor:pointer" onclick="abrirRelatorioGeralCAED()">📊 Relatório geral da turma</button>
-        <button style="padding:8px 14px;border-radius:6px;border:none;background:var(--pe-blue);color:#fff;font-weight:700;font-size:.82rem;cursor:pointer" onclick="abrirNovoSimuladoCAED()">+ Novo simulado</button>
+    <div class="caed-toolbar">
+      <h3>Simulados CAED — ${escapeHtmlNM(turma.serie||'')} ${escapeHtmlNM(turma.turma||'')}</h3>
+      <div class="caed-actions">
+        ${ lista.length ? `<button class="btn-caed-outline" onclick="abrirRelatorioGeralCAED()">Imprimir relatório geral</button>` : '' }
+        <button class="btn-aplicar-qtd" onclick="abrirNovoSimuladoCAED()">+ Novo simulado</button>
       </div>
     </div>
+
     ${ lista.length===0
-      ? `<div class="unidade-empty"><span>📋</span>Nenhum simulado CAED lançado ainda para esta turma.</div>`
-      : `<table style="width:100%;border-collapse:collapse">
-          <thead><tr style="background:#f1f3f5">
-            <th style="text-align:left;padding:6px">Simulado</th>
-            <th style="padding:6px">Disciplina</th>
-            <th style="padding:6px">Data</th>
-            <th style="padding:6px">Lançados</th>
-            <th style="padding:6px"></th>
-          </tr></thead>
-          <tbody>${linhas}</tbody>
-        </table>`
+      ? `<div class="caed-empty">Nenhum simulado CAED lançado ainda para esta turma. Lance manualmente com "+ Novo simulado" ou envie direto do Correção Mestra.</div>`
+      : `<div class="medias-card">
+          <h4>Simulados lançados</h4>
+          <div style="overflow-x:auto">
+            <table class="notas-table">
+              <thead><tr>
+                <th>Simulado</th><th style="text-align:center">Disciplina</th>
+                <th style="text-align:center">Data</th><th style="text-align:center">Lançados</th>
+                <th></th><th></th>
+              </tr></thead>
+              <tbody>${linhas}</tbody>
+            </table>
+          </div>
+        </div>`
     }
-    <div style="margin-top:14px">
-      <div style="font-size:.85rem;color:var(--pe-muted);margin-bottom:6px">Relatório individual por aluno:</div>
+
+    ${ lista.length ? renderComparativoCAEDHtml(turma, lista) : '' }
+
+    <div class="medias-card">
+      <h4>Boletim individual (imprimir)</h4>
       <div style="display:flex;flex-wrap:wrap;gap:6px">
         ${(turma.alunos||[]).filter(a=>a.ativo!==false).map((al,ai) => {
           const nome = typeof al==='string' ? al : al.nome;
-          return `<button style="cursor:pointer;padding:5px 10px;border-radius:14px;border:1px solid #d0d7de;background:#f1f3f5;font-size:.78rem" onclick="abrirRelatorioAlunoCAED(${ai})">${escapeHtmlNM(nome)}</button>`;
+          return `<button class="caed-chip" onclick="abrirRelatorioAlunoCAED(${ai})">${escapeHtmlNM(nome)}</button>`;
         }).join('')}
       </div>
     </div>
   `;
 }
+
+/* Tabela comparativa (todos os alunos x todos os simulados) — fica sempre
+   visível na tela principal da aba, pra acompanhar a evolução do
+   rendimento sem precisar abrir nenhum relatório à parte. */
+function renderComparativoCAEDHtml(turma, lista){
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  const thsSimulados = lista.map(s=>`<th style="text-align:center">${escapeHtmlNM(s.nome)}</th>`).join('');
+
+  const linhas = alunos.map((al, ai) => {
+    const nome = typeof al==='string' ? al : al.nome;
+    const cels = lista.map(s => {
+      const r = (s.resultados||{})[ai];
+      if(!r || (r.nota==null && !r.nivel)) return `<td style="text-align:center;color:var(--pe-muted)">—</td>`;
+      const notaHtml = r.nota!=null ? `<strong>${r.nota.toFixed(1)}</strong>` : '—';
+      const nivelHtml = r.nivel ? `<br><span class="nivel-badge nivel-${r.nivel}">${NIVEIS_SAEB_LABEL[r.nivel]}</span>` : '';
+      return `<td style="text-align:center">${notaHtml}${nivelHtml}</td>`;
+    }).join('');
+    return `<tr><td class="col-aluno">${ai+1}. ${escapeHtmlNM(nome)}</td>${cels}</tr>`;
+  }).join('');
+
+  return `
+    <div class="medias-card">
+      <h4>Comparativo de rendimento — evolução por simulado</h4>
+      <div style="overflow-x:auto">
+        <table class="notas-table">
+          <thead><tr><th class="col-aluno">Aluno</th>${thsSimulados}</tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+/* Tabela de um único simulado (aberta ao clicar em "Ver", ou automaticamente
+   depois de aplicar um envio vindo do Correção Mestra) */
+window.abrirTabelaSimuladoCAED = async function(id){
+  const turma = _turmaAtual;
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-btn-simuladosCAED')?.classList.add('active');
+
+  const lista = await carregarSimuladosCAED(turma.id);
+  const s = lista.find(x => x.id === id);
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  if(!s){ el.innerHTML = `<div class="caed-empty">Simulado não encontrado — pode ter sido excluído.</div>`; return; }
+
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  const notasValidas = [];
+  const linhas = alunos.map((al, ai) => {
+    const nome = typeof al==='string' ? al : al.nome;
+    const r = (s.resultados||{})[ai];
+    if(r && r.nota!=null) notasValidas.push(r.nota);
+    return `<tr>
+      <td class="col-aluno">${ai+1}. ${escapeHtmlNM(nome)}</td>
+      <td style="text-align:center">${r && r.nota!=null ? r.nota.toFixed(1) : '—'}</td>
+      <td style="text-align:center">${r && r.nivel ? `<span class="nivel-badge nivel-${r.nivel}">${NIVEIS_SAEB_LABEL[r.nivel]}</span>` : '—'}</td>
+    </tr>`;
+  }).join('');
+
+  const media = notasValidas.length ? (notasValidas.reduce((a,b)=>a+b,0)/notasValidas.length) : null;
+
+  el.innerHTML = `
+    <div class="caed-toolbar">
+      <h3>${escapeHtmlNM(s.nome)}</h3>
+      <div class="caed-actions">
+        <button class="btn-caed-outline" onclick="abrirSimuladosCAED()">← Todos os simulados</button>
+        <button class="btn-aplicar-qtd" onclick="abrirEdicaoSimuladoCAED('${s.id}')">Editar</button>
+      </div>
+    </div>
+    <div style="font-size:.82rem;color:var(--pe-muted);margin-bottom:14px">
+      ${escapeHtmlNM(s.disciplina||'Sem disciplina')} · ${s.data?formatarDataBR(s.data):'Sem data'} ·
+      ${Object.keys(s.resultados||{}).length} aluno(s) lançado(s)${media!=null?` · Média: <strong style="color:var(--pe-navy)">${media.toFixed(1)}</strong>`:''}
+    </div>
+    <div class="medias-card">
+      <div style="overflow-x:auto">
+        <table class="notas-table">
+          <thead><tr><th class="col-aluno">Aluno</th><th style="text-align:center">Nota</th><th style="text-align:center">Nível</th></tr></thead>
+          <tbody>${linhas}</tbody>
+        </table>
+      </div>
+    </div>
+  `;
+};
 
 function formatarDataBR(iso){
   const p = String(iso).split('-');
@@ -10561,11 +10724,11 @@ function renderFormSimuladoCAED(){
     return `<tr>
       <td class="col-aluno">${ai+1}. ${escapeHtmlNM(nome)}</td>
       <td style="text-align:center">
-        <input type="number" min="0" max="10" step="0.1" value="${r.nota}" style="width:64px;text-align:center"
+        <input type="number" min="0" max="10" step="0.1" value="${r.nota}" class="nota-input"
                onchange="caedSetNota(${ai}, this.value)">
       </td>
       <td style="text-align:center">
-        <select style="font-size:.8rem;padding:3px" onchange="caedSetNivel(${ai}, this.value)">
+        <select style="font-size:.8rem;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:6px" onchange="caedSetNivel(${ai}, this.value)">
           <option value="">—</option>
           ${NIVEIS_SAEB.map(n => `<option value="${n}" ${r.nivel===n?'selected':''}>${NIVEIS_SAEB_LABEL[n]}</option>`).join('')}
         </select>
@@ -10574,34 +10737,40 @@ function renderFormSimuladoCAED(){
   }).join('');
 
   el.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-      <button style="padding:6px 12px;border-radius:6px;border:1px solid #d0d7de;background:#fff;color:var(--pe-text);font-weight:600;font-size:.82rem;cursor:pointer" onclick="abrirSimuladosCAED()">← Voltar</button>
-      <h3 style="margin:0">${f.id ? 'Editar simulado' : 'Novo simulado CAED'}</h3>
+    <div class="caed-toolbar">
+      <h3>${f.id ? 'Editar simulado' : 'Novo simulado CAED'}</h3>
+      <div class="caed-actions">
+        <button class="btn-caed-outline" onclick="abrirSimuladosCAED()">← Voltar</button>
+      </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-bottom:14px">
-      <div><label style="font-size:.75rem;color:var(--pe-muted)">Nome do simulado</label>
-        <input type="text" value="${escapeHtmlNM(f.nome)}" placeholder="Ex: 1º Simulado CAED"
-               oninput="caedSetCampo('nome', this.value)" style="width:100%"></div>
-      <div><label style="font-size:.75rem;color:var(--pe-muted)">Disciplina</label>
-        <input type="text" value="${escapeHtmlNM(f.disciplina)}" oninput="caedSetCampo('disciplina', this.value)" style="width:100%"></div>
-      <div><label style="font-size:.75rem;color:var(--pe-muted)">Data de aplicação</label>
-        <input type="date" value="${f.data}" onchange="caedSetCampo('data', this.value)" style="width:100%"></div>
+    <div class="medias-card">
+      <div class="caed-form-grid">
+        <div><label>Nome do simulado</label>
+          <input type="text" value="${escapeHtmlNM(f.nome)}" placeholder="Ex: 1º Simulado CAED"
+                 oninput="caedSetCampo('nome', this.value)"></div>
+        <div><label>Disciplina</label>
+          <input type="text" value="${escapeHtmlNM(f.disciplina)}" oninput="caedSetCampo('disciplina', this.value)"></div>
+        <div><label>Data de aplicação</label>
+          <input type="date" value="${f.data}" onchange="caedSetCampo('data', this.value)"></div>
+      </div>
+      <div style="font-size:.78rem;color:var(--pe-muted);margin-bottom:14px">
+        Simulados CAED não são vinculados a uma unidade letiva — eles ficam só nesta aba, separados das notas bimestrais.
+        Lance a nota final e o nível de proficiência já apurados (no Correção Mestra ou por outro meio) de cada aluno.
+      </div>
+      <div style="overflow-x:auto">
+        <table class="notas-table">
+          <thead><tr>
+            <th class="col-aluno">Aluno</th>
+            <th style="text-align:center;width:90px">Nota</th>
+            <th style="text-align:center;width:190px">Nível atingido</th>
+          </tr></thead>
+          <tbody>${linhasAlunos}</tbody>
+        </table>
+      </div>
     </div>
-    <div style="font-size:.8rem;color:var(--pe-muted);margin-bottom:8px">
-      Simulados CAED não são vinculados a uma unidade letiva — eles ficam só nesta aba, separados das notas bimestrais.
-      Lance a nota final e o nível de proficiência já apurados (no Correção Mestra ou por outro meio) de cada aluno.
-    </div>
-    <table style="width:100%;border-collapse:collapse">
-      <thead><tr style="background:#f1f3f5">
-        <th style="text-align:left;padding:6px">Aluno</th>
-        <th style="padding:6px;width:90px">Nota</th>
-        <th style="padding:6px;width:180px">Nível atingido</th>
-      </tr></thead>
-      <tbody>${linhasAlunos}</tbody>
-    </table>
-    <div style="margin-top:14px;display:flex;gap:8px">
-      <button id="btn-salvar-caed" style="padding:9px 16px;border-radius:6px;border:none;background:var(--pe-blue);color:#fff;font-weight:700;font-size:.85rem;cursor:pointer" onclick="salvarSimuladoCAED()">Salvar simulado</button>
-      <button style="padding:9px 16px;border-radius:6px;border:1px solid #d0d7de;background:#fff;color:var(--pe-text);font-weight:600;font-size:.85rem;cursor:pointer" onclick="abrirSimuladosCAED()">Cancelar</button>
+    <div style="display:flex;gap:8px">
+      <button id="btn-salvar-caed" class="btn-aplicar-qtd" onclick="salvarSimuladoCAED()">Salvar simulado</button>
+      <button class="btn-caed-outline" onclick="abrirSimuladosCAED()">Cancelar</button>
     </div>
   `;
 }
@@ -10628,15 +10797,17 @@ window.salvarSimuladoCAED = async function(){
   };
 
   try{
+    let idFinal = f.id;
     if(f.id){
       await setDoc(doc(db, ...turmaPath(turma.id), 'simuladosCAED', f.id), payload, { merge:true });
     } else {
       payload.criadoEm = serverTimestamp();
-      await addDoc(collection(db, ...turmaPath(turma.id), 'simuladosCAED'), payload);
+      const docRef = await addDoc(collection(db, ...turmaPath(turma.id), 'simuladosCAED'), payload);
+      idFinal = docRef.id;
     }
     showToast('Simulado CAED salvo', 'success');
     await carregarSimuladosCAED(turma.id, true);
-    abrirSimuladosCAED();
+    abrirTabelaSimuladoCAED(idFinal);
   }catch(e){
     console.error(e);
     showToast('Erro ao salvar: '+e.message, 'error');
@@ -10657,7 +10828,7 @@ window.excluirSimuladoCAED = async function(id){
   }
 };
 
-/* ── Relatório por aluno (todos os simulados) ── */
+/* ── Relatório por aluno (todos os simulados) — impresso ── */
 window.abrirRelatorioAlunoCAED = async function(alunoIdx){
   const turma = _turmaAtual;
   const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
@@ -10705,7 +10876,7 @@ window.abrirRelatorioAlunoCAED = async function(alunoIdx){
   abrirJanelaImpressao(html, 'portrait');
 };
 
-/* ── Relatório geral da turma (todos os alunos x todos os simulados) ── */
+/* ── Relatório geral da turma (todos os alunos x todos os simulados) — impresso ── */
 window.abrirRelatorioGeralCAED = async function(){
   const turma = _turmaAtual;
   const lista = await carregarSimuladosCAED(turma.id);
