@@ -231,6 +231,10 @@ body.dark-mode .atv-card { background: var(--pe-card); border-color: var(--pe-bo
 body.dark-mode .atv-card-header { background: #1a1a1a; border-bottom-color: var(--pe-border); }
 body.dark-mode .atv-card-title { color: var(--pe-text); }
 body.dark-mode .atv-card-body  { background: var(--pe-card); }
+body.dark-mode .atv-card-transferir-btn { background: #10233d; color: #90caf9; border-color: #2a4a75; }
+body.dark-mode .transferir-notas-box { background: #10233d; border-color: #2a4a75; }
+body.dark-mode .transferir-notas-row select { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode .transferir-notas-cancelar { background: #1a1a1a; color: var(--pe-muted); border-color: #444; }
 /* Badges de tipo de atividade */
 body.dark-mode .tipo-badge-direto   { background: #1a2a4a; color: #90caf9; }
 body.dark-mode .tipo-badge-vistos   { background: #2a1a0a; color: #ffb74d; }
@@ -1355,6 +1359,38 @@ body{ box-sizing:border-box; }
   cursor:pointer;flex-shrink:0;white-space:nowrap;
 }
 .atv-card-limpar-btn:hover{background:#fdecea;border-color:#e57373;}
+.atv-card-transferir-btn{
+  padding:3px 10px;border:1.5px solid #b3d4fc;border-radius:5px;
+  background:#f0f6ff;color:var(--pe-blue);font-size:.68rem;font-weight:700;
+  cursor:pointer;flex-shrink:0;white-space:nowrap;
+}
+.atv-card-transferir-btn:hover{background:#e0edff;border-color:#8bb8f5;}
+
+/* ── Transferir notas entre atividades ── */
+.transferir-notas-box{
+  background:#f0f6ff;border:1px solid #b3d4fc;border-radius:8px;
+  padding:12px 14px;margin-bottom:12px;
+}
+.transferir-notas-title{
+  font-size:.78rem;font-weight:700;color:var(--pe-blue);margin-bottom:10px;
+}
+.transferir-notas-row{
+  display:flex;align-items:center;gap:8px;flex-wrap:wrap;
+}
+.transferir-notas-row select{
+  flex:1;min-width:160px;padding:7px 10px;border:1.5px solid var(--pe-border);
+  border-radius:6px;font-size:.82rem;outline:none;background:#fff;
+}
+.transferir-notas-confirmar{
+  padding:7px 14px;border:none;border-radius:6px;
+  background:var(--pe-blue);color:#fff;font-size:.8rem;font-weight:700;cursor:pointer;
+}
+.transferir-notas-confirmar:hover{background:#0d5bb5;}
+.transferir-notas-cancelar{
+  padding:7px 14px;border:1.5px solid var(--pe-border);border-radius:6px;
+  background:#fff;color:var(--pe-muted);font-size:.8rem;font-weight:700;cursor:pointer;
+}
+.transferir-notas-cancelar:hover{background:#f5f5f5;}
 
 /* ── Trabalho acadêmico: wizard de configuração ── */
 .trab-config{background:#fcfaff;}
@@ -8906,11 +8942,14 @@ function renderAtvCard(unidade, idx, atv, alunos){
       <div class="atv-card-num">${idx+1}</div>
       <div class="atv-card-title">${atv.nome||`Atividade ${idx+1}`}</div>
       <span class="atv-card-tipo-badge ${badgeCls}">${badgeTxt}</span>
+      <button class="atv-card-transferir-btn" title="Transferir notas desta atividade para outra da mesma unidade"
+        onclick="event.stopPropagation();toggleTransferirNotas('${uid}',${idx})">Transferir notas</button>
       <button class="atv-card-limpar-btn" title="Limpar todas as notas desta atividade"
         onclick="event.stopPropagation();onLimparNotasAtv('${uid}',${idx})">Limpar notas</button>
       <span class="atv-card-chevron">▼</span>
     </div>
     <div class="atv-card-body">
+      <div id="transferir-panel-${uid}-${idx}" style="display:none;"></div>
       <div class="atv-config-row">
         <div class="atv-config-field">
           <label>Tipo</label>
@@ -9940,6 +9979,223 @@ window.onLimparNotasAtv = function(uid, idx){
   rerenderTabelaAtvCard(uid, idx);
   agendarAutosave();
   showToast && showToast(`Notas de "${nome}" apagadas.`, 'success');
+};
+
+// ── Transferir notas de uma atividade para outra (mesma unidade) ─────
+window.toggleTransferirNotas = function(uid, idx, forcarFechar){
+  const panel = document.getElementById(`transferir-panel-${uid}-${idx}`);
+  if(!panel) return;
+  const abrir = forcarFechar ? false : (panel.style.display === 'none');
+  if(abrir){
+    renderTransferirPanel(uid, idx);
+    panel.style.display = '';
+  } else {
+    panel.style.display = 'none';
+  }
+};
+
+function renderTransferirPanel(uid, idx){
+  const panel = document.getElementById(`transferir-panel-${uid}-${idx}`);
+  const cfg   = _atvConfig[uid];
+  if(!panel || !cfg) return;
+
+  const opcoes = cfg.atividades
+    .map((a,i)=> i===idx ? null : { i, nome: a.nome || `Atividade ${i+1}` })
+    .filter(Boolean);
+
+  if(!opcoes.length){
+    panel.innerHTML = `
+    <div class="transferir-notas-box">
+      <div class="transferir-notas-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> Transferir notas</div>
+      <div class="trab-hint" style="margin-top:0;">Não há outra atividade nesta unidade para transferir.</div>
+    </div>`;
+    return;
+  }
+
+  panel.innerHTML = `
+  <div class="transferir-notas-box">
+    <div class="transferir-notas-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg> Transferir notas para outra atividade</div>
+    <div class="transferir-notas-row">
+      <select id="transferir-destino-${uid}-${idx}">
+        ${opcoes.map(o=>`<option value="${o.i}">${o.i+1}. ${o.nome}</option>`).join('')}
+      </select>
+      <button class="transferir-notas-confirmar" onclick="confirmarTransferenciaNotas('${uid}',${idx})">Transferir →</button>
+      <button class="transferir-notas-cancelar" onclick="toggleTransferirNotas('${uid}',${idx},true)">Cancelar</button>
+    </div>
+    <div class="trab-hint" style="margin-top:6px;margin-bottom:0;">
+      Adiciona as notas, vistos e configuração de trabalho desta atividade à atividade escolhida
+      (sem apagar o que já existir lá). Esta atividade ficará vazia (lançamento direto) depois da transferência.
+    </div>
+  </div>`;
+}
+
+// Verifica se um aluno tem alguma nota lançada numa atividade, seja qual for o tipo
+function _atvAlunoTemNota(atv, notas, ai){
+  if(atv.tipo === 'trabalho'){
+    const crits = (notas[ai] && typeof notas[ai]==='object') ? notas[ai] : {};
+    if(Object.keys(crits).length && calcNotaTrabalho(atv, crits) !== '—') return true;
+    if(atv.notaAnteriorAluno && atv.notaAnteriorAluno[ai] != null) return true;
+    return false;
+  }
+  if(atv.tipo === 'vistos'){
+    const marcados = notas[ai];
+    return !!(marcados && typeof marcados==='object' && Object.values(marcados).some(Boolean));
+  }
+  // direto
+  return notas[ai] !== undefined && notas[ai] !== null && notas[ai] !== '';
+}
+
+// Verifica se uma atividade tem algum conteúdo próprio (notas de qualquer aluno
+// ou configuração já customizada) — usado para decidir entre "adotar" (quando
+// o destino está vazio) ou "mesclar" (quando o destino já tem algo).
+function _atvTemConteudoProprio(atv, notas, alunos){
+  if(alunos.some((_,ai)=>_atvAlunoTemNota(atv, notas, ai))) return true;
+  if(atv.tipo === 'trabalho'){
+    if(atv.grupos && atv.grupos.length) return true;
+    if(atv.tema) return true;
+    if(atv.subtipos && atv.subtipos.length && !(atv.subtipos.length===1 && atv.subtipos[0]==='apres')) return true;
+  }
+  if(atv.tipo === 'vistos'){
+    if(atv.vistos && atv.vistos.length > 1) return true;
+    if(atv.vistos && atv.vistos.some(v=>(v.label && v.label!=='Visto 1') || v.data)) return true;
+  }
+  return false;
+}
+
+window.confirmarTransferenciaNotas = function(uid, origIdx){
+  const sel     = document.getElementById(`transferir-destino-${uid}-${origIdx}`);
+  const destIdx = parseInt(sel?.value);
+  const cfg     = _atvConfig[uid];
+  if(!cfg || Number.isNaN(destIdx)) return;
+  const origem  = cfg.atividades[origIdx];
+  const destino = cfg.atividades[destIdx];
+  if(!origem || !destino) return;
+
+  const nomeOrig = origem.nome  || `Atividade ${origIdx+1}`;
+  const nomeDest = destino.nome || `Atividade ${destIdx+1}`;
+  const alunos   = (_turmaAtual?.alunos||[]).filter(a=>a.ativo!==false);
+
+  if(!_notasCache[uid]) _notasCache[uid] = {atv:{},prova:{},extras:{},rec:{}};
+  const notasOrigem  = _notasCache[uid].atv[origIdx] || {};
+  const notasDestino = _notasCache[uid].atv[destIdx] || {};
+
+  const destinoOcupado = _atvTemConteudoProprio(destino, notasDestino, alunos);
+
+  // Se o destino já tem conteúdo próprio de um tipo DIFERENTE, não dá pra mesclar
+  if(destinoOcupado && origem.tipo !== destino.tipo){
+    showToast && showToast(`Não é possível transferir: "${nomeDest}" já tem conteúdo próprio de outro tipo. Escolha uma atividade vazia ou do mesmo tipo.`, 'error');
+    return;
+  }
+
+  // Avisa apenas quando houver alunos com nota tanto na origem quanto no destino
+  const overlapAlunos = alunos.filter((_,ai)=>
+    _atvAlunoTemNota(origem, notasOrigem, ai) && _atvAlunoTemNota(destino, notasDestino, ai)
+  );
+  if(overlapAlunos.length){
+    const nomes = overlapAlunos.map(a=>typeof a==='string'?a:a.nome).join(', ');
+    const msg = `${overlapAlunos.length===1?'O aluno':'Os alunos'} ${nomes} já ${overlapAlunos.length===1?'tem':'têm'} nota tanto em "${nomeOrig}" quanto em "${nomeDest}". A nota de "${nomeDest}" será substituída pela de "${nomeOrig}" só para ${overlapAlunos.length===1?'ele':'eles'}. Deseja continuar?`;
+    if(!confirm(msg)) return;
+  }
+
+  if(!destinoOcupado){
+    // ── Destino vazio: adota o tipo e a configuração da origem por completo ──
+    _notasCache[uid].atv[destIdx] = notasOrigem;
+    destino.tipo              = origem.tipo;
+    destino.vistos            = origem.vistos ? JSON.parse(JSON.stringify(origem.vistos)) : [];
+    destino.subtipos          = origem.subtipos ? [...origem.subtipos] : ['apres'];
+    destino.subtipo           = origem.subtipo;
+    destino.modalidade        = origem.modalidade ? {...origem.modalidade} : {};
+    destino.formato           = origem.formato || 'escala';
+    destino.maxFolha          = origem.maxFolha ?? 10;
+    destino.grupos            = origem.grupos ? JSON.parse(JSON.stringify(origem.grupos)) : [];
+    destino.alunoGrupo        = origem.alunoGrupo ? {...origem.alunoGrupo} : {};
+    destino.tema              = origem.tema || '';
+    destino.notaAnteriorAluno = origem.notaAnteriorAluno ? {...origem.notaAnteriorAluno} : {};
+  } else if(origem.tipo === 'vistos'){
+    // ── Mescla vistos: acrescenta os vistos da origem como novas colunas ──
+    const offset = destino.vistos ? destino.vistos.length : 0;
+    if(!destino.vistos) destino.vistos = [];
+    if(origem.vistos && origem.vistos.length){
+      destino.vistos = destino.vistos.concat(JSON.parse(JSON.stringify(origem.vistos)));
+    }
+    Object.entries(notasOrigem).forEach(([ai, marcas])=>{
+      if(!marcas || typeof marcas !== 'object') return;
+      if(!notasDestino[ai] || typeof notasDestino[ai] !== 'object') notasDestino[ai] = {};
+      Object.entries(marcas).forEach(([vi, val])=>{
+        notasDestino[ai][offset + parseInt(vi)] = val;
+      });
+    });
+    _notasCache[uid].atv[destIdx] = notasDestino;
+  } else if(origem.tipo === 'trabalho'){
+    // ── Mescla trabalho: une subtipos/modalidade, acrescenta grupos com
+    //    índices deslocados, e copia notas/nota-anterior aluno a aluno ──
+    _trabNormalizar(destino); _trabNormalizar(origem);
+    destino.subtipos   = Array.from(new Set([...(destino.subtipos||[]), ...(origem.subtipos||[])]));
+    destino.modalidade = { ...(origem.modalidade||{}), ...(destino.modalidade||{}) };
+    if(!destino.tema) destino.tema = origem.tema || '';
+
+    const offsetGrupos = destino.grupos ? destino.grupos.length : 0;
+    if(!destino.grupos) destino.grupos = [];
+    if(origem.grupos && origem.grupos.length){
+      destino.grupos = destino.grupos.concat(JSON.parse(JSON.stringify(origem.grupos)));
+    }
+    if(!destino.alunoGrupo) destino.alunoGrupo = {};
+    Object.entries(origem.alunoGrupo||{}).forEach(([ai, gi])=>{
+      if(destino.alunoGrupo[ai] === undefined) destino.alunoGrupo[ai] = offsetGrupos + Number(gi);
+    });
+
+    if(!destino.notaAnteriorAluno) destino.notaAnteriorAluno = {};
+    Object.entries(origem.notaAnteriorAluno||{}).forEach(([ai, v])=>{ destino.notaAnteriorAluno[ai] = v; });
+
+    Object.entries(notasOrigem).forEach(([ai, val])=>{
+      notasDestino[ai] = (val && typeof val==='object') ? {...val} : val;
+    });
+    _notasCache[uid].atv[destIdx] = notasDestino;
+  } else {
+    // ── Mescla lançamento direto: copia nota a nota ──
+    Object.entries(notasOrigem).forEach(([ai, val])=>{ notasDestino[ai] = val; });
+    _notasCache[uid].atv[destIdx] = notasDestino;
+  }
+
+  // ── Limpa a atividade de origem (esvazia — volta a lançamento direto) ──
+  _notasCache[uid].atv[origIdx] = {};
+  origem.tipo              = 'direto';
+  origem.vistos            = [];
+  origem.subtipos          = ['apres'];
+  delete origem.subtipo;
+  origem.modalidade        = {};
+  origem.formato           = 'escala';
+  origem.maxFolha          = 10;
+  origem.grupos            = [];
+  origem.alunoGrupo        = {};
+  origem.tema              = '';
+  origem.notaAnteriorAluno = {};
+
+  // ── Limpa estados de wizard/aprovação/colapso vinculados aos índices ──
+  const limparEstadoIdx = (i)=>{
+    const chave = `${uid}-${i}`;
+    if(window._grpWizard) delete window._grpWizard[chave];
+    if(window._trabStep)  delete window._trabStep[chave];
+    if(window._painelColapsado){
+      delete window._painelColapsado[`vistos-${uid}-${i}`];
+      delete window._painelColapsado[`trab-${uid}-${i}`];
+    }
+    if(window._trabOrigemAprovada){
+      Object.keys(window._trabOrigemAprovada).forEach(k=>{
+        if(k.startsWith(`${uid}-${i}-`)) delete window._trabOrigemAprovada[k];
+      });
+    }
+  };
+  limparEstadoIdx(origIdx);
+  limparEstadoIdx(destIdx);
+
+  // ── Recalcula prévias e re-renderiza a unidade inteira ───────────
+  alunos.forEach((_,ai)=>{ recalcularPrevia && recalcularPrevia(uid, ai); });
+
+  if(_unidadeAtiva && _unidadeAtiva.id===uid) renderUnidadeContent(_unidadeAtiva);
+
+  showToast && showToast(`Notas transferidas de "${nomeOrig}" para "${nomeDest}".`, 'success');
+  agendarAutosave();
 };
 
 // Re-renderiza a tabela de lançamento dentro de um card de atividade
