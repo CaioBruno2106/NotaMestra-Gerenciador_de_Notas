@@ -246,6 +246,8 @@ body.dark-mode .vistos-row input[type=text],
 body.dark-mode .vistos-row input[type=date] { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
 body.dark-mode .vistos-row input:focus { border-color: var(--pe-cyan); }
 body.dark-mode .visto-num { color: var(--pe-muted); }
+body.dark-mode .visto-mark { background: #2a2a2a; border-color: #444; }
+body.dark-mode .vistos-legenda { color: var(--pe-muted); }
 body.dark-mode .btn-add-visto { background: #0a1a3a; color: #90caf9; }
 body.dark-mode .btn-rem-visto { background: #2a0a0a; color: #ef9a9a; }
 
@@ -410,6 +412,21 @@ body.dark-mode #bkp-preview { background: var(--pe-card); color: var(--pe-text);
 
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--pe-bg);color:var(--pe-text);overflow-x:hidden;}
+
+/* ── Barra de rolagem personalizada (desktop) — combina com a paleta do app ── */
+html{ scrollbar-width:thin; scrollbar-color: var(--pe-blue) var(--pe-bg); }
+*{ scrollbar-width:thin; scrollbar-color: var(--pe-blue) var(--pe-bg); }
+::-webkit-scrollbar{ width:12px; height:12px; }
+::-webkit-scrollbar-track{ background:var(--pe-bg); }
+::-webkit-scrollbar-thumb{
+  background:var(--pe-blue); border-radius:8px;
+  border:3px solid var(--pe-bg); background-clip:padding-box;
+}
+::-webkit-scrollbar-thumb:hover{ background:var(--pe-cyan); }
+::-webkit-scrollbar-corner{ background:var(--pe-bg); }
+/* Dentro de superfícies escuras (cabeçalho navy, modais escuros) a rolagem usa tom mais claro */
+.turma-header-info::-webkit-scrollbar-track,
+.unidades-tabs-bar::-webkit-scrollbar-track{ background:var(--pe-navy); }
 /* Safe area para APK — alturas injetadas pelo Kotlin via setAndroidInsets() */
 /* Em browser normal: sem padding. No APK: apk-bar-top/bottom cobrem as barras */
 body{ box-sizing:border-box; }
@@ -1291,8 +1308,11 @@ body{ box-sizing:border-box; }
 /* ── Corpo da unidade ── */
 .turma-body{
   flex:1;padding:20px 16px 40px;
-  max-width:900px;margin:0 auto;width:100%;
+  width:100%;
   overflow-y:auto;
+}
+#unidade-content{
+  max-width:900px;margin:0 auto;width:100%;
 }
 
 /* ── Cabeçalho da unidade ── */
@@ -1793,6 +1813,33 @@ body{ box-sizing:border-box; }
 .nota-input-rec  {border-color:#fff3e0;background:#fffdf7;}
 .nota-input-extra{border-color:#f3e5f5;background:#fdf7ff;}
 .visto-check{width:18px;height:18px;cursor:pointer;accent-color:var(--pe-blue);}
+
+/* ── Marcação de vistos: 4 estados (vazio / feito / não fez / falta) ── */
+.visto-mark{
+  width:26px;height:26px;border-radius:5px;margin:0 auto;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;user-select:none;transition:transform .1s,box-shadow .1s;
+  border:1.5px dashed var(--pe-border);background:#fff;color:transparent;
+}
+.visto-mark:hover{transform:scale(1.08);box-shadow:0 0 0 2px rgba(0,0,0,.06);}
+.visto-mark svg{width:15px;height:15px;flex-shrink:0;}
+.visto-mark-feito{
+  border:1.5px solid #2e7d32;background:#2e7d32;color:#fff;
+}
+.visto-mark-naofez{
+  border:1.5px solid var(--pe-red);background:var(--pe-red);color:#fff;
+}
+.visto-mark-falta{
+  border-radius:50%;border:1.5px solid #e6a100;background:#ffb300;color:#fff;
+}
+.vistos-legenda{
+  display:flex;flex-wrap:wrap;gap:14px;align-items:center;
+  font-size:.7rem;color:var(--pe-muted);margin:4px 0 10px;
+}
+.vistos-legenda-item{display:flex;align-items:center;gap:5px;}
+.vistos-legenda-item .visto-mark{cursor:default;width:20px;height:20px;}
+.vistos-legenda-item .visto-mark:hover{transform:none;box-shadow:none;}
+.vistos-legenda-item .visto-mark svg{width:12px;height:12px;}
 
 /* ── Card de médias ── */
 .medias-card{
@@ -9054,6 +9101,13 @@ function renderTabelaVistos(uid, idx, atv, alunos, notas){
   return `
   <div class="lancamento-tabela">
     <div class="lancamento-tabela-title"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Vistos — ${atv.nome||`Atividade ${idx+1}`} (${atv.vistos.length} vistos · teto: ${atv.teto??10})</div>
+    <div class="vistos-legenda">
+      <span class="vistos-legenda-item"><span class="visto-mark">&nbsp;</span> Não marcado</span>
+      <span class="vistos-legenda-item"><span class="visto-mark visto-mark-feito">${_vistoIconeFeito}</span> Feito</span>
+      <span class="vistos-legenda-item"><span class="visto-mark visto-mark-naofez">${_vistoIconeNaoFez}</span> Não fez a atividade</span>
+      <span class="vistos-legenda-item"><span class="visto-mark visto-mark-falta">${_vistoIconeFalta}</span> Faltou / outro motivo (entrega em outra data)</span>
+      <span style="font-size:.68rem;color:var(--pe-muted);">— clique na marcação para alternar</span>
+    </div>
     <div style="overflow-x:auto;">
     <table class="notas-table">
       <thead><tr>
@@ -9076,9 +9130,7 @@ function renderTabelaVistos(uid, idx, atv, alunos, notas){
             <td class="col-aluno">${ai+1}. ${nome}</td>
             ${atv.vistos.map((_,vi)=>`
               <td class="col-visto" style="text-align:center;">
-                <input type="checkbox" class="visto-check"
-                  ${marcados[vi]?'checked':''}
-                  onchange="setVisto('${uid}',${idx},${ai},${vi},this.checked)">
+                ${_vistoMarkHtml(uid, idx, ai, vi, marcados[vi])}
               </td>`).join('')}
             <td class="col-nota" id="nota-visto-${uid}-${idx}-${ai}">
               <strong>${notaCalc}</strong>
@@ -9089,6 +9141,31 @@ function renderTabelaVistos(uid, idx, atv, alunos, notas){
     </table>
     </div>
   </div>`;
+}
+
+// Ícones (SVG) usados na marcação de vistos
+const _vistoIconeFeito   = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+const _vistoIconeNaoFez  = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+const _vistoIconeFalta   = '<svg viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="12" r="6"/></svg>';
+
+// Normaliza o valor salvo (aceita o "true" legado de versões antigas) para um dos
+// 3 estados marcados: 'feito' | 'naofez' | 'falta' — ou null se não marcado.
+function _vistoEstado(valor){
+  if(valor === true || valor === 'feito')  return 'feito';
+  if(valor === 'naofez') return 'naofez';
+  if(valor === 'falta')  return 'falta';
+  return null;
+}
+
+function _vistoMarkHtml(uid, idx, ai, vi, valorSalvo){
+  const estado = _vistoEstado(valorSalvo);
+  const cls    = estado ? ` visto-mark-${estado}` : '';
+  const titulos = { feito:'Feito', naofez:'Não fez a atividade', falta:'Faltou / outro motivo (entrega em outra data)' };
+  const icones  = { feito:_vistoIconeFeito, naofez:_vistoIconeNaoFez, falta:_vistoIconeFalta };
+  const titulo  = estado ? titulos[estado] : 'Não marcado — clique para marcar';
+  const icone   = estado ? icones[estado] : '';
+  return `<div class="visto-mark${cls}" id="visto-mark-${uid}-${idx}-${ai}-${vi}"
+    title="${titulo}" onclick="cicloVisto('${uid}',${idx},${ai},${vi})">${icone}</div>`;
 }
 
 // Ponto 2: Excluir uma coluna inteira de visto
@@ -9107,7 +9184,7 @@ window.excluirColunaVisto = function(uid, idx, vi){
   if(temMarca){
     // Conta quantas marcações existem nessa coluna
     const nc = _notasCache[uid]?.atv[idx] || {};
-    const qtdMarcas = Object.values(nc).filter(m => m?.[vi] === true).length;
+    const qtdMarcas = Object.values(nc).filter(m => _vistoEstado(m?.[vi])).length;
     msg = `A coluna "${nomeCol}" tem ${qtdMarcas} marcação(ões) salva(s).\nExcluir mesmo assim apagará essas marcações.\n\nConfirmar exclusão?`;
   }
   if(!confirm(msg)) return;
@@ -9140,10 +9217,18 @@ window.excluirColunaVisto = function(uid, idx, vi){
 };
 
 function calcNotaVistos(atv, marcados){
-  const total   = atv.vistos?.length||0;
-  if(!total) return '—';
-  const feitos  = Object.values(marcados).filter(Boolean).length;
-  const nota    = (feitos/total)*(atv.teto??10);
+  const totalCols = atv.vistos?.length||0;
+  if(!totalCols) return '—';
+  let feitos = 0, excluidos = 0;
+  for(let vi=0; vi<totalCols; vi++){
+    const estado = _vistoEstado(marcados[vi]);
+    if(estado === 'feito') feitos++;
+    else if(estado === 'falta') excluidos++;
+    // 'naofez' e não marcado contam normalmente no denominador (peso zero no numerador)
+  }
+  const totalEfetivo = totalCols - excluidos;
+  if(totalEfetivo <= 0) return '—';
+  const nota = (feitos/totalEfetivo)*(atv.teto??10);
   return arredondarPE(nota).toFixed(1);
 }
 
@@ -10596,17 +10681,33 @@ window.setNotaAtv = function(uid, idx, ai, val){
   agendarAutosave();
 };
 
-window.setVisto = function(uid, idx, ai, vi, checked){
+window.cicloVisto = function(uid, idx, ai, vi){
   if(!_notasCache[uid]) _notasCache[uid]={atv:{},prova:{},extras:{},rec:{}};
   if(!_notasCache[uid].atv[idx]) _notasCache[uid].atv[idx]={};
   if(!_notasCache[uid].atv[idx][ai]) _notasCache[uid].atv[idx][ai]={};
-  _notasCache[uid].atv[idx][ai][vi] = checked;
+
+  const atual  = _vistoEstado(_notasCache[uid].atv[idx][ai][vi]);
+  const ordem  = [null, 'feito', 'naofez', 'falta'];
+  const prox   = ordem[(ordem.indexOf(atual) + 1) % ordem.length];
+
+  if(prox === null) delete _notasCache[uid].atv[idx][ai][vi];
+  else _notasCache[uid].atv[idx][ai][vi] = prox;
+
+  // Atualiza a célula visualmente sem re-renderizar a tabela inteira
+  const el = document.getElementById(`visto-mark-${uid}-${idx}-${ai}-${vi}`);
+  if(el){
+    const titulos = { feito:'Feito', naofez:'Não fez a atividade', falta:'Faltou / outro motivo (entrega em outra data)' };
+    const icones  = { feito:_vistoIconeFeito, naofez:_vistoIconeNaoFez, falta:_vistoIconeFalta };
+    el.className  = `visto-mark${prox?` visto-mark-${prox}`:''}`;
+    el.title      = prox ? titulos[prox] : 'Não marcado — clique para marcar';
+    el.innerHTML  = prox ? icones[prox] : '';
+  }
 
   // Recalcula nota do visto e mostra na célula
-  const atv    = _atvConfig[uid]?.atividades[idx];
+  const atv      = _atvConfig[uid]?.atividades[idx];
   const marcados = _notasCache[uid].atv[idx][ai];
-  const nota   = calcNotaVistos(atv, marcados);
-  const cel    = document.getElementById(`nota-visto-${uid}-${idx}-${ai}`);
+  const nota     = calcNotaVistos(atv, marcados);
+  const cel      = document.getElementById(`nota-visto-${uid}-${idx}-${ai}`);
   if(cel) cel.innerHTML = `<strong>${nota}</strong>`;
   recalcularPrevia(uid, ai);
   agendarAutosave();
@@ -11898,9 +11999,9 @@ window.aplicarQtdAtividades = async function(uid){
 // ── Vistos ───────────────────────────────────────────────
 // ── Helpers de vistos ─────────────��────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
-  // Verifica se algum aluno tem o visto 'vi' marcado
+  // Verifica se algum aluno tem o visto 'vi' marcado (em qualquer dos 3 estados)
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
-  return Object.values(atvNotas).some(marcados => marcados?.[vi] === true);
+  return Object.values(atvNotas).some(marcados => !!_vistoEstado(marcados?.[vi]));
 }
 
 function calcMinVistos(uid, idx, qtdAtual){
