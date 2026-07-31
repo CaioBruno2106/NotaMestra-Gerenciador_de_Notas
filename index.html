@@ -246,7 +246,7 @@ body.dark-mode .vistos-row input[type=text],
 body.dark-mode .vistos-row input[type=date] { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
 body.dark-mode .vistos-row input:focus { border-color: var(--pe-cyan); }
 body.dark-mode .visto-num { color: var(--pe-muted); }
-body.dark-mode .visto-mark { background: #2a2a2a; border-color: #444; }
+body.dark-mode .visto-mark:not(.visto-mark-feito):not(.visto-mark-naofez):not(.visto-mark-falta) { background: #2a2a2a; border-color: #444; }
 body.dark-mode .vistos-legenda { color: var(--pe-muted); }
 body.dark-mode .btn-add-visto { background: #0a1a3a; color: #90caf9; }
 body.dark-mode .btn-rem-visto { background: #2a0a0a; color: #ef9a9a; }
@@ -1824,13 +1824,13 @@ body{ box-sizing:border-box; }
 .visto-mark:hover{transform:scale(1.08);box-shadow:0 0 0 2px rgba(0,0,0,.06);}
 .visto-mark svg{width:15px;height:15px;flex-shrink:0;}
 .visto-mark-feito{
-  border:1.5px solid #2e7d32;background:#2e7d32;color:#fff;
+  border:1.5px solid var(--pe-blue);background:var(--pe-blue);color:#fff;
 }
 .visto-mark-naofez{
   border:1.5px solid var(--pe-red);background:var(--pe-red);color:#fff;
 }
 .visto-mark-falta{
-  border-radius:50%;border:1.5px solid #e6a100;background:#ffb300;color:#fff;
+  border-radius:50%;border:1.5px solid var(--pe-yellow);background:var(--pe-yellow);color:var(--pe-navy);
 }
 .vistos-legenda{
   display:flex;flex-wrap:wrap;gap:14px;align-items:center;
