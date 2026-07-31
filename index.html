@@ -12445,6 +12445,101 @@ ${html}
   win.document.write(fullHtml);
   win.document.close();
 }
+// ── Base de habilidades BNCC-PE (Ensino Médio, Organizador Curricular
+// Trimestral da FGB 2026) — usada no Registro de Aulas / exportação SIEPE.
+// Estrutura: disciplina -> serie (1/2/3) -> trimestre (1/2/3) -> [{codigo, descricao, objetos:[...]}]
+// A extensão casa pelo TEXTO (código + objeto), nunca por ID interno do SIEPE
+// (que muda de turma pra turma). Fonte: portal.educacao.pe.gov.br/ensino-medio
+const HABILIDADES_EM_PE = {
+  'Física': {
+    1: {
+      1: [
+        { codigo:'EM13CNT101FIS01PE(a)', descricao:'Analisar e representar, com ou sem o uso de dispositivos e de aplicativos digitais, as transformações, as conservações e as variações em sistemas que envolvam quantidade de matéria, de energia mecânica e de movimento, analisando seu caráter dimensional, vetorial e escalar, para realizar previsões sobre seus comportamentos com o uso de simuladores e/ou experimentos que abordem situações cotidianas e, em processos produtivos, que priorizem o desenvolvimento sustentável.',
+          objetos:['Grandezas Físicas e Sistema Internacional de Unidades, Notação Científica, Ordem de Grandeza e Algarismos significativos.','Cinemática (posição, tempo, velocidade média, unidades de medida, Movimento Retilíneo Uniforme, Movimento Retilíneo Uniformemente Variado, Gráficos S x t, V x t e a x t).','Vetores (Soma, Subtração, Decomposição e composição).'] },
+        { codigo:'EM13CNT204FIS08PE(a)', descricao:'Elaborar explicações, previsões e cálculos a respeito dos movimentos de objetos na Terra (tais como lançamentos oblíquos e movimentos verticais), no Sistema Solar (avaliando as Leis de Kepler e da gravitação universal) e no Universo com base na análise das interações gravitacionais da mecânica e da relatividade, com ou sem o uso de dispositivos e aplicativos digitais, maquetes e/ou experimentos.',
+          objetos:['Movimento Vertical no Vácuo.','Composição de movimento, lançamento oblíquo e horizontal.','Movimento circular.'] },
+        { codigo:'EM13CNT301FIS11PE(a)', descricao:'Delimitar um problema e suas variáveis (podendo envolver projetos), elaborando hipóteses, realizando experimentos, avaliando dados, validando ou não os pressupostos no enfrentamento das demandas que envolvam a temática Matéria e Energia sob a perspectiva científica.',
+          objetos:['Experimentos de queda livre para testar hipóteses e controlar variáveis, propondo conclusões, envolvendo Matéria e Energia.'] },
+      ],
+      2: [
+        { codigo:'EM13CNT101FIS01PE(b)', descricao:'Analisar e representar, com ou sem o uso de dispositivos e de aplicativos digitais, as transformações, as conservações e as variações em sistemas que envolvam quantidade de matéria, de energia mecânica e de movimento, analisando seu caráter dimensional, vetorial e escalar, para realizar previsões sobre seus comportamentos com o uso de simuladores e/ou experimentos que abordem situações cotidianas e, em processos produtivos, que priorizem o desenvolvimento sustentável.',
+          objetos:['Leis de Newton e suas aplicações.','Trabalho de uma Força.','Potência e Rendimento.'] },
+        { codigo:'EM13CNT306FIS23PE(a)', descricao:'Estudar o uso de equipamentos de segurança no trânsito, no lazer, no trabalho e em atividades domésticas com intuito de eliminar riscos e redução de danos em acidentes utilizando conhecimentos sobre Conservação da quantidade de movimento e de energia.',
+          objetos:['Energia: Cinética, Potencial Gravitacional, Elástica e Mecânica.','Teorema do Trabalho e Energia Cinética.','Impulso e Quantidade de movimento (Gráfico F x t).'] },
+        { codigo:'EM13CNT302FIS14PE(a)', descricao:'Socializar, em diversos contextos, como em mostras científicas, feiras de ciências, seminários, entre outros, resultados de análises, pesquisas e/ou experimentos, elaborando e/ou interpretando textos, gráficos, tabelas, símbolos, códigos, sistemas de classificação e equações, por meio de diferentes linguagens, mídias, tecnologias digitais de informação e comunicação (TDIC), em torno do tema Matéria e Energia.',
+          objetos:['Conservação de energia mecânica e colisões (socializando as medidas de segurança no cotidiano).'] },
+      ],
+      3: [
+        { codigo:'EM13CNT101FIS01PE(c)', descricao:'Analisar e representar, com ou sem o uso de dispositivos e de aplicativos digitais, as transformações, as conservações e as variações em sistemas que envolvam quantidade de matéria, de energia mecânica e de movimento, analisando seu caráter dimensional, vetorial e escalar, para realizar previsões sobre seus comportamentos com o uso de simuladores e/ou experimentos que abordam situações cotidianas e, em processos produtivos, que priorizem o desenvolvimento sustentável.',
+          objetos:['Hidrostática (pressão hidrostática, teorema de Stevin, Experimento de Torricelli e Pressão Atmosférica, Vasos Comunicantes, Teorema de Pascal, Prensa Hidráulica, Teorema de Arquimedes).','Hidrodinâmica (vazão e princípio de Bernoulli).'] },
+        { codigo:'EM13CNT305FIS20PE(a)', descricao:'Investigar e discutir o uso indevido de conhecimentos sobre o tema Matéria e Energia na justificativa de processos de discriminação, segregação e privação de direitos individuais e coletivos, em diferentes contextos sociais e históricos, para promover a equidade e o respeito à diversidade.',
+          objetos:['Produção Científica para promover a disseminação de informações verídicas alinhadas aos saberes das ciências.'] },
+      ],
+    },
+    2: {
+      1: [
+        { codigo:'EM13CNT102FIS02PE(a)', descricao:'Realizar previsões, avaliar intervenções e/ou construir protótipos de sistemas térmicos que visem discutir os conceitos de calor, temperatura, sensação térmica, equilíbrio térmico e transmissão de calor, considerando o uso de tecnologias digitais e/ou sensores que auxiliem no cálculo de estimativas e no apoio à construção dos protótipos e/ou experimentos.',
+          objetos:['Calor, temperatura (escalas termométricas, escalas arbitrárias, variação de temperatura, sensação térmica).','Dilatação e Contração Térmica de Sólidos e Líquidos, propagação de calor por contato (Lei de Fourier), convecção e irradiação.','Calorimetria (capacidade térmica, calor sensível, calor latente, calorímetro, equilíbrio térmico), mudança de fase de agregação, curvas de resfriamento e aquecimento, diagrama de fases.'] },
+        { codigo:'EM13CNT301FIS12PE(b)', descricao:'Elaborar e solucionar situações-problema e suas variáveis (podendo envolver projetos), propondo hipóteses, realizando experimentos, avaliando dados, validando ou não os pressupostos no enfrentamento das demandas que envolvam a temática Vida e Evolução sob a perspectiva científica.',
+          objetos:['Metodologia da pesquisa científica (situações-problema para elaboração de experimentos, testar hipóteses e controlar variáveis, propondo conclusões envolvendo Vida e Evolução).'] },
+        { codigo:'EM13CNT203FIS07PE(a)', descricao:'Avaliar e prever efeitos de intervenções nos ciclos da matéria e nas transformações e transferências de energia, avaliando seus riscos, impactos e benefícios para a natureza, utilizando representações e simulações sobre tais fatores, com ou sem o uso de dispositivos e aplicativos digitais e/ou experimentos.',
+          objetos:['Estudo dos gases. Variáveis Macroscópicas. Estado Termodinâmico. Transformações de estado. Trabalho de um gás.','Quantidade de Calor em gases, conservação da energia de um gás e a 1ª Lei da Termodinâmica.','Máquinas Térmicas, Frigoríficas e o Ciclo de Carnot. Processos reversíveis e a 2ª Lei da Termodinâmica (trocas energéticas em máquinas térmicas e entropia).'] },
+      ],
+      2: [
+        { codigo:'EM13CNT302FIS15PE(b)', descricao:'Socializar, em diversos contextos, como em mostras científicas, feiras de ciências, seminários, entre outros, resultados de análises, pesquisas e/ou experimentos, em torno do tema Vida e Evolução.',
+          objetos:['Termometria, Calorimetria, Gases e Leis da Termodinâmica (construção de materiais de divulgação e utilizá-las em olimpíadas do conhecimento e eventos de divulgação científica).'] },
+        { codigo:'EM13CNT103FIS03PE(a)', descricao:'Mobilizar o conhecimento sobre Óptica Geométrica, ondas eletromagnéticas (tal como a luz visível) e as ondas mecânicas (tal como as ondas sonoras), aplicadas às suas formas de geração, de transmissão, de manifestação na natureza e interação com meios materiais e no vácuo, para avaliar potencialidades e riscos de seu emprego em equipamentos de uso cotidiano.',
+          objetos:['Ondulatória (tipos de ondas, elementos de uma onda, trem de ondas, velocidade de uma onda, velocidade de uma onda numa corda).','Fenômenos da ondulatória (interferência, reflexão, refração, difração, polarização, ressonância), ondas estacionárias.','Efeitos fisiológicos do som, tubos sonoros em ressonância, efeito doppler.'] },
+        { codigo:'EM13CNT307FIS24PE(a)', descricao:'Analisar as propriedades de ondas para avaliar a adequação de seu uso em diferentes aplicações (industriais, cotidianas, arquitetônicas e tecnológicas) e/ou propor soluções seguras e sustentáveis, considerando seu contexto local e cotidiano.',
+          objetos:['Ondas Eletromagnéticas e Mecânicas (propagação de ondas eletromagnéticas, potência de uma frente de ondas, nível sonoro e escala decibel e possíveis barreiras de inibição de potência).'] },
+      ],
+      3: [
+        { codigo:'EM13CNT103FIS03PE(b)', descricao:'Mobilizar o conhecimento sobre Óptica Geométrica, ondas eletromagnéticas e ondas mecânicas, aplicadas às suas formas de geração, de transmissão, de manifestação na natureza e interação com meios materiais e no vácuo, para avaliar potencialidades e riscos de seu emprego em equipamentos de uso cotidiano, na saúde, no ambiente, na indústria, na agricultura e na geração de energia elétrica.',
+          objetos:['Óptica Geométrica (Luz, fontes de luz), meios ópticos, princípios da propagação da luz.','Fenômenos ópticos (reflexão, refração e absorção), espelhos planos, espelhos esféricos, lentes, a visão humana.','Radiações Ionizantes. Disfunções da visão e instrumentos ópticos.'] },
+        { codigo:'EM13CNT303FIS18PE(b)', descricao:'Interpretar textos de divulgação científica que tratam da temática Vida e Evolução, disponíveis em diferentes mídias, considerando a apresentação dos dados, buscando validar as fontes seguras de informações.',
+          objetos:['Produção Científica para promover a disseminação de informações verídicas alinhadas aos saberes das ciências, referente a óptica geométrica e radiação, com ênfase na saúde.'] },
+        { codigo:'EM13CNT305FIS21PE(b)', descricao:'Investigar e discutir o uso indevido de conhecimentos sobre o tema Vida e Evolução na justificativa de processos de discriminação, segregação e privação de direitos individuais e coletivos, para promover a equidade e o respeito à diversidade.',
+          objetos:['Óptica Geométrica e radiação (combater a disseminação de informações inverídicas e validar conhecimento científico no tema Vida e Evolução).'] },
+      ],
+    },
+    3: {
+      1: [
+        { codigo:'EM13CNT107FIS05PE(a)', descricao:'Realizar previsões qualitativas e quantitativas sobre fenômenos da eletrostática, eletrodinâmica e do eletromagnetismo (campos elétrico e magnético, conservação das cargas elétricas, potência elétrica, resistências, tensão, corrente elétrica, capacitância), com base na análise dos processos de transformação, condução, consumo, armazenamento e eficiência da energia elétrica.',
+          objetos:['Eletrostática: Carga elétrica, Eletrização, Força eletrostática, Campo elétrico, Potencial elétrico, Energia potencial elétrica.','Eletrodinâmica: Corrente, tensão, resistência elétrica e Leis de Ohm.'] },
+        { codigo:'EM13CNT301FIS13PE(c)', descricao:'Delimitar um problema e suas variáveis (podendo envolver projetos), elaborando hipóteses, realizando experimentos, avaliando dados, validando ou não os pressupostos no enfrentamento das demandas que envolvam a temática Terra e Universo sob a perspectiva científica.',
+          objetos:['Produção científica envolvendo Eletrostática e Eletrodinâmica, com uso de equipamentos de medidas elétricas (multímetro) para experimentos e hipóteses relacionadas à temática Terra e Universo.'] },
+        { codigo:'EM13CNT308FIS25PE(a)', descricao:'Conhecer e/ou utilizar equipamentos eletroeletrônicos desenvolvendo conceitos sensoriais para compreender as tecnologias contemporâneas aplicadas a coletas e armazenamento de dados, avaliar resultados experimentais e seus impactos sociais, culturais, ambientais e possíveis inovações tecnológicas.',
+          objetos:['Funcionamento de equipamentos e componentes elétricos e eletrônicos, tais como: multímetro, capacímetro, fusíveis, resistores, fontes de tensão etc.'] },
+      ],
+      2: [
+        { codigo:'EM13CNT107FIS05PE(b)', descricao:'Realizar previsões qualitativas e quantitativas sobre fenômenos da eletrostática, eletrodinâmica e do eletromagnetismo, utilizando a simbologia de cada componente no funcionamento de transformadores e dispositivos eletrônicos, com base na análise dos processos de transformação, condução, consumo, armazenamento e eficiência da energia elétrica.',
+          objetos:['Circuito Elétrico (componentes básicos), corrente elétrica, condutores e isolantes, potência, energia elétrica e cálculo de consumo. Dispositivos de segurança (chave/interruptor, fusível e disjuntor).','Resistores, Lei de Ohm, Efeito Joule, associações (série, paralelo e mistas). Capacitores e associação de capacitores, geradores e associações. Receptores elétricos.','Magnetismo: pólos magnéticos, imãs, propriedades magnéticas dos materiais, linhas de força, campo magnético uniforme. Eletromagnetismo: campo magnético gerado por corrente elétrica, força magnética, transformadores e indutores.'] },
+        { codigo:'EM13CNT106FIS04PE(a)', descricao:'Avaliar, com ou sem o uso de dispositivos, aplicativos digitais e/ou experimentos, tecnologias e possíveis soluções para as demandas que envolvem as diferentes transformações, o transporte, a distribuição e o consumo de energia elétrica, considerando disponibilidade de recursos, eficiência energética, relação custo/benefício, características geográficas e ambientais, produção de resíduos e impactos socioambientais e culturais.',
+          objetos:['Circuito Elétrico (rendimento, comparação entre tensão elétrica contínua e alternada, comparação entre redes de 110V e 220V, cálculo de consumo de energia elétrica e custo), avaliando as contribuições de Tesla para as novas tecnologias.'] },
+        { codigo:'EM13CNT309FIS26PE(a)', descricao:'Analisar questões socioambientais relativas ao consumo da sociedade atual em relação às matrizes energéticas e recursos renováveis e não renováveis, discutindo a necessidade de introdução de fontes alternativas e uso de novas tecnologias e materiais, comparando diferentes tipos de motores, receptores e transformadores nos processos de produção/captação de energia elétrica.',
+          objetos:['Matrizes energéticas aplicada a geradores (usinas termoelétricas, usina hidroelétrica, células fotovoltaicas, coletores eólicos, usinas nucleares).'] },
+        { codigo:'EM13CNT310FIS27PE(a)', descricao:'Investigar e analisar os efeitos de programas de infraestrutura (distribuição e armazenamento de energia elétrica, transporte e telecomunicações) e identificar as necessidades locais e/ou regionais em relação a esses serviços, a fim de avaliar e/ou promover ações que contribuam para a melhoria na qualidade de vida da população de forma sustentável.',
+          objetos:['Matrizes Energéticas e seus impactos ambientais e sociais.'] },
+      ],
+      3: [
+        { codigo:'EM13CNT201FIS06PE(a)', descricao:'Discutir modelos, teorias e leis propostos em diferentes épocas e culturas para comparar distintas explicações sobre o surgimento e a evolução da Terra e do Universo com as teorias científicas aceitas atualmente, valorizando as diversas contribuições repassadas através das gerações para a preservação do conhecimento.',
+          objetos:['Teoria do Big Bang (origem e expansão do Universo, acelerador de partículas e composição da matéria subatômica).','Relatividade Restrita: introdução à Teoria da Relatividade Restrita; postulados da Relatividade Restrita; dilatação temporal.'] },
+        { codigo:'EM13CNT302FIS16PE(c)', descricao:'Socializar, em diversos contextos, como em mostras científicas, feiras de ciências, seminários, entre outros, resultados de análises, pesquisas e/ou experimentos, em torno do tema Terra e Universo, temática de relevância tecnológica, sociocultural e ambiental.',
+          objetos:['Relatividade Restrita e Física Quântica (socializar resultados de análises/pesquisas/experimentos em torno do tema Terra e Universo).'] },
+        { codigo:'EM13CNT205FIS09PE(b)', descricao:'Coletar e interpretar resultados/dados e realizar previsões sobre atividades experimentais, fenômenos naturais e processos tecnológicos, com base nas noções de probabilidade e incerteza, reconhecendo os limites explicativos das ciências e explorando possibilidades de novas teorias.',
+          objetos:['Física Moderna: origens da Mecânica Quântica; Radiação Térmica; Corpo Negro; Quantização da Energia (Hipótese de Planck).','Efeito Fotoelétrico; Natureza Ondulatória da Matéria; Dualidade Onda-Partícula; Princípio da Incerteza.'] },
+        { codigo:'EM13CNT209FIS10PE(a)', descricao:'Analisar a evolução estelar associando-a aos modelos de origem e distribuição da matéria e energia no Universo, compreendendo suas relações com as condições necessárias ao surgimento de Sistemas Solares e planetários, suas estruturas e composições, utilizando representações e simulações.',
+          objetos:['Astronomia (nascimento, evolução e morte de estrelas, origem dos elementos químicos, teoria dos buracos negros).'] },
+        { codigo:'EM13CNT303FIS17PE(c)', descricao:'Interpretar textos de divulgação científica que tratam da temática Terra e Universo, disponíveis em diferentes mídias, considerando a apresentação dos dados, tanto na forma de texto como em equações, gráficos e/ou tabelas, buscando validar as fontes seguras de informações.',
+          objetos:['Produção da pesquisa científica voltada para Astronomia e Física Moderna, com representação de dados em tabelas, gráficos, infográficos e ilustrações.'] },
+        { codigo:'EM13CNT305FIS22PE(c)', descricao:'Investigar e discutir o uso indevido de conhecimentos sobre o tema Terra e Universo na justificativa de processos de discriminação, segregação e privação de direitos individuais e coletivos, para promover a equidade e o respeito à diversidade.',
+          objetos:['Investigação Científica relacionada a Astronomia e Física Moderna, combatendo a disseminação de informações inverídicas, com ênfase no tema Terra e Universo.'] },
+      ],
+    },
+  },
+  // Matemática e demais disciplinas: em construção — adicionadas nas próximas etapas.
+};
+
 // ── Aba "Aulas" — Registro de Aulas (Fase 1: Grade de Horários) ─────
 const DIAS_SEMANA_GRADE = [
   {chave:'seg', label:'Segunda'},
