@@ -7958,6 +7958,9 @@ function renderUnidadesTabs(unidades){
     <button class="unidade-tab" id="tab-btn-simuladosCAED"
        style="background:rgba(253,185,19,.18);"
        onclick="abrirSimuladosCAED()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.9V17h8v-2.1A7 7 0 0 0 12 2z"/></svg> Simulados CAED</button>
+    <button class="unidade-tab" id="tab-btn-aulas"
+       style="background:rgba(94,53,177,.18);"
+       onclick="abrirRegistroAulas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Aulas</button>
     <button class="unidade-tab" id="tab-btn-exportacao"
        style="background:rgba(40,167,69,.18);"
        onclick="abrirExportacao()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportação</button>`;
@@ -12442,6 +12445,130 @@ ${html}
   win.document.write(fullHtml);
   win.document.close();
 }
+// ── Aba "Aulas" — Registro de Aulas (Fase 1: Grade de Horários) ─────
+const DIAS_SEMANA_GRADE = [
+  {chave:'seg', label:'Segunda'},
+  {chave:'ter', label:'Terça'},
+  {chave:'qua', label:'Quarta'},
+  {chave:'qui', label:'Quinta'},
+  {chave:'sex', label:'Sexta'},
+  {chave:'sab', label:'Sábado'},
+];
+
+window.abrirRegistroAulas = async function(){
+  const turma = _turmaAtual;
+  if(!turma){ showToast('Abra uma turma primeiro', 'error'); return; }
+
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-btn-aulas')?.classList.add('active');
+
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+
+  if(!turma.gradeHorarios) turma.gradeHorarios = {};
+  DIAS_SEMANA_GRADE.forEach(d=>{ if(!Array.isArray(turma.gradeHorarios[d.chave])) turma.gradeHorarios[d.chave] = []; });
+
+  el.innerHTML = `
+  <div class="medias-card" style="margin-bottom:14px;">
+    <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Registro de Aulas</h4>
+    <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
+      Cadastre habilidades trabalhadas em uma aula e aplique automaticamente pra outras turmas e datas —
+      depois exporte tudo pra preencher no SIEPE. Essa área está sendo construída aos poucos; por enquanto,
+      configure a grade de horários da turma abaixo (isso é usado nos próximos passos).
+    </p>
+  </div>
+
+  <div class="medias-card" id="grade-horarios-card">
+    <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Grade de horários da turma</h4>
+    <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 14px;">
+      Pra cada dia com aula, cadastre um rótulo (ex.: "1º horário — 07:00-07:50") e o <strong>ID do horário no SIEPE</strong>
+      (o número interno que aparece ao marcar aquele horário na tela "Registro de Conteúdos Curriculares Trabalhados" — dá pra
+      conferir inspecionando o checkbox do horário, ou perguntando pra extensão depois de marcar uma vez).
+      Isso pode ser preenchido pela coordenação/gestão ou pelo próprio professor.
+    </p>
+    <div id="grade-horarios-dias">
+      ${DIAS_SEMANA_GRADE.map(d=>_renderDiaGradeHorarios(d)).join('')}
+    </div>
+    <button class="btn-aplicar-qtd" style="margin-top:10px;" onclick="salvarGradeHorarios()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar grade de horários
+    </button>
+    <div id="grade-horarios-msg" class="ob-msg" style="margin-top:8px;"></div>
+  </div>`;
+};
+
+function _renderDiaGradeHorarios(dia){
+  const turma = _turmaAtual;
+  const lista = turma.gradeHorarios[dia.chave] || [];
+  return `
+  <div class="grade-horarios-dia" style="margin-bottom:14px;padding:10px 12px;background:#f8f9fa;border-radius:6px;">
+    <div style="font-size:.8rem;font-weight:700;color:var(--pe-navy);margin-bottom:8px;">${dia.label}</div>
+    <div id="grade-horarios-lista-${dia.chave}">
+      ${lista.map((h,hi)=>_renderLinhaHorario(dia.chave,hi,h)).join('')}
+    </div>
+    <button type="button" class="atv-card-transferir-btn" onclick="adicionarHorarioGrade('${dia.chave}')">+ Adicionar horário</button>
+  </div>`;
+}
+
+function _renderLinhaHorario(diaChave, hi, h){
+  return `
+  <div class="grade-horarios-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
+    <input type="text" placeholder="Ex.: 1º horário — 07:00-07:50" value="${h.label||''}"
+      style="flex:2;min-width:200px;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:5px;font-size:.8rem;"
+      onchange="onHorarioGradeChange('${diaChave}',${hi},'label',this.value)">
+    <input type="text" placeholder="ID no SIEPE (ex.: 206)" value="${h.id||''}"
+      style="width:150px;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:5px;font-size:.8rem;"
+      onchange="onHorarioGradeChange('${diaChave}',${hi},'id',this.value)">
+    <button type="button" class="atv-card-limpar-btn" onclick="removerHorarioGrade('${diaChave}',${hi})">Remover</button>
+  </div>`;
+}
+
+window.adicionarHorarioGrade = function(diaChave){
+  const turma = _turmaAtual; if(!turma) return;
+  if(!turma.gradeHorarios) turma.gradeHorarios = {};
+  if(!Array.isArray(turma.gradeHorarios[diaChave])) turma.gradeHorarios[diaChave] = [];
+  turma.gradeHorarios[diaChave].push({ label:'', id:'' });
+  const container = document.getElementById(`grade-horarios-lista-${diaChave}`);
+  if(container){
+    const lista = turma.gradeHorarios[diaChave];
+    container.innerHTML = lista.map((h,hi)=>_renderLinhaHorario(diaChave,hi,h)).join('');
+  }
+};
+
+window.removerHorarioGrade = function(diaChave, hi){
+  const turma = _turmaAtual; if(!turma) return;
+  turma.gradeHorarios[diaChave].splice(hi,1);
+  const container = document.getElementById(`grade-horarios-lista-${diaChave}`);
+  if(container){
+    const lista = turma.gradeHorarios[diaChave];
+    container.innerHTML = lista.map((h,hi2)=>_renderLinhaHorario(diaChave,hi2,h)).join('');
+  }
+};
+
+window.onHorarioGradeChange = function(diaChave, hi, campo, valor){
+  const turma = _turmaAtual; if(!turma) return;
+  if(!turma.gradeHorarios[diaChave][hi]) turma.gradeHorarios[diaChave][hi] = {label:'',id:''};
+  turma.gradeHorarios[diaChave][hi][campo] = valor;
+};
+
+window.salvarGradeHorarios = async function(){
+  const turma = _turmaAtual; if(!turma) return;
+  const msgEl = document.getElementById('grade-horarios-msg');
+  try{
+    // Remove linhas totalmente vazias antes de salvar
+    const gradeLimpa = {};
+    DIAS_SEMANA_GRADE.forEach(d=>{
+      gradeLimpa[d.chave] = (turma.gradeHorarios[d.chave]||[]).filter(h=>(h.label||'').trim() || (h.id||'').trim());
+    });
+    turma.gradeHorarios = gradeLimpa;
+    await setDoc(doc(db,...turmaPath(turma.id)), { gradeHorarios: gradeLimpa }, { merge:true });
+    if(msgEl){ msgEl.textContent = 'Grade de horários salva com sucesso!'; msgEl.className = 'ob-msg success'; }
+    showToast('Grade de horários salva!', 'success');
+  } catch(e){
+    if(msgEl){ msgEl.textContent = 'Erro ao salvar: '+e.message; msgEl.className = 'ob-msg error'; }
+    showToast('Erro ao salvar grade de horários: '+e.message, 'error');
+  }
+};
+
 // ── Aba "Exportação" ────────────────────────────────────────────────
 window.abrirExportacao = async function(){
   const turma = _turmaAtual;
