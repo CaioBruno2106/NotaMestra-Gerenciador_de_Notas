@@ -2802,6 +2802,11 @@ body.dark-mode .stat-card-btn:active{
         <div class="stat-label">Estudantes</div>
         <div class="stat-hint">toque para ver</div>
       </div>
+      <div class="stat-card stat-card-btn" onclick="abrirModalHorarios()" title="Configurar horários das turmas">
+        <div class="stat-num"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
+        <div class="stat-label">Horários</div>
+        <div class="stat-hint">toque para configurar</div>
+      </div>
       <div class="stat-card stat-card-btn" id="stat-card-gestao-turmas" style="display:none;" onclick="abrirModalGestaoTurmas()" title="Turmas da escola">
         <div class="stat-num" id="stat-gestao-turmas">0</div>
         <div class="stat-label">Turmas da escola</div>
@@ -6736,6 +6741,122 @@ window.setFiltroAlunos = function(filtro){
   });
   renderModalAlunos();
 };
+
+// ── MODAL HORÁRIOS (centralizado — todas as turmas de uma vez) ─────
+window.abrirModalHorarios = async function(){
+  document.getElementById('dm-horarios-overlay').style.display = 'flex';
+  window._horariosModalTab = window._horariosModalTab || 'minhas';
+  if(window._horariosModalTab==='gestao'){
+    await _gestaoPrepararEscolaAtiva();
+    window._horariosGestaoEscolaId = _gestaoEscolaAtual?.id;
+  }
+  renderModalHorarios();
+};
+window.fecharModalHorarios = function(){
+  document.getElementById('dm-horarios-overlay').style.display = 'none';
+};
+window.trocarAbaHorarios = async function(aba){
+  window._horariosModalTab = aba;
+  if(aba==='gestao'){
+    await _gestaoPrepararEscolaAtiva();
+    window._horariosGestaoEscolaId = _gestaoEscolaAtual?.id;
+  }
+  renderModalHorarios();
+};
+window.onHorariosGestaoEscolaChange = async function(escolaId){
+  const escola = _escolasGeridas.find(e=>e.id===escolaId);
+  if(escola) _gestaoEscolaAtual = escola;
+  window._horariosGestaoEscolaId = escolaId;
+  if(_gestaoEquipeEscolaId !== escolaId){
+    try {
+      const snap = await getDocs(collection(db,'escolas',escolaId,'professores'));
+      _gestaoEquipe = snap.docs.map(d=>({ uid:d.id, ...d.data() }));
+      _gestaoEquipeEscolaId = escolaId;
+    } catch(e){ _gestaoEquipe = []; }
+  }
+  renderModalHorarios();
+};
+
+window.renderModalHorarios = function(){
+  const body = document.getElementById('dm-horarios-body');
+  if(!body) return;
+  const gerenciaveis = _escolasGeridas.filter(e => e.role==='gestor' || e.role==='coordenador');
+  const aba = window._horariosModalTab || 'minhas';
+
+  const tabsHtml = gerenciaveis.length ? `
+    <div style="display:flex;gap:8px;margin-bottom:14px;">
+      <button class="unidade-tab ${aba==='minhas'?'active':''}" onclick="trocarAbaHorarios('minhas')">Minhas turmas</button>
+      <button class="unidade-tab ${aba==='gestao'?'active':''}" onclick="trocarAbaHorarios('gestao')">Gestão</button>
+    </div>` : '';
+
+  const intro = `<p style="color:var(--pe-muted);font-size:.8rem;margin:0 0 14px;">
+    Escolha o turno certo em cada turma e marque em quais dias/aulas ela acontece — os horários (início e fim)
+    já vêm prontos de acordo com o turno. Isso alimenta o Registro de Aulas de cada turma.
+  </p>`;
+
+  if(aba==='gestao' && gerenciaveis.length){
+    body.innerHTML = tabsHtml + intro + _renderHorariosGestao(gerenciaveis);
+  } else {
+    body.innerHTML = tabsHtml + intro + _renderHorariosMinhasTurmas();
+  }
+};
+
+function _renderHorariosMinhasTurmas(){
+  const turmas = _turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t) && t.criadoPor===_uid);
+  if(!turmas.length) return `<div class="ob-empty">Nenhuma turma cadastrada ainda.</div>`;
+  return turmas.map(t=>_renderCardHorarioTurma(t)).join('');
+}
+
+function _renderHorariosGestao(gerenciaveis){
+  const escolaAtualId = (window._horariosGestaoEscolaId && gerenciaveis.some(e=>e.id===window._horariosGestaoEscolaId))
+    ? window._horariosGestaoEscolaId : gerenciaveis[0].id;
+  window._horariosGestaoEscolaId = escolaAtualId;
+
+  const seletor = gerenciaveis.length>1 ? `
+    <select class="nota-input" style="margin-bottom:14px;width:100%;" onchange="onHorariosGestaoEscolaChange(this.value)">
+      ${gerenciaveis.map(e=>`<option value="${e.id}" ${e.id===escolaAtualId?'selected':''}>${e.nome}</option>`).join('')}
+    </select>` : '';
+
+  const turmas = _turmas.filter(t=>t.escolaId===escolaAtualId && t.ativo!==false && !ehTurmaGenerica(t));
+  if(!turmas.length) return seletor + `<div class="ob-empty">Nenhuma turma cadastrada nessa escola ainda.</div>`;
+
+  // Agrupa por professor pra ficar organizado
+  const porProf = {};
+  turmas.forEach(t=>{
+    const uidProf = t.criadoPor;
+    if(!porProf[uidProf]) porProf[uidProf] = [];
+    porProf[uidProf].push(t);
+  });
+
+  const html = Object.entries(porProf).map(([uidProf, lista])=>{
+    const prof = uidProf===_uid ? {nome:'Você'} : (_gestaoEquipe.find(p=>p.uid===uidProf));
+    const nomeProf = prof?.nome || prof?.email || 'Professor(a)';
+    return `
+    <div style="margin-bottom:18px;">
+      <div style="font-size:.8rem;font-weight:700;color:var(--pe-navy);margin-bottom:8px;">${nomeProf}</div>
+      ${lista.map(t=>_renderCardHorarioTurma(t)).join('')}
+    </div>`;
+  }).join('');
+
+  return seletor + html;
+}
+
+function _renderCardHorarioTurma(turma){
+  const coll = !!window._painelColapsado?.['grade-'+turma.id+'-0'];
+  return `
+  <div class="medias-card" style="margin-bottom:12px;">
+    <div class="vistos-config-title" onclick="toggleAtvSubPainel('grade','${turma.id}',0)" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;user-select:none;padding:0;background:none;border:none;">
+      <span>
+        <strong>${turma.serie||''} ${turma.turma||''}</strong> — ${turma.disciplina||'(sem disciplina)'}
+        <span style="color:var(--pe-muted);font-weight:400;font-size:.78rem;"> · ${turma.turno?turnoLabel(turma.turno):'turno não definido'}</span>
+      </span>
+      <span id="grade-painel-chevron-${turma.id}-0" style="font-size:.68rem;transition:transform .2s;flex-shrink:0;${coll?'transform:rotate(-90deg);':''}">▼</span>
+    </div>
+    <div id="grade-painel-body-${turma.id}-0" style="${coll?'display:none;':''}margin-top:10px;">
+      <div id="grade-horarios-body-${turma.id}">${_renderGradeHorariosTurma(turma)}</div>
+    </div>
+  </div>`;
+}
 
 window.abrirModalAlunos = function(){
   document.getElementById('dm-alunos-overlay').style.display = 'flex';
@@ -12730,6 +12851,34 @@ const DIAS_SEMANA_GRADE = [
   {chave:'sab', label:'Sábado'},
 ];
 
+// ── Modelos de turno com os horários fixos de cada aula ──────────────
+// Integral 45h e EJA ficam para uma próxima etapa (ainda sem modelo pronto).
+const TURNO_TEMPLATES = {
+  manha: { label:'Manhã', aulas:[
+    {n:1,inicio:'07:30',fim:'08:20'}, {n:2,inicio:'08:20',fim:'09:10'}, {n:3,inicio:'09:10',fim:'10:00'},
+    {n:4,inicio:'10:20',fim:'11:10'}, {n:5,inicio:'11:10',fim:'11:50'},
+  ]},
+  tarde: { label:'Tarde', aulas:[
+    {n:1,inicio:'13:00',fim:'13:50'}, {n:2,inicio:'13:50',fim:'14:40'}, {n:3,inicio:'14:40',fim:'15:30'},
+    {n:4,inicio:'15:50',fim:'16:40'}, {n:5,inicio:'16:40',fim:'17:20'},
+  ]},
+  turno1: { label:'Integral 35h — 1º turno', aulas:[
+    {n:1,inicio:'07:00',fim:'07:50'}, {n:2,inicio:'07:50',fim:'08:40'}, {n:3,inicio:'09:00',fim:'09:50'},
+    {n:4,inicio:'09:50',fim:'10:40'}, {n:5,inicio:'10:40',fim:'11:30'}, {n:6,inicio:'12:20',fim:'13:05'},
+    {n:7,inicio:'13:05',fim:'13:50'},
+  ]},
+  turno2: { label:'Integral 35h — 2º turno', aulas:[
+    {n:1,inicio:'14:10',fim:'15:00'}, {n:2,inicio:'15:00',fim:'15:50'}, {n:3,inicio:'16:10',fim:'17:00'},
+    {n:4,inicio:'17:00',fim:'17:50'}, {n:5,inicio:'17:50',fim:'18:40'}, {n:6,inicio:'19:20',fim:'20:10'},
+    {n:7,inicio:'20:10',fim:'21:00'},
+  ]},
+};
+
+function _turmaPorId(turmaId){
+  if(_turmaAtual?.id===turmaId) return _turmaAtual;
+  return _turmas.find(t=>t.id===turmaId) || null;
+}
+
 window.abrirRegistroAulas = async function(){
   const turma = _turmaAtual;
   if(!turma){ showToast('Abra uma turma primeiro', 'error'); return; }
@@ -12761,6 +12910,8 @@ window.abrirRegistroAulas = async function(){
     <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
       Cadastre a habilidade/objeto de conhecimento trabalhados numa aula, escreva o conteúdo e aplique
       automaticamente pra outras turmas e datas. Depois exporte tudo pra preencher no SIEPE.
+      Pra configurar a grade de horários de <strong>todas as suas turmas de uma vez</strong>, use o card
+      "Horários" no painel inicial.
     </p>
   </div>
 
@@ -12770,18 +12921,7 @@ window.abrirRegistroAulas = async function(){
       <span id="grade-painel-chevron-${turma.id}-0" style="font-size:.68rem;transition:transform .2s;flex-shrink:0;${collGrade?'transform:rotate(-90deg);':''}">▼</span>
     </div>
     <div id="grade-painel-body-${turma.id}-0" style="${collGrade?'display:none;':''}margin-top:10px;">
-      <p style="color:var(--pe-muted);font-size:.8rem;margin:0 0 14px;">
-        Pra cada dia com aula, cadastre um rótulo (ex.: "1º horário — 07:00-07:50") e o <strong>ID do horário no SIEPE</strong>
-        (o número interno do checkbox daquele horário na tela "Registro de Conteúdos Curriculares Trabalhados").
-        Isso pode ser preenchido pela coordenação/gestão ou pelo próprio professor.
-      </p>
-      <div id="grade-horarios-dias">
-        ${DIAS_SEMANA_GRADE.map(d=>_renderDiaGradeHorarios(d)).join('')}
-      </div>
-      <button class="btn-aplicar-qtd" style="margin-top:10px;" onclick="salvarGradeHorarios()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar grade de horários
-      </button>
-      <div id="grade-horarios-msg" class="ob-msg" style="margin-top:8px;"></div>
+      <div id="grade-horarios-body-${turma.id}">${_renderGradeHorariosTurma(turma)}</div>
     </div>
   </div>
 
@@ -12803,63 +12943,152 @@ function _hojeISO(){
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
 
-function _renderDiaGradeHorarios(dia){
-  const turma = _turmaAtual;
+// Renderiza a grade de horários de UMA turma — usado tanto na aba "Aulas"
+// da própria turma quanto na tela centralizada "Horários" do painel inicial.
+function _renderGradeHorariosTurma(turma){
+  if(!turma.gradeHorarios) turma.gradeHorarios = {};
+  DIAS_SEMANA_GRADE.forEach(d=>{ if(!Array.isArray(turma.gradeHorarios[d.chave])) turma.gradeHorarios[d.chave] = []; });
+
+  const template = TURNO_TEMPLATES[turma.turno];
+  if(!template){
+    return `
+    <p style="color:var(--pe-muted);font-size:.78rem;margin:0 0 10px;">
+      Essa turma é do turno "${turma.turno?turnoLabel(turma.turno):'não definido'}", que ainda não tem um modelo de
+      horário pronto (Integral de 45h e EJA entram numa próxima etapa). Defina os horários manualmente abaixo.
+    </p>
+    <div id="grade-horarios-manual-${turma.id}">
+      ${DIAS_SEMANA_GRADE.map(d=>_renderDiaGradeHorariosManual(turma,d)).join('')}
+    </div>
+    <button class="btn-aplicar-qtd" style="margin-top:10px;" onclick="salvarGradeHorarios('${turma.id}')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar grade de horários
+    </button>
+    <div id="grade-horarios-msg-${turma.id}" class="ob-msg" style="margin-top:8px;"></div>`;
+  }
+
+  return `
+  <p style="color:var(--pe-muted);font-size:.78rem;margin:0 0 10px;">
+    Turno: <strong>${template.label}</strong>. Marque em quais dias cada aula acontece nessa turma, e
+    informe o <strong>ID do horário no SIEPE</strong> nas marcadas.
+  </p>
+  <div style="overflow-x:auto;">
+  <table class="notas-table" style="min-width:640px;">
+    <thead><tr>
+      <th class="col-aluno">Aula</th>
+      ${DIAS_SEMANA_GRADE.map(d=>`<th style="text-align:center;">${d.label}</th>`).join('')}
+    </tr></thead>
+    <tbody>
+      ${template.aulas.map(a=>`<tr>
+        <td class="col-aluno" style="font-size:.74rem;white-space:nowrap;">${a.n}ª aula<br><span style="color:var(--pe-muted);font-weight:400;">${a.inicio}-${a.fim}</span></td>
+        ${DIAS_SEMANA_GRADE.map(d=>{
+          const lista = turma.gradeHorarios[d.chave];
+          const idx = lista.findIndex(h=>h.aula===a.n);
+          const marcado = idx>=0;
+          const siepeId = marcado ? (lista[idx].id||'') : '';
+          return `<td style="text-align:center;">
+            <input type="checkbox" ${marcado?'checked':''} onchange="toggleAulaGrade('${turma.id}','${d.chave}',${a.n},'${a.inicio}','${a.fim}',this.checked)">
+            ${marcado?`<input type="text" placeholder="ID SIEPE" value="${siepeId}" style="width:64px;font-size:.68rem;padding:2px 4px;margin-top:3px;display:block;margin:3px auto 0;border:1px solid var(--pe-border);border-radius:4px;text-align:center;" onchange="onAulaGradeIdChange('${turma.id}','${d.chave}',${a.n},this.value)">`:''}
+          </td>`;
+        }).join('')}
+      </tr>`).join('')}
+    </tbody>
+  </table>
+  </div>
+  <button class="btn-aplicar-qtd" style="margin-top:10px;" onclick="salvarGradeHorarios('${turma.id}')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar grade de horários
+  </button>
+  <div id="grade-horarios-msg-${turma.id}" class="ob-msg" style="margin-top:8px;"></div>`;
+}
+
+function _rerenderGradeHorarios(turmaId){
+  const turma = _turmaPorId(turmaId);
+  if(!turma) return;
+  const body = document.getElementById(`grade-horarios-body-${turmaId}`);
+  if(body){ body.innerHTML = _renderGradeHorariosTurma(turma); return; }
+  // Fallback: dentro do modal manual (turno sem template) o container é outro
+  const manual = document.getElementById(`grade-horarios-manual-${turmaId}`);
+  if(manual){ manual.innerHTML = DIAS_SEMANA_GRADE.map(d=>_renderDiaGradeHorariosManual(turma,d)).join(''); }
+}
+
+window.toggleAulaGrade = function(turmaId, diaChave, n, inicio, fim, checked){
+  const turma = _turmaPorId(turmaId);
+  if(!turma) return;
+  if(!turma.gradeHorarios) turma.gradeHorarios = {};
+  if(!Array.isArray(turma.gradeHorarios[diaChave])) turma.gradeHorarios[diaChave] = [];
+  const lista = turma.gradeHorarios[diaChave];
+  const idx = lista.findIndex(h=>h.aula===n);
+  if(checked){
+    if(idx<0) lista.push({ aula:n, label:`${n}ª aula — ${inicio} às ${fim}`, id:'' });
+  } else if(idx>=0){
+    lista.splice(idx,1);
+  }
+  _rerenderGradeHorarios(turmaId);
+};
+
+window.onAulaGradeIdChange = function(turmaId, diaChave, n, valor){
+  const turma = _turmaPorId(turmaId);
+  if(!turma) return;
+  const lista = turma.gradeHorarios[diaChave]||[];
+  const idx = lista.findIndex(h=>h.aula===n);
+  if(idx>=0) lista[idx].id = valor;
+};
+
+// ── Entrada manual (turnos sem modelo pronto: Integral 45h, EJA, etc.) ──
+function _renderDiaGradeHorariosManual(turma, dia){
   const lista = turma.gradeHorarios[dia.chave] || [];
   return `
   <div class="grade-horarios-dia" style="margin-bottom:14px;padding:10px 12px;background:#f8f9fa;border-radius:6px;">
     <div style="font-size:.8rem;font-weight:700;color:var(--pe-navy);margin-bottom:8px;">${dia.label}</div>
-    <div id="grade-horarios-lista-${dia.chave}">
-      ${lista.map((h,hi)=>_renderLinhaHorario(dia.chave,hi,h)).join('')}
+    <div id="grade-horarios-lista-${turma.id}-${dia.chave}">
+      ${lista.map((h,hi)=>_renderLinhaHorarioManual(turma.id,dia.chave,hi,h)).join('')}
     </div>
-    <button type="button" class="atv-card-transferir-btn" onclick="adicionarHorarioGrade('${dia.chave}')">+ Adicionar horário</button>
+    <button type="button" class="atv-card-transferir-btn" onclick="adicionarHorarioGrade('${turma.id}','${dia.chave}')">+ Adicionar horário</button>
   </div>`;
 }
 
-function _renderLinhaHorario(diaChave, hi, h){
+function _renderLinhaHorarioManual(turmaId, diaChave, hi, h){
   return `
   <div class="grade-horarios-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
     <input type="text" placeholder="Ex.: 1º horário — 07:00-07:50" value="${h.label||''}"
       style="flex:2;min-width:200px;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:5px;font-size:.8rem;"
-      onchange="onHorarioGradeChange('${diaChave}',${hi},'label',this.value)">
+      onchange="onHorarioGradeChange('${turmaId}','${diaChave}',${hi},'label',this.value)">
     <input type="text" placeholder="ID no SIEPE (ex.: 206)" value="${h.id||''}"
       style="width:150px;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:5px;font-size:.8rem;"
-      onchange="onHorarioGradeChange('${diaChave}',${hi},'id',this.value)">
-    <button type="button" class="atv-card-limpar-btn" onclick="removerHorarioGrade('${diaChave}',${hi})">Remover</button>
+      onchange="onHorarioGradeChange('${turmaId}','${diaChave}',${hi},'id',this.value)">
+    <button type="button" class="atv-card-limpar-btn" onclick="removerHorarioGrade('${turmaId}','${diaChave}',${hi})">Remover</button>
   </div>`;
 }
 
-window.adicionarHorarioGrade = function(diaChave){
-  const turma = _turmaAtual; if(!turma) return;
+window.adicionarHorarioGrade = function(turmaId, diaChave){
+  const turma = _turmaPorId(turmaId); if(!turma) return;
   if(!turma.gradeHorarios) turma.gradeHorarios = {};
   if(!Array.isArray(turma.gradeHorarios[diaChave])) turma.gradeHorarios[diaChave] = [];
   turma.gradeHorarios[diaChave].push({ label:'', id:'' });
-  const container = document.getElementById(`grade-horarios-lista-${diaChave}`);
+  const container = document.getElementById(`grade-horarios-lista-${turmaId}-${diaChave}`);
   if(container){
     const lista = turma.gradeHorarios[diaChave];
-    container.innerHTML = lista.map((h,hi)=>_renderLinhaHorario(diaChave,hi,h)).join('');
+    container.innerHTML = lista.map((h,hi)=>_renderLinhaHorarioManual(turmaId,diaChave,hi,h)).join('');
   }
 };
 
-window.removerHorarioGrade = function(diaChave, hi){
-  const turma = _turmaAtual; if(!turma) return;
+window.removerHorarioGrade = function(turmaId, diaChave, hi){
+  const turma = _turmaPorId(turmaId); if(!turma) return;
   turma.gradeHorarios[diaChave].splice(hi,1);
-  const container = document.getElementById(`grade-horarios-lista-${diaChave}`);
+  const container = document.getElementById(`grade-horarios-lista-${turmaId}-${diaChave}`);
   if(container){
     const lista = turma.gradeHorarios[diaChave];
-    container.innerHTML = lista.map((h,hi2)=>_renderLinhaHorario(diaChave,hi2,h)).join('');
+    container.innerHTML = lista.map((h,hi2)=>_renderLinhaHorarioManual(turmaId,diaChave,hi2,h)).join('');
   }
 };
 
-window.onHorarioGradeChange = function(diaChave, hi, campo, valor){
-  const turma = _turmaAtual; if(!turma) return;
+window.onHorarioGradeChange = function(turmaId, diaChave, hi, campo, valor){
+  const turma = _turmaPorId(turmaId); if(!turma) return;
   if(!turma.gradeHorarios[diaChave][hi]) turma.gradeHorarios[diaChave][hi] = {label:'',id:''};
   turma.gradeHorarios[diaChave][hi][campo] = valor;
 };
 
-window.salvarGradeHorarios = async function(){
-  const turma = _turmaAtual; if(!turma) return;
-  const msgEl = document.getElementById('grade-horarios-msg');
+window.salvarGradeHorarios = async function(turmaId){
+  const turma = _turmaPorId(turmaId); if(!turma) return;
+  const msgEl = document.getElementById(`grade-horarios-msg-${turmaId}`);
   try{
     // Remove linhas totalmente vazias antes de salvar
     const gradeLimpa = {};
@@ -12867,7 +13096,7 @@ window.salvarGradeHorarios = async function(){
       gradeLimpa[d.chave] = (turma.gradeHorarios[d.chave]||[]).filter(h=>(h.label||'').trim() || (h.id||'').trim());
     });
     turma.gradeHorarios = gradeLimpa;
-    await setDoc(doc(db,...turmaPath(turma.id)), { gradeHorarios: gradeLimpa }, { merge:true });
+    await setDoc(doc(db,...turmaPath(turmaId)), { gradeHorarios: gradeLimpa }, { merge:true });
     if(msgEl){ msgEl.textContent = 'Grade de horários salva com sucesso!'; msgEl.className = 'ob-msg success'; }
     showToast('Grade de horários salva!', 'success');
   } catch(e){
@@ -12877,6 +13106,7 @@ window.salvarGradeHorarios = async function(){
 };
 
 // ── Fase 3 — Formulário de Registro de Aula ─────────────────────────
+
 
 function _renderFormularioAula(){
   const f = window._aulaForm;
@@ -14401,6 +14631,7 @@ const modaisDisplay = [
 'dm-notificacoes-overlay',
 'dm-escolas-overlay',
 'dm-turmas-overlay',
+'dm-horarios-overlay',
 'dm-alunos-overlay',
 'dm-turma-mae-overlay',
 'dm-gestao-turmas-overlay',
@@ -14570,6 +14801,20 @@ return false;
       </label>
     </div>
     <div class="dash-modal-body" id="dm-turmas-dash-body"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════
+     MODAL RÁPIDO — HORÁRIOS
+════════════════════════════════════════════════════ -->
+<div id="dm-horarios-overlay" class="dash-modal-overlay" style="display:none;"
+     onclick="if(event.target===this)fecharModalHorarios()">
+  <div class="dash-modal">
+    <div class="dash-modal-header">
+      <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Horários das turmas</h3>
+      <button onclick="fecharModalHorarios()" aria-label="Fechar"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg></button>
+    </div>
+    <div class="dash-modal-body" id="dm-horarios-body"></div>
   </div>
 </div>
 
