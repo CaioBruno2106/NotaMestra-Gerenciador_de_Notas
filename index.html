@@ -1289,7 +1289,7 @@ body{ box-sizing:border-box; }
 /* ── Abas de unidade ── */
 .unidades-tabs-bar{
   background:var(--pe-navy);
-  display:flex;gap:2px;padding:0 16px;
+  display:flex;align-items:center;gap:2px;padding:0 16px;
   overflow-x:auto;scrollbar-width:none;flex-shrink:0;
   border-bottom:3px solid var(--pe-yellow);
 }
@@ -1304,6 +1304,47 @@ body{ box-sizing:border-box; }
 .unidade-tab.active{
   color:#fff;border-bottom-color:var(--pe-yellow);
 }
+/* Divisória entre o grupo "trabalho do dia a dia" (unidades + Aulas)
+   e o grupo "análise/exportação" (Desempenho + exportar) */
+.tabs-divisor{
+  width:1px;align-self:stretch;margin:10px 6px;
+  background:rgba(255,255,255,.18);flex-shrink:0;
+}
+/* Botão de exportação — ícone com menu suspenso, fora do fluxo de abas */
+.tab-export-wrap{ position:relative;margin-left:auto;flex-shrink:0; }
+.tab-export-btn{
+  padding:9px 12px;color:rgba(255,255,255,.7);
+  border:none;background:none;cursor:pointer;transition:var(--transition);
+  display:flex;align-items:center;
+}
+.tab-export-btn:hover, .tab-export-btn.active{ color:#fff; }
+.tab-export-menu{
+  position:absolute;top:100%;right:0;margin-top:6px;z-index:60;
+  background:#fff;border-radius:8px;box-shadow:var(--shadow-lg);
+  min-width:220px;padding:6px;display:none;
+}
+.tab-export-menu.open{display:block;}
+.tab-export-menu button{
+  width:100%;text-align:left;padding:9px 12px;border:none;background:none;
+  border-radius:6px;font-size:.82rem;font-weight:600;color:var(--pe-navy);
+  cursor:pointer;display:flex;align-items:center;gap:8px;
+}
+.tab-export-menu button:hover{background:#f1f3f5;}
+
+/* ── Sub-abas de Desempenho (Consolidação/Diagnóstico/Simulados CAED) ── */
+.desempenho-subtabs-bar{
+  background:#f1f3f5;display:flex;gap:4px;padding:6px 16px;
+  border-bottom:1px solid var(--pe-border);flex-shrink:0;
+}
+.desempenho-subtab{
+  padding:6px 14px;color:var(--pe-muted);
+  font-size:.78rem;font-weight:700;border:none;background:none;
+  border-radius:6px;cursor:pointer;transition:var(--transition);
+}
+.desempenho-subtab:hover{background:#e9ecef;color:var(--pe-navy);}
+.desempenho-subtab.active{background:var(--pe-blue);color:#fff;}
+body.dark-mode .desempenho-subtabs-bar{ background:#1a1a1a;border-color:var(--pe-border); }
+body.dark-mode .desempenho-subtab:hover{ background:#2a2a2a; }
 
 /* ── Corpo da unidade ── */
 .turma-body{
@@ -1522,6 +1563,13 @@ body{ box-sizing:border-box; }
 }
 @media(max-width:760px){
   .exportacao-grid{grid-template-columns:1fr;}
+}
+.exp-card-destaque{
+  animation: expCardPulse 1.6s ease;
+}
+@keyframes expCardPulse{
+  0%{ box-shadow:0 0 0 3px var(--pe-blue); }
+  100%{ box-shadow:0 0 0 0 rgba(0,86,179,0); }
 }
 .grp-integrante-row{display:flex;align-items:center;gap:6px;}
 .grp-integrante-row label{font-size:.73rem;font-weight:700;color:var(--pe-muted);min-width:22px;text-align:right;}
@@ -3172,6 +3220,13 @@ body.dark-mode .stat-card-btn:active{
 
   <!-- Abas de unidade -->
   <div class="unidades-tabs-bar" id="unidades-tabs-bar"></div>
+
+  <!-- Sub-abas de Desempenho (Consolidação/Diagnóstico/Simulados CAED) -->
+  <div class="desempenho-subtabs-bar" id="desempenho-subtabs-bar" style="display:none;">
+    <button class="desempenho-subtab" id="desempenho-subtab-consolidacao" onclick="abrirDesempenho('consolidacao')">Consolidação</button>
+    <button class="desempenho-subtab" id="desempenho-subtab-diagnostico" onclick="abrirDesempenho('diagnostico')">Diagnóstico</button>
+    <button class="desempenho-subtab" id="desempenho-subtab-simulados" onclick="abrirDesempenho('simulados')">Simulados CAED</button>
+  </div>
 
   <!-- Corpo: conteúdo da unidade ativa -->
   <div class="turma-body">
@@ -8171,29 +8226,78 @@ function renderUnidadesTabs(unidades){
   const bar = document.getElementById('unidades-tabs-bar');
   if(!bar) return;
   const qtdPendentes = _importsPendentes.length;
-  bar.innerHTML = unidades.map(u=>
+
+  // Grupo 1 — trabalho do dia a dia: unidades + Aulas, sem cores diferentes
+  const gruposUnidades = unidades.map(u=>
     `<button class="unidade-tab" id="tab-btn-${u.id}"
        onclick="abrirUnidadePorId('${u.id}')">${u.label}</button>`
   ).join('') + `
-    ${ qtdPendentes > 0 ? `
-    <button class="unidade-tab" id="tab-btn-importsPendentes"
-       style="background:rgba(0,180,216,.18);"
-       onclick="abrirImportsPendentes()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Importações (${qtdPendentes})</button>` : '' }
-    <button class="unidade-tab" id="tab-btn-consolidacao"
-       style="margin-left:auto;background:rgba(253,185,19,.18);"
-       onclick="abrirConsolidacao()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Consolidação</button>
-    <button class="unidade-tab" id="tab-btn-diagnostico"
-       style="background:rgba(0,150,255,.18);"
-       onclick="abrirDiagnostico()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Diagnóstico</button>
-    <button class="unidade-tab" id="tab-btn-simuladosCAED"
-       style="background:rgba(253,185,19,.18);"
-       onclick="abrirSimuladosCAED()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.9V17h8v-2.1A7 7 0 0 0 12 2z"/></svg> Simulados CAED</button>
     <button class="unidade-tab" id="tab-btn-aulas"
-       style="background:rgba(94,53,177,.18);"
-       onclick="abrirRegistroAulas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Aulas</button>
-    <button class="unidade-tab" id="tab-btn-exportacao"
-       style="background:rgba(40,167,69,.18);"
-       onclick="abrirExportacao()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportação</button>`;
+       onclick="abrirRegistroAulas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Aulas</button>`;
+
+  // Grupo 2 — análise/resultado + exportação
+  const importsBtn = qtdPendentes > 0 ? `
+    <button class="unidade-tab" id="tab-btn-importsPendentes"
+       onclick="abrirImportsPendentes()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Importações (${qtdPendentes})</button>` : '';
+
+  bar.innerHTML = gruposUnidades + `
+    <div class="tabs-divisor"></div>
+    ${importsBtn}
+    <button class="unidade-tab" id="tab-btn-desempenho"
+       onclick="abrirDesempenho()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg> Desempenho</button>
+    <div class="tab-export-wrap">
+      <button class="tab-export-btn" id="tab-btn-exportacao-icon" onclick="toggleMenuExportacao(event)" title="Exportar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.15em;height:1.15em;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <div class="tab-export-menu" id="menu-exportacao">
+        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('boletim')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Boletim Individual</button>
+        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('unidade')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Planilha por Unidade</button>
+        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('final')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg> Planilha Final da Turma</button>
+        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('siepe')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar para o SIEPE</button>
+      </div>
+    </div>`;
+}
+
+window.toggleMenuExportacao = function(ev){
+  ev.stopPropagation();
+  const menu = document.getElementById('menu-exportacao');
+  const btn  = document.getElementById('tab-btn-exportacao-icon');
+  const abrir = !menu.classList.contains('open');
+  menu.classList.toggle('open', abrir);
+  btn.classList.toggle('active', abrir);
+  if(abrir){
+    const fechar = ()=>{ menu.classList.remove('open'); btn.classList.remove('active'); document.removeEventListener('click', fechar); };
+    document.addEventListener('click', fechar);
+  }
+};
+window.fecharMenuExportacao = function(){
+  document.getElementById('menu-exportacao')?.classList.remove('open');
+  document.getElementById('tab-btn-exportacao-icon')?.classList.remove('active');
+};
+
+// ── Desempenho: agrupa Consolidação / Diagnóstico / Simulados CAED ──
+function _marcarDesempenhoAtivo(subtab){
+  window._desempenhoSubTab = subtab;
+  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-btn-desempenho')?.classList.add('active');
+  const subbar = document.getElementById('desempenho-subtabs-bar');
+  if(subbar){
+    subbar.style.display = 'flex';
+    subbar.querySelectorAll('.desempenho-subtab').forEach(b=>b.classList.remove('active'));
+    document.getElementById(`desempenho-subtab-${subtab}`)?.classList.add('active');
+  }
+}
+
+window.abrirDesempenho = function(subtab){
+  const alvo = subtab || window._desempenhoSubTab || 'consolidacao';
+  if(alvo==='diagnostico') return abrirDiagnostico();
+  if(alvo==='simulados')   return abrirSimuladosCAED();
+  return abrirConsolidacao();
+};
+
+function _esconderSubtabsDesempenho(){
+  const subbar = document.getElementById('desempenho-subtabs-bar');
+  if(subbar) subbar.style.display = 'none';
 }
 
 window.abrirUnidadePorId = function(id){
@@ -8226,6 +8330,7 @@ async function carregarImportsPendentes(turmaId){
 
 window.abrirImportsPendentes = function(){
   document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  _esconderSubtabsDesempenho();
   document.getElementById('tab-btn-importsPendentes')?.classList.add('active');
 
   const el = document.getElementById('unidade-content');
@@ -8785,6 +8890,7 @@ window.abrirNotificacaoNM = async function(turmaId){
 function abrirUnidade(unidade){
   _unidadeAtiva = unidade;
   document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  _esconderSubtabsDesempenho();
   const tb = document.getElementById(`tab-btn-${unidade.id}`);
   if(tb) tb.classList.add('active');
 
@@ -11189,8 +11295,7 @@ window.abrirSimuladosCAED = async function(){
   const turma = _turmaAtual;
   if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
 
-  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-btn-simuladosCAED')?.classList.add('active');
+  _marcarDesempenhoAtivo('simulados');
 
   const el = document.getElementById('unidade-content');
   if(!el) return;
@@ -11301,8 +11406,7 @@ function renderComparativoCAEDHtml(turma, lista){
    depois de aplicar um envio vindo do Correção Mestra) */
 window.abrirTabelaSimuladoCAED = async function(id){
   const turma = _turmaAtual;
-  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-btn-simuladosCAED')?.classList.add('active');
+  _marcarDesempenhoAtivo('simulados');
 
   const lista = await carregarSimuladosCAED(turma.id);
   const s = lista.find(x => x.id === id);
@@ -11625,9 +11729,7 @@ window.abrirConsolidacao = async function(){
   const turma = _turmaAtual;
   if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
 
-  // Marca aba ativa
-  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-btn-consolidacao')?.classList.add('active');
+  _marcarDesempenhoAtivo('consolidacao');
 
   const el = document.getElementById('unidade-content');
   if(!el) return;
@@ -11846,8 +11948,7 @@ window.abrirDiagnostico = async function(){
   const turma = _turmaAtual;
   if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
 
-  document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-btn-diagnostico')?.classList.add('active');
+  _marcarDesempenhoAtivo('diagnostico');
 
   const el = document.getElementById('unidade-content');
   if(!el) return;
@@ -12919,8 +13020,8 @@ const HABILIDADES_EM_PE = {
 
 // ── Listas fixas do SIEPE (curso, recurso didático, situação didática) ──
 const CURSOS_SIEPE = [
-  { valor:'EM35', label:'EM35 — Ensino Médio' },
-  { valor:'EM35-ITFT', label:'EM35-ITFT — Ensino Médio com Itinerários' },
+  { valor:'EM35', label:'EM35 — Integral 35h (disciplinas regulares)', idSiepe:'1010' },
+  { valor:'EM35-ITFT', label:'EM35-ITFT — Integral 35h (Itinerário Formativo)', idSiepe:'1088' },
 ];
 
 const RECURSOS_DIDATICOS_SIEPE = [
@@ -12993,6 +13094,7 @@ window.abrirRegistroAulas = async function(){
   if(!turma){ showToast('Abra uma turma primeiro', 'error'); return; }
 
   document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
+  _esconderSubtabsDesempenho();
   document.getElementById('tab-btn-aulas')?.classList.add('active');
 
   const el = document.getElementById('unidade-content');
@@ -13024,6 +13126,25 @@ window.abrirRegistroAulas = async function(){
     </p>
   </div>
 
+  <div class="medias-card" id="curso-siepe-card" style="margin-bottom:14px;">
+    <h4 style="margin-bottom:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> Curso no SIEPE</h4>
+    ${(turma.turno==='turno1' || turma.turno==='turno2') ? `
+    <p style="color:var(--pe-muted);font-size:.78rem;margin:0 0 8px;">
+      Usado pra montar a busca certa na tela de "Registro de Conteúdos Curriculares Trabalhados".
+      EM35 e EM35-ITFT existem só pra turmas de Integral 35h — EM35 pras disciplinas regulares,
+      EM35-ITFT pras de Itinerário Formativo.
+    </p>
+    <select class="nota-input" style="width:100%;max-width:360px;" onchange="onCursoSiepeChange('${turma.id}',this.value)">
+      <option value="">— Selecionar —</option>
+      ${CURSOS_SIEPE.map(c=>`<option value="${c.valor}" ${turma.cursoSiepe===c.valor?'selected':''}>${c.label}</option>`).join('')}
+    </select>` : `
+    <p style="color:var(--pe-muted);font-size:.78rem;margin:0;">
+      Essa turma é do turno "${turma.turno?turnoLabel(turma.turno):'não definido'}" — EM35/EM35-ITFT só existem
+      pra turmas de Integral 35h. Os códigos de curso do turno regular (manhã/tarde) ainda não foram mapeados;
+      a exportação pro SIEPE fica disponível quando isso for definido.
+    </p>`}
+  </div>
+
   <div class="medias-card" id="grade-horarios-card">
     <div class="vistos-config-title" onclick="toggleAtvSubPainel('grade','${turma.id}',0)" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;user-select:none;padding:0;background:none;border:none;">
       <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Grade de horários da turma</span>
@@ -13040,11 +13161,27 @@ window.abrirRegistroAulas = async function(){
   </div>
 
   <div class="medias-card" id="aulas-lista-card" style="margin-top:14px;">
-    <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Aulas registradas nesta turma</h4>
+    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+      <h4 style="margin:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Aulas registradas nesta turma</h4>
+      <button class="atv-card-transferir-btn" onclick="exportarAulasParaSiepe('${turma.id}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar para o SIEPE
+      </button>
+    </div>
     <div id="aulas-lista-body"><p style="color:var(--pe-muted);font-size:.8rem;">Carregando...</p></div>
   </div>`;
 
   carregarAulasRegistradas(turma.id);
+};
+
+window.onCursoSiepeChange = async function(turmaId, valor){
+  const turma = _turmaPorId(turmaId); if(!turma) return;
+  turma.cursoSiepe = valor;
+  try{
+    await setDoc(doc(db,...turmaPath(turmaId)), { cursoSiepe: valor }, { merge:true });
+    showToast('Curso do SIEPE salvo!', 'success');
+  }catch(e){
+    showToast('Erro ao salvar curso: '+e.message, 'error');
+  }
 };
 
 function _hojeISO(){
@@ -13518,13 +13655,90 @@ window.excluirAulaRegistrada = async function(turmaId, aulaId){
   }
 };
 
+// ── Exportar aulas registradas para a extensão "Nota Mestra → SIEPE" ──
+// Gera um JSON com um objeto por (turma, data) já registrado, com tudo
+// que a extensão precisa pra automatizar o preenchimento no SIEPE:
+// curso, série, ano, nome da turma, disciplina, data, horários (IDs do
+// SIEPE), trimestre, habilidades (código + objeto de conhecimento, pra
+// casar por TEXTO com o que o próprio SIEPE carregar — nunca por ID
+// interno, que muda de turma pra turma), conteúdo, complementação,
+// recursos didáticos e situações didáticas (podem ser várias de cada).
+window.exportarAulasParaSiepe = async function(turmaId){
+  const turma = _turmaPorId(turmaId);
+  if(!turma){ showToast('Turma não encontrada.', 'error'); return; }
+
+  if(turma.turno!=='turno1' && turma.turno!=='turno2'){
+    showToast('Exportação pro SIEPE só está disponível pra turmas de Integral 35h por enquanto.', 'error');
+    return;
+  }
+  if(!turma.cursoSiepe){
+    showToast('Escolha o "Curso no SIEPE" dessa turma antes de exportar.', 'error');
+    return;
+  }
+  const curso = CURSOS_SIEPE.find(c=>c.valor===turma.cursoSiepe);
+
+  showLoading('Preparando exportação para o SIEPE...');
+  try{
+    const snap = await getDocs(collection(db, ...turmaPath(turmaId), 'aulas'));
+    if(snap.empty){
+      hideLoading();
+      showToast('Nenhuma aula registrada nessa turma ainda.', 'error');
+      return;
+    }
+
+    const aulas = [];
+    snap.forEach(d=>aulas.push({ id:d.id, ...d.data() }));
+    aulas.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+
+    const payload = {
+      versao: 'nm-siepe-aulas-v1',
+      exportadoEm: new Date().toISOString(),
+      turma: {
+        nome: `${turma.serie||''} ${turma.turma||''}`.trim(),
+        serieTexto: turma.serie||'',
+        turmaTexto: turma.turma||'',
+        anoLetivo: turma.anoLetivo || new Date().getFullYear(),
+        curso: curso.valor,
+        cursoIdSiepe: curso.idSiepe,
+      },
+      aulas: aulas.map(a=>({
+        data: a.data,
+        horarios: a.horarios||[],           // IDs de horário do SIEPE (turma.gradeHorarios)
+        disciplina: a.disciplina,
+        serie: a.serie,                      // 1/2/3 — usado só de referência
+        trimestre: a.trimestre,              // 1/2/3 — período a escolher no picker de habilidade
+        habilidades: (a.habilidades||[]).map(h=>({ codigo:h.codigo, objeto:h.objeto })),
+        conteudo: a.conteudo||'',
+        complementacao: a.complementacao||'',
+        recursos: a.recursos||[],
+        situacoes: a.situacoes||[],
+      })),
+    };
+
+    hideLoading();
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const aTag = document.createElement('a');
+    const nomeSafe = payload.turma.nome.replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_') || 'turma';
+    aTag.download = `NM_Aulas_SIEPE_${nomeSafe}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;
+    aTag.href = url;
+    aTag.click();
+    URL.revokeObjectURL(url);
+    showToast(`${aulas.length} aula(s) exportada(s) para o SIEPE!`, 'success');
+  } catch(e){
+    hideLoading();
+    showToast('Erro ao exportar: '+e.message, 'error');
+  }
+};
+
 // ── Aba "Exportação" ────────────────────────────────────────────────
 window.abrirExportacao = async function(){
   const turma = _turmaAtual;
   if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
 
   document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
-  document.getElementById('tab-btn-exportacao')?.classList.add('active');
+  _esconderSubtabsDesempenho();
 
   const el = document.getElementById('unidade-content');
   if(!el) return;
@@ -13539,6 +13753,19 @@ window.abrirExportacao = async function(){
   } catch(e){
     console.error(e);
     el.innerHTML = `<div class="unidade-empty"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Erro ao carregar dados.</div>`;
+  }
+};
+
+// Abre a tela de Exportação já focada num tipo específico (chamado pelo
+// menu suspenso do ícone de exportação na barra de abas).
+window.abrirExportacaoTipo = async function(tipo){
+  await abrirExportacao();
+  const idsPorTipo = { boletim:'exp-card-boletim', unidade:'exp-card-unidade', final:'exp-card-final', siepe:'exp-card-siepe' };
+  const card = document.getElementById(idsPorTipo[tipo]);
+  if(card){
+    card.scrollIntoView({behavior:'smooth', block:'center'});
+    card.classList.add('exp-card-destaque');
+    setTimeout(()=>card.classList.remove('exp-card-destaque'), 1600);
   }
 };
 
@@ -13567,7 +13794,7 @@ function _renderTelaExportacao(turma, unidades){
   <div class="exportacao-grid">
 
     <!-- 1. Boletim individual -->
-    <div class="medias-card">
+    <div class="medias-card" id="exp-card-boletim">
       <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Boletim Individual</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         PDF por aluno · todas as unidades + situação final.
@@ -13587,7 +13814,7 @@ function _renderTelaExportacao(turma, unidades){
     </div>
 
     <!-- 2. Planilha por unidade -->
-    <div class="medias-card">
+    <div class="medias-card" id="exp-card-unidade">
       <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="6" y="4" width="12" height="18" rx="2"/></svg> Planilha por Unidade</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         PDF da turma · atividades, prova, extras, média e situação.
@@ -13603,7 +13830,7 @@ function _renderTelaExportacao(turma, unidades){
     </div>
 
     <!-- 3. Planilha final -->
-    <div class="medias-card">
+    <div class="medias-card" id="exp-card-final">
       <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Planilha Final da Turma</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         PDF · todos os alunos, médias de cada unidade, média final e situação.
@@ -13616,7 +13843,7 @@ function _renderTelaExportacao(turma, unidades){
     </div>
 
     <!-- 4. Exportar para a extensão (preenchimento no SIEPE) -->
-    <div class="medias-card">
+    <div class="medias-card" id="exp-card-siepe">
       <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE</h4>
       <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
         Gera um JSON da unidade selecionada, pronto pra carregar na extensão
