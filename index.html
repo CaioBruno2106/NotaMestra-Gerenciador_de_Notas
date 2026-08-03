@@ -13347,7 +13347,17 @@ function _renderFormularioAula(){
   const f = window._aulaForm;
   const disciplinas = Object.keys(HABILIDADES_EM_PE);
 
+  const bannerEdicao = f.editando ? `
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#e8f0fe;border:1px solid #b3d4fc;border-radius:6px;padding:8px 12px;margin-bottom:14px;">
+    <span style="font-size:.78rem;color:var(--pe-blue);font-weight:700;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+      Editando aula já registrada
+    </span>
+    <button type="button" class="atv-card-limpar-btn" onclick="cancelarEdicaoAula()">Cancelar edição</button>
+  </div>` : '';
+
   return `
+  ${bannerEdicao}
   <div class="grade-horarios-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
     <div style="flex:1;min-width:180px;">
       <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Disciplina</label>
@@ -13429,7 +13439,7 @@ function _renderFormularioAula(){
   </div>
 
   <button class="btn-aplicar-qtd" onclick="registrarAula()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg> Registrar aula
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg> ${f.editando ? 'Salvar alterações' : 'Registrar aula'}
   </button>
   <div id="aula-form-msg" class="ob-msg" style="margin-top:8px;"></div>`;
 }
@@ -13568,7 +13578,8 @@ window.registrarAula = async function(){
   const aplicacoesValidas = f.aplicacoes.filter(a=>a.turmaId && a.data);
   if(!aplicacoesValidas.length) return erro('Preencha ao menos uma turma e data em "Aplicar para".');
 
-  showLoading('Registrando aula...');
+  const editando = f.editando; // {grupo:[{turmaId,aulaId,criadoEm}]} — se vier de "Editar"
+  showLoading(editando ? 'Salvando alterações...' : 'Registrando aula...');
   try{
     const recursosFinal   = f.recursos.map(r=>r==='Outros' ? f.recursoOutro.trim() : r);
     const situacoesFinal  = f.situacoes.map(s=>s==='Outros' ? f.situacaoOutro.trim() : s);
@@ -13579,17 +13590,47 @@ window.registrarAula = async function(){
       complementacao: (f.complementacao||'').trim(),
       recursos: recursosFinal,
       situacoes: situacoesFinal,
-      criadoEm: new Date().toISOString(),
     };
 
+    const gruposAntigos = editando?.grupo || [];   // membros que existiam antes da edição
+    const resultado = [];                          // {turmaId, aulaId} de cada aplicação salva agora
+
+    // Salva (atualiza ou cria) uma aplicação por turma/data — se a turma já
+    // fazia parte do grupo original, atualiza o mesmo documento; senão, cria um novo.
     for(const ap of aplicacoesValidas){
-      await addDoc(collection(db, ...turmaPath(ap.turmaId), 'aulas'), {
-        ...payloadBase, data: ap.data, horarios: ap.horarios,
-      });
+      const existente = gruposAntigos.find(g=>g.turmaId===ap.turmaId);
+      if(existente){
+        await setDoc(doc(db, ...turmaPath(ap.turmaId), 'aulas', existente.aulaId), {
+          ...payloadBase, data: ap.data, horarios: ap.horarios,
+          criadoEm: existente.criadoEm || new Date().toISOString(),
+        });
+        resultado.push({ turmaId: ap.turmaId, aulaId: existente.aulaId, criadoEm: existente.criadoEm });
+      } else {
+        const ref = await addDoc(collection(db, ...turmaPath(ap.turmaId), 'aulas'), {
+          ...payloadBase, data: ap.data, horarios: ap.horarios, criadoEm: new Date().toISOString(),
+        });
+        resultado.push({ turmaId: ap.turmaId, aulaId: ref.id });
+      }
+    }
+
+    // Turmas que faziam parte do grupo antes da edição, mas foram removidas
+    // da lista "Aplicar para" agora — apaga o registro delas também.
+    for(const antigo of gruposAntigos){
+      if(!resultado.some(r=>r.turmaId===antigo.turmaId)){
+        try{ await deleteDoc(doc(db, ...turmaPath(antigo.turmaId), 'aulas', antigo.aulaId)); } catch(e){}
+      }
+    }
+
+    // Grava em cada membro do grupo final a lista completa de "irmãos" —
+    // assim, editar qualquer um deles depois já sabe atualizar todos juntos.
+    for(const item of resultado){
+      await setDoc(doc(db, ...turmaPath(item.turmaId), 'aulas', item.aulaId), { grupo: resultado }, { merge:true });
     }
 
     hideLoading();
-    showToast(`Aula registrada em ${aplicacoesValidas.length} turma(s)/data(s)!`, 'success');
+    showToast(editando
+      ? `Aula atualizada em ${resultado.length} turma(s)/data(s)!`
+      : `Aula registrada em ${resultado.length} turma(s)/data(s)!`, 'success');
     if(msgEl){ msgEl.textContent = ''; msgEl.className = 'ob-msg'; }
 
     // Reseta o formulário mantendo a turma atual como primeira aplicação
@@ -13607,6 +13648,70 @@ window.registrarAula = async function(){
   }
 };
 
+window.cancelarEdicaoAula = function(){
+  window._aulaForm = {
+    disciplina:'', serie:'', trimestre:'',
+    habilidadesSelecionadas:[], conteudo:'', complementacao:'',
+    recursos:[], recursoOutro:'', situacoes:[], situacaoOutro:'',
+    aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[] } ],
+  };
+  document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
+};
+
+window.editarAulaRegistrada = async function(turmaId, aulaId){
+  try{
+    const snap = await getDoc(doc(db, ...turmaPath(turmaId), 'aulas', aulaId));
+    if(!snap.exists()){ showToast('Essa aula não existe mais.', 'error'); return; }
+    const a = snap.data();
+
+    // Se essa aula foi aplicada a mais de uma turma/data de uma vez, ela tem
+    // um campo "grupo" com todos os irmãos — carrega todos, pra edição valer
+    // pra todos juntos. Aulas antigas (de antes dessa mudança) não têm esse
+    // campo — nesse caso, o grupo é só ela mesma.
+    let grupo = Array.isArray(a.grupo) && a.grupo.length ? a.grupo : [{ turmaId, aulaId, criadoEm: a.criadoEm }];
+    if(!grupo.some(g=>g.turmaId===turmaId && g.aulaId===aulaId)){
+      grupo = [{ turmaId, aulaId, criadoEm: a.criadoEm }, ...grupo];
+    }
+
+    // Busca os dados de cada membro do grupo pra montar a lista "Aplicar para"
+    const aplicacoes = [];
+    for(const g of grupo){
+      if(g.turmaId===turmaId && g.aulaId===aulaId){
+        aplicacoes.push({ turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [] });
+        continue;
+      }
+      try{
+        const s2 = await getDoc(doc(db, ...turmaPath(g.turmaId), 'aulas', g.aulaId));
+        if(s2.exists()){
+          const a2 = s2.data();
+          aplicacoes.push({ turmaId: g.turmaId, data: a2.data||_hojeISO(), horarios: a2.horarios ? [...a2.horarios] : [] });
+        }
+      } catch(e){ /* turma pode não existir mais / sem acesso — ignora esse membro */ }
+    }
+
+    window._aulaForm = {
+      disciplina: a.disciplina||'', serie: String(a.serie||''), trimestre: String(a.trimestre||''),
+      habilidadesSelecionadas: a.habilidades ? JSON.parse(JSON.stringify(a.habilidades)) : [],
+      conteudo: a.conteudo||'', complementacao: a.complementacao||'',
+      recursos: a.recursos ? [...a.recursos] : [], recursoOutro:'',
+      situacoes: a.situacoes ? [...a.situacoes] : [], situacaoOutro:'',
+      aplicacoes: aplicacoes.length ? aplicacoes : [{ turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [] }],
+      editando: { grupo },
+    };
+
+    // Recursos/situações "Outros" salvos já vêm como texto livre (não como
+    // a palavra "Outros"), então não há como reconstituir a caixa marcada —
+    // ficam como itens extras de texto livre, preservados na lista.
+    document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
+    document.getElementById('aula-form-card')?.scrollIntoView({behavior:'smooth', block:'start'});
+    showToast(aplicacoes.length>1
+      ? `Editando aula aplicada em ${aplicacoes.length} turma(s)/data(s) — salvar atualiza todas juntas.`
+      : 'Edite os campos abaixo e clique em "Salvar alterações".', 'info');
+  } catch(e){
+    showToast('Erro ao carregar aula pra edição: '+e.message, 'error');
+  }
+};
+
 window.carregarAulasRegistradas = async function(turmaId){
   const listaEl = document.getElementById('aulas-lista-body');
   if(!listaEl) return;
@@ -13619,15 +13724,22 @@ window.carregarAulasRegistradas = async function(turmaId){
     const itens = [];
     snap.forEach(d=>itens.push({id:d.id, ...d.data()}));
     itens.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-    listaEl.innerHTML = itens.map(a=>`
+    listaEl.innerHTML = itens.map(a=>{
+      const qtdGrupo = Array.isArray(a.grupo) ? a.grupo.length : 1;
+      return `
       <div style="border:1.5px solid var(--pe-border);border-radius:6px;padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
         <div style="font-size:.78rem;">
           <strong>${a.data||'—'}</strong> · ${a.disciplina||''} · ${a.serie}º Ano · ${a.trimestre}º Trim.
+          ${qtdGrupo>1 ? `<span style="font-size:.68rem;background:#e8f0fe;color:var(--pe-blue);padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">aplicada em ${qtdGrupo} turmas/datas</span>` : ''}
           <div style="color:var(--pe-muted);margin-top:2px;">${(a.habilidades||[]).map(h=>h.codigo).join(', ')}</div>
           <div style="color:var(--pe-muted);margin-top:2px;">${(a.conteudo||'').slice(0,120)}${(a.conteudo||'').length>120?'...':''}</div>
         </div>
-        <button type="button" class="atv-card-limpar-btn" onclick="excluirAulaRegistrada('${turmaId}','${a.id}')">Excluir</button>
-      </div>`).join('');
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button type="button" class="atv-card-transferir-btn" onclick="editarAulaRegistrada('${turmaId}','${a.id}')">Editar</button>
+          <button type="button" class="atv-card-limpar-btn" onclick="excluirAulaRegistrada('${turmaId}','${a.id}')">Excluir</button>
+        </div>
+      </div>`;
+    }).join('');
   } catch(e){
     listaEl.innerHTML = `<p style="color:var(--pe-red);font-size:.8rem;">Erro ao carregar: ${e.message}</p>`;
   }
