@@ -8766,7 +8766,7 @@ function calcNotaTrabalhoNum(atv, criteriosAluno, ai){
   // (lançamento direto/vistos antes de virar Trabalho), se existir.
   if(ai!=null && atv.notaAnteriorAluno && atv.notaAnteriorAluno[ai] != null){
     const anterior = parseFloat(atv.notaAnteriorAluno[ai]);
-    if(!isNaN(anterior)) return anterior;
+    if(!isNaN(anterior)) return Math.min(anterior, atv.teto ?? 10);
   }
   return 0;
 }
@@ -8788,8 +8788,11 @@ function _trabAlunoTemNotaExistente(uid, idx, atv, ai){
 function _trabNotaExibicaoHtml(atv, crits, ai){
   const temNota = crits && Object.keys(crits).length > 0;
   if(temNota) return `<strong>${calcNotaTrabalho(atv,crits)}</strong>`;
-  const anterior = atv.notaAnteriorAluno && atv.notaAnteriorAluno[ai];
-  if(anterior != null) return `<strong>${anterior}</strong><span title="Nota anterior preservada (antes de virar Trabalho)" style="font-size:.62rem;color:var(--pe-muted);margin-left:2px;">*</span>`;
+  const anteriorRaw = atv.notaAnteriorAluno && atv.notaAnteriorAluno[ai];
+  if(anteriorRaw != null){
+    const anterior = Math.min(parseFloat(anteriorRaw), atv.teto ?? 10);
+    return `<strong>${anterior.toFixed(1)}</strong><span title="Nota anterior preservada (antes de virar Trabalho)" style="font-size:.62rem;color:var(--pe-muted);margin-left:2px;">*</span>`;
+  }
   return `<span style="color:var(--pe-muted);">—</span>`;
 }
 
@@ -10640,6 +10643,15 @@ async function carregarNotasUnidade(turmaId, unidade){
 
     // Restaura atividades
     if(dados.atividades){
+      // Garante que o array de atividades é grande o bastante pra cobrir
+      // todos os índices salvos — evita perder silenciosamente tipo, grupos,
+      // critérios ou notaAnteriorAluno quando o qtdAtividades ficou desatualizado.
+      if(_atvConfig[uid]){
+        const maiorIdx = Math.max(-1, ...Object.keys(dados.atividades).map(k=>parseInt(k)));
+        while(_atvConfig[uid].atividades.length <= maiorIdx){
+          _atvConfig[uid].atividades.push(defaultAtv(_atvConfig[uid].atividades.length));
+        }
+      }
       Object.entries(dados.atividades).forEach(([idxStr, atv])=>{
         const idx = parseInt(idxStr);
         _notasCache[uid].atv[idx] = atv.notas||{};
@@ -12736,8 +12748,8 @@ window.abrirRegistroAulas = async function(){
     disciplina:'', serie:'', trimestre:'',
     habilidadesSelecionadas:[],   // [{codigo, objeto}]
     conteudo:'', complementacao:'',
-    recurso:'', recursoOutro:'',
-    situacao:'', situacaoOutro:'',
+    recursos:[], recursoOutro:'',
+    situacoes:[], situacaoOutro:'',
     aplicacoes:[ { turmaId: turma.id, data: _hojeISO(), horarios: [] } ],
   };
 
@@ -12920,20 +12932,28 @@ function _renderFormularioAula(){
 
   <div class="grade-horarios-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
     <div style="flex:1;min-width:220px;">
-      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Recurso didático</label>
-      <select id="aula-recurso" class="nota-input" style="width:100%;" onchange="onRecursoAulaChange(this.value)">
-        <option value="">— Selecionar —</option>
-        ${RECURSOS_DIDATICOS_SIEPE.map(r=>`<option value="${r}" ${f.recurso===r?'selected':''}>${r}</option>`).join('')}
-      </select>
-      ${f.recurso==='Outros' ? `<input type="text" id="aula-recurso-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique o recurso..." value="${f.recursoOutro||''}" onchange="window._aulaForm.recursoOutro=this.value">` : ''}
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Recurso(s) didático(s)</label>
+      <div style="max-height:150px;overflow-y:auto;border:1.5px solid var(--pe-border);border-radius:6px;padding:6px 8px;background:#fff;">
+        ${RECURSOS_DIDATICOS_SIEPE.map(r=>{
+          const marcado = f.recursos.includes(r);
+          return `<label style="display:flex;align-items:center;gap:6px;font-size:.76rem;padding:2px 0;cursor:pointer;">
+            <input type="checkbox" ${marcado?'checked':''} onchange="toggleRecursoAula('${r.replace(/'/g,"\\'")}')"> ${r}
+          </label>`;
+        }).join('')}
+      </div>
+      ${f.recursos.includes('Outros') ? `<input type="text" id="aula-recurso-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique o recurso..." value="${f.recursoOutro||''}" onchange="window._aulaForm.recursoOutro=this.value">` : ''}
     </div>
     <div style="flex:1;min-width:220px;">
-      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Situação didática</label>
-      <select id="aula-situacao" class="nota-input" style="width:100%;" onchange="onSituacaoAulaChange(this.value)">
-        <option value="">— Selecionar —</option>
-        ${SITUACOES_DIDATICAS_SIEPE.map(s=>`<option value="${s}" ${f.situacao===s?'selected':''}>${s}</option>`).join('')}
-      </select>
-      ${f.situacao==='Outros' ? `<input type="text" id="aula-situacao-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique a situação..." value="${f.situacaoOutro||''}" onchange="window._aulaForm.situacaoOutro=this.value">` : ''}
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Situação(ões) didática(s)</label>
+      <div style="max-height:150px;overflow-y:auto;border:1.5px solid var(--pe-border);border-radius:6px;padding:6px 8px;background:#fff;">
+        ${SITUACOES_DIDATICAS_SIEPE.map(s=>{
+          const marcado = f.situacoes.includes(s);
+          return `<label style="display:flex;align-items:center;gap:6px;font-size:.76rem;padding:2px 0;cursor:pointer;">
+            <input type="checkbox" ${marcado?'checked':''} onchange="toggleSituacaoAula('${s.replace(/'/g,"\\'")}')"> ${s}
+          </label>`;
+        }).join('')}
+      </div>
+      ${f.situacoes.includes('Outros') ? `<input type="text" id="aula-situacao-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique a situação..." value="${f.situacaoOutro||''}" onchange="window._aulaForm.situacaoOutro=this.value">` : ''}
     </div>
   </div>
 
@@ -12995,12 +13015,18 @@ window.toggleHabilidadeObjeto = function(codigo, objeto){
   if(i>=0) f.habilidadesSelecionadas.splice(i,1);
   else f.habilidadesSelecionadas.push({codigo, objeto});
 };
-window.onRecursoAulaChange = function(v){
-  window._aulaForm.recurso = v; window._aulaForm.recursoOutro = '';
+window.toggleRecursoAula = function(r){
+  const f = window._aulaForm;
+  const i = f.recursos.indexOf(r);
+  if(i>=0) f.recursos.splice(i,1); else f.recursos.push(r);
+  if(!f.recursos.includes('Outros')) f.recursoOutro = '';
   document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
 };
-window.onSituacaoAulaChange = function(v){
-  window._aulaForm.situacao = v; window._aulaForm.situacaoOutro = '';
+window.toggleSituacaoAula = function(s){
+  const f = window._aulaForm;
+  const i = f.situacoes.indexOf(s);
+  if(i>=0) f.situacoes.splice(i,1); else f.situacoes.push(s);
+  if(!f.situacoes.includes('Outros')) f.situacaoOutro = '';
   document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
 };
 
@@ -13070,22 +13096,24 @@ window.registrarAula = async function(){
   if(!f.disciplina || !f.serie || !f.trimestre) return erro('Escolha disciplina, série e trimestre.');
   if(!f.habilidadesSelecionadas.length) return erro('Marque ao menos um objeto de conhecimento.');
   if(!(f.conteudo||'').trim()) return erro('Preencha o conteúdo trabalhado.');
-  if(!f.recurso) return erro('Escolha o recurso didático.');
-  if(f.recurso==='Outros' && !(f.recursoOutro||'').trim()) return erro('Especifique o recurso didático.');
-  if(!f.situacao) return erro('Escolha a situação didática.');
-  if(f.situacao==='Outros' && !(f.situacaoOutro||'').trim()) return erro('Especifique a situação didática.');
+  if(!f.recursos.length) return erro('Marque ao menos um recurso didático.');
+  if(f.recursos.includes('Outros') && !(f.recursoOutro||'').trim()) return erro('Especifique o recurso didático "Outros".');
+  if(!f.situacoes.length) return erro('Marque ao menos uma situação didática.');
+  if(f.situacoes.includes('Outros') && !(f.situacaoOutro||'').trim()) return erro('Especifique a situação didática "Outros".');
   const aplicacoesValidas = f.aplicacoes.filter(a=>a.turmaId && a.data);
   if(!aplicacoesValidas.length) return erro('Preencha ao menos uma turma e data em "Aplicar para".');
 
   showLoading('Registrando aula...');
   try{
+    const recursosFinal   = f.recursos.map(r=>r==='Outros' ? f.recursoOutro.trim() : r);
+    const situacoesFinal  = f.situacoes.map(s=>s==='Outros' ? f.situacaoOutro.trim() : s);
     const payloadBase = {
       disciplina: f.disciplina, serie: Number(f.serie), trimestre: Number(f.trimestre),
       habilidades: f.habilidadesSelecionadas,
       conteudo: f.conteudo.trim(),
       complementacao: (f.complementacao||'').trim(),
-      recurso: f.recurso==='Outros' ? f.recursoOutro.trim() : f.recurso,
-      situacao: f.situacao==='Outros' ? f.situacaoOutro.trim() : f.situacao,
+      recursos: recursosFinal,
+      situacoes: situacoesFinal,
       criadoEm: new Date().toISOString(),
     };
 
@@ -13103,7 +13131,7 @@ window.registrarAula = async function(){
     window._aulaForm = {
       disciplina:'', serie:'', trimestre:'',
       habilidadesSelecionadas:[], conteudo:'', complementacao:'',
-      recurso:'', recursoOutro:'', situacao:'', situacaoOutro:'',
+      recursos:[], recursoOutro:'', situacoes:[], situacaoOutro:'',
       aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[] } ],
     };
     document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
