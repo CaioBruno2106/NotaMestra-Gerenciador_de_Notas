@@ -6965,14 +6965,12 @@ function _renderGradeInvertidaTurno(turno, turmasDoTurno, contexto){
         <td class="col-aluno" style="font-size:.74rem;white-space:nowrap;">${a.n}ª aula<br><span style="color:var(--pe-muted);font-weight:400;">${a.inicio}-${a.fim}</span></td>
         ${DIAS_SEMANA_GRADE.map(d=>{
           const turmaAtual = turmasDoTurno.find(t=>(t.gradeHorarios?.[d.chave]||[]).some(h=>h.aula===a.n));
-          const idAtual = turmaAtual ? ((turmaAtual.gradeHorarios[d.chave].find(h=>h.aula===a.n)||{}).id||'') : '';
           return `<td style="text-align:center;min-width:150px;">
             <select class="nota-input" style="width:100%;font-size:.72rem;padding:3px 4px;"
               onchange="onGradeInvertidaChange('${contexto}','${d.chave}',${a.n},'${a.inicio}','${a.fim}',this.value)">
               <option value="">—</option>
               ${turmasDoTurno.map(t=>`<option value="${t.id}" ${turmaAtual?.id===t.id?'selected':''}>${t.serie||''} ${t.turma||''} · ${t.disciplina||'(sem disciplina)'}</option>`).join('')}
             </select>
-            ${turmaAtual?`<input type="text" placeholder="ID SIEPE" value="${idAtual}" style="width:76px;font-size:.65rem;padding:2px 3px;margin:4px auto 0;display:block;border:1px solid var(--pe-border);border-radius:4px;text-align:center;" onchange="onGradeInvertidaIdChange('${turmaAtual.id}','${d.chave}',${a.n},this.value)">`:''}
           </td>`;
         }).join('')}
       </tr>`).join('')}
@@ -6994,7 +6992,7 @@ window.onGradeInvertidaChange = async function(contexto, diaChave, aulaN, inicio
     if(t){
       if(!t.gradeHorarios) t.gradeHorarios = {};
       if(!Array.isArray(t.gradeHorarios[diaChave])) t.gradeHorarios[diaChave] = [];
-      t.gradeHorarios[diaChave].push({ aula:aulaN, label:`${aulaN}ª aula — ${inicio} às ${fim}`, id:'' });
+      t.gradeHorarios[diaChave].push({ aula:aulaN, label:`${aulaN}ª aula — ${inicio} às ${fim}`, inicio, fim });
       afetadas.add(novaTurmaId);
     }
   }
@@ -7002,18 +7000,12 @@ window.onGradeInvertidaChange = async function(contexto, diaChave, aulaN, inicio
   renderModalHorarios();
 };
 
-window.onGradeInvertidaIdChange = async function(turmaId, diaChave, aulaN, valor){
-  const t = _turmaPorId(turmaId); if(!t) return;
-  const item = (t.gradeHorarios[diaChave]||[]).find(h=>h.aula===aulaN);
-  if(item){ item.id = valor; await _salvarGradeHorariosSilencioso(turmaId); }
-};
-
 async function _salvarGradeHorariosSilencioso(turmaId){
   const turma = _turmaPorId(turmaId); if(!turma) return;
   try{
     const gradeLimpa = {};
     DIAS_SEMANA_GRADE.forEach(d=>{
-      gradeLimpa[d.chave] = (turma.gradeHorarios[d.chave]||[]).filter(h=>(h.label||'').trim() || (h.id||'').trim());
+      gradeLimpa[d.chave] = (turma.gradeHorarios[d.chave]||[]).filter(h=>(h.label||'').trim());
     });
     turma.gradeHorarios = gradeLimpa;
     await setDoc(doc(db,...turmaPath(turmaId)), { gradeHorarios: gradeLimpa }, { merge:true });
@@ -8228,12 +8220,16 @@ function renderUnidadesTabs(unidades){
   const qtdPendentes = _importsPendentes.length;
 
   // Grupo 1 — trabalho do dia a dia: unidades + Aulas, sem cores diferentes
+  // "Aulas" só aparece pra turmas de rede estadual/particular por enquanto — o
+  // registro de aulas ainda usa o currículo e as regras do estado (SIEPE);
+  // a versão pra rede municipal (currículo e regras do município, SIEC) vem depois.
+  const mostrarAulas = _turmaAtual?.escolaTipo !== 'municipal';
   const gruposUnidades = unidades.map(u=>
     `<button class="unidade-tab" id="tab-btn-${u.id}"
        onclick="abrirUnidadePorId('${u.id}')">${u.label}</button>`
-  ).join('') + `
+  ).join('') + (mostrarAulas ? `
     <button class="unidade-tab" id="tab-btn-aulas"
-       onclick="abrirRegistroAulas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Aulas</button>`;
+       onclick="abrirRegistroAulas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Aulas</button>` : '');
 
   // Grupo 2 — análise/resultado + exportação
   const importsBtn = qtdPendentes > 0 ? `
@@ -13092,6 +13088,10 @@ function _turmaPorId(turmaId){
 window.abrirRegistroAulas = async function(){
   const turma = _turmaAtual;
   if(!turma){ showToast('Abra uma turma primeiro', 'error'); return; }
+  if(turma.escolaTipo==='municipal'){
+    showToast('Registro de Aulas ainda não está disponível pra turmas de rede municipal.', 'error');
+    return;
+  }
 
   document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
   _esconderSubtabsDesempenho();
@@ -13128,21 +13128,23 @@ window.abrirRegistroAulas = async function(){
 
   <div class="medias-card" id="curso-siepe-card" style="margin-bottom:14px;">
     <h4 style="margin-bottom:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> Curso no SIEPE</h4>
-    ${(turma.turno==='turno1' || turma.turno==='turno2') ? `
     <p style="color:var(--pe-muted);font-size:.78rem;margin:0 0 8px;">
       Usado pra montar a busca certa na tela de "Registro de Conteúdos Curriculares Trabalhados".
-      EM35 e EM35-ITFT existem só pra turmas de Integral 35h — EM35 pras disciplinas regulares,
+      EM35 e EM35-ITFT existem oficialmente só pra turmas de Integral 35h — EM35 pras disciplinas regulares,
       EM35-ITFT pras de Itinerário Formativo.
     </p>
+    ${(turma.turno!=='turno1' && turma.turno!=='turno2') ? `
+    <p style="color:var(--pe-warn);font-size:.76rem;margin:0 0 8px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:8px 10px;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+      Essa turma é do turno "${turma.turno?turnoLabel(turma.turno):'não definido'}", que ainda não tem o código de curso do SIEPE
+      confirmado (EM35/EM35-ITFT são só do Integral 35h). Você já pode marcar um dos valores abaixo pra não perder o
+      cadastro, mas a exportação pro SIEPE só vai funcionar de verdade quando confirmarmos o código certo desse turno —
+      os horários em si já funcionam normalmente pra qualquer turno.
+    </p>` : ''}
     <select class="nota-input" style="width:100%;max-width:360px;" onchange="onCursoSiepeChange('${turma.id}',this.value)">
       <option value="">— Selecionar —</option>
       ${CURSOS_SIEPE.map(c=>`<option value="${c.valor}" ${turma.cursoSiepe===c.valor?'selected':''}>${c.label}</option>`).join('')}
-    </select>` : `
-    <p style="color:var(--pe-muted);font-size:.78rem;margin:0;">
-      Essa turma é do turno "${turma.turno?turnoLabel(turma.turno):'não definido'}" — EM35/EM35-ITFT só existem
-      pra turmas de Integral 35h. Os códigos de curso do turno regular (manhã/tarde) ainda não foram mapeados;
-      a exportação pro SIEPE fica disponível quando isso for definido.
-    </p>`}
+    </select>
   </div>
 
   <div class="medias-card" id="grade-horarios-card">
@@ -13213,8 +13215,9 @@ function _renderGradeHorariosTurma(turma){
 
   return `
   <p style="color:var(--pe-muted);font-size:.78rem;margin:0 0 10px;">
-    Turno: <strong>${template.label}</strong>. Marque em quais dias cada aula acontece nessa turma, e
-    informe o <strong>ID do horário no SIEPE</strong> nas marcadas.
+    Turno: <strong>${template.label}</strong>. Marque em quais dias cada aula acontece nessa turma — não precisa
+    de nenhum código: a extensão reconhece o horário certo pelo <strong>intervalo de horas que já aparece na tela do SIEPE</strong>
+    (ex.: "${template.aulas[0].inicio} - ${template.aulas[0].fim}"), sem você precisar procurar nada no site.
   </p>
   <div style="overflow-x:auto;">
   <table class="notas-table" style="min-width:640px;">
@@ -13227,12 +13230,9 @@ function _renderGradeHorariosTurma(turma){
         <td class="col-aluno" style="font-size:.74rem;white-space:nowrap;">${a.n}ª aula<br><span style="color:var(--pe-muted);font-weight:400;">${a.inicio}-${a.fim}</span></td>
         ${DIAS_SEMANA_GRADE.map(d=>{
           const lista = turma.gradeHorarios[d.chave];
-          const idx = lista.findIndex(h=>h.aula===a.n);
-          const marcado = idx>=0;
-          const siepeId = marcado ? (lista[idx].id||'') : '';
+          const marcado = lista.some(h=>h.aula===a.n);
           return `<td style="text-align:center;">
             <input type="checkbox" ${marcado?'checked':''} onchange="toggleAulaGrade('${turma.id}','${d.chave}',${a.n},'${a.inicio}','${a.fim}',this.checked)">
-            ${marcado?`<input type="text" placeholder="ID SIEPE" value="${siepeId}" style="width:64px;font-size:.68rem;padding:2px 4px;margin-top:3px;display:block;margin:3px auto 0;border:1px solid var(--pe-border);border-radius:4px;text-align:center;" onchange="onAulaGradeIdChange('${turma.id}','${d.chave}',${a.n},this.value)">`:''}
           </td>`;
         }).join('')}
       </tr>`).join('')}
@@ -13263,19 +13263,11 @@ window.toggleAulaGrade = function(turmaId, diaChave, n, inicio, fim, checked){
   const lista = turma.gradeHorarios[diaChave];
   const idx = lista.findIndex(h=>h.aula===n);
   if(checked){
-    if(idx<0) lista.push({ aula:n, label:`${n}ª aula — ${inicio} às ${fim}`, id:'' });
+    if(idx<0) lista.push({ aula:n, label:`${n}ª aula — ${inicio} às ${fim}`, inicio, fim });
   } else if(idx>=0){
     lista.splice(idx,1);
   }
   _rerenderGradeHorarios(turmaId);
-};
-
-window.onAulaGradeIdChange = function(turmaId, diaChave, n, valor){
-  const turma = _turmaPorId(turmaId);
-  if(!turma) return;
-  const lista = turma.gradeHorarios[diaChave]||[];
-  const idx = lista.findIndex(h=>h.aula===n);
-  if(idx>=0) lista[idx].id = valor;
 };
 
 // ── Entrada manual (turnos sem modelo pronto: Integral 45h, EJA, etc.) ──
@@ -13294,12 +13286,9 @@ function _renderDiaGradeHorariosManual(turma, dia){
 function _renderLinhaHorarioManual(turmaId, diaChave, hi, h){
   return `
   <div class="grade-horarios-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px;flex-wrap:wrap;">
-    <input type="text" placeholder="Ex.: 1º horário — 07:00-07:50" value="${h.label||''}"
-      style="flex:2;min-width:200px;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:5px;font-size:.8rem;"
+    <input type="text" placeholder="Ex.: 07:00 às 07:50 (como aparece no SIEPE)" value="${h.label||''}"
+      style="flex:1;min-width:260px;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:5px;font-size:.8rem;"
       onchange="onHorarioGradeChange('${turmaId}','${diaChave}',${hi},'label',this.value)">
-    <input type="text" placeholder="ID no SIEPE (ex.: 206)" value="${h.id||''}"
-      style="width:150px;padding:6px 8px;border:1.5px solid var(--pe-border);border-radius:5px;font-size:.8rem;"
-      onchange="onHorarioGradeChange('${turmaId}','${diaChave}',${hi},'id',this.value)">
     <button type="button" class="atv-card-limpar-btn" onclick="removerHorarioGrade('${turmaId}','${diaChave}',${hi})">Remover</button>
   </div>`;
 }
@@ -13308,7 +13297,7 @@ window.adicionarHorarioGrade = function(turmaId, diaChave){
   const turma = _turmaPorId(turmaId); if(!turma) return;
   if(!turma.gradeHorarios) turma.gradeHorarios = {};
   if(!Array.isArray(turma.gradeHorarios[diaChave])) turma.gradeHorarios[diaChave] = [];
-  turma.gradeHorarios[diaChave].push({ label:'', id:'' });
+  turma.gradeHorarios[diaChave].push({ label:'' });
   const container = document.getElementById(`grade-horarios-lista-${turmaId}-${diaChave}`);
   if(container){
     const lista = turma.gradeHorarios[diaChave];
@@ -13328,7 +13317,7 @@ window.removerHorarioGrade = function(turmaId, diaChave, hi){
 
 window.onHorarioGradeChange = function(turmaId, diaChave, hi, campo, valor){
   const turma = _turmaPorId(turmaId); if(!turma) return;
-  if(!turma.gradeHorarios[diaChave][hi]) turma.gradeHorarios[diaChave][hi] = {label:'',id:''};
+  if(!turma.gradeHorarios[diaChave][hi]) turma.gradeHorarios[diaChave][hi] = {label:''};
   turma.gradeHorarios[diaChave][hi][campo] = valor;
 };
 
@@ -13339,7 +13328,7 @@ window.salvarGradeHorarios = async function(turmaId){
     // Remove linhas totalmente vazias antes de salvar
     const gradeLimpa = {};
     DIAS_SEMANA_GRADE.forEach(d=>{
-      gradeLimpa[d.chave] = (turma.gradeHorarios[d.chave]||[]).filter(h=>(h.label||'').trim() || (h.id||'').trim());
+      gradeLimpa[d.chave] = (turma.gradeHorarios[d.chave]||[]).filter(h=>(h.label||'').trim());
     });
     turma.gradeHorarios = gradeLimpa;
     await setDoc(doc(db,...turmaPath(turmaId)), { gradeHorarios: gradeLimpa }, { merge:true });
@@ -13520,9 +13509,9 @@ function _renderAplicacoesLista(){
       <input type="date" class="nota-input" style="flex:1;min-width:140px;" value="${ap.data||''}" onchange="onAplicacaoDataChange(${ai},this.value)">
       <div style="flex:2;min-width:200px;display:flex;flex-wrap:wrap;gap:6px;">
         ${horariosDisp.length ? horariosDisp.map(h=>{
-          const marcado = ap.horarios.includes(h.id);
+          const marcado = ap.horarios.includes(h.label);
           return `<label style="display:flex;align-items:center;gap:4px;font-size:.74rem;background:#fff;border:1px solid var(--pe-border);border-radius:4px;padding:3px 7px;cursor:pointer;">
-            <input type="checkbox" ${marcado?'checked':''} onchange="toggleHorarioAplicacao(${ai},'${h.id}')"> ${h.label||h.id}
+            <input type="checkbox" ${marcado?'checked':''} onchange="toggleHorarioAplicacao(${ai},'${h.label.replace(/'/g,"\\'")}')"> ${h.label}
           </label>`;
         }).join('') : `<span style="font-size:.72rem;color:var(--pe-muted);">${turma?'Sem horários cadastrados pra esse dia':'Escolha a turma'}</span>`}
       </div>
@@ -13550,10 +13539,10 @@ window.onAplicacaoDataChange = function(ai, v){
   window._aulaForm.aplicacoes[ai].horarios = [];
   document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
 };
-window.toggleHorarioAplicacao = function(ai, horarioId){
+window.toggleHorarioAplicacao = function(ai, horarioLabel){
   const ap = window._aulaForm.aplicacoes[ai];
-  const i = ap.horarios.indexOf(horarioId);
-  if(i>=0) ap.horarios.splice(i,1); else ap.horarios.push(horarioId);
+  const i = ap.horarios.indexOf(horarioLabel);
+  if(i>=0) ap.horarios.splice(i,1); else ap.horarios.push(horarioLabel);
 };
 
 function horariosDoDia(turma, dataStr){
@@ -13658,19 +13647,17 @@ window.excluirAulaRegistrada = async function(turmaId, aulaId){
 // ── Exportar aulas registradas para a extensão "Nota Mestra → SIEPE" ──
 // Gera um JSON com um objeto por (turma, data) já registrado, com tudo
 // que a extensão precisa pra automatizar o preenchimento no SIEPE:
-// curso, série, ano, nome da turma, disciplina, data, horários (IDs do
-// SIEPE), trimestre, habilidades (código + objeto de conhecimento, pra
-// casar por TEXTO com o que o próprio SIEPE carregar — nunca por ID
-// interno, que muda de turma pra turma), conteúdo, complementação,
-// recursos didáticos e situações didáticas (podem ser várias de cada).
+// curso, série, ano, nome da turma, disciplina, data, horários (texto do
+// intervalo de horas, ex. "07:00 às 07:50" — a extensão casa pelo texto
+// que já aparece na tela, nunca por ID interno, que muda de turma pra
+// turma), trimestre, habilidades (código + objeto de conhecimento, pra
+// casar por TEXTO com o que o próprio SIEPE carregar), conteúdo,
+// complementação, recursos didáticos e situações didáticas (podem ser
+// várias de cada).
 window.exportarAulasParaSiepe = async function(turmaId){
   const turma = _turmaPorId(turmaId);
   if(!turma){ showToast('Turma não encontrada.', 'error'); return; }
 
-  if(turma.turno!=='turno1' && turma.turno!=='turno2'){
-    showToast('Exportação pro SIEPE só está disponível pra turmas de Integral 35h por enquanto.', 'error');
-    return;
-  }
   if(!turma.cursoSiepe){
     showToast('Escolha o "Curso no SIEPE" dessa turma antes de exportar.', 'error');
     return;
@@ -13703,7 +13690,7 @@ window.exportarAulasParaSiepe = async function(turmaId){
       },
       aulas: aulas.map(a=>({
         data: a.data,
-        horarios: a.horarios||[],           // IDs de horário do SIEPE (turma.gradeHorarios)
+        horarios: a.horarios||[],           // textos do intervalo de horas (ex.: "07:00 às 07:50") — sem ID interno
         disciplina: a.disciplina,
         serie: a.serie,                      // 1/2/3 — usado só de referência
         trimestre: a.trimestre,              // 1/2/3 — período a escolher no picker de habilidade
