@@ -8220,16 +8220,12 @@ function renderUnidadesTabs(unidades){
   const qtdPendentes = _importsPendentes.length;
 
   // Grupo 1 — trabalho do dia a dia: unidades + Aulas, sem cores diferentes
-  // "Aulas" só aparece pra turmas de rede estadual/particular por enquanto — o
-  // registro de aulas ainda usa o currículo e as regras do estado (SIEPE);
-  // a versão pra rede municipal (currículo e regras do município, SIEC) vem depois.
-  const mostrarAulas = _turmaAtual?.escolaTipo !== 'municipal';
   const gruposUnidades = unidades.map(u=>
     `<button class="unidade-tab" id="tab-btn-${u.id}"
        onclick="abrirUnidadePorId('${u.id}')">${u.label}</button>`
-  ).join('') + (mostrarAulas ? `
+  ).join('') + `
     <button class="unidade-tab" id="tab-btn-aulas"
-       onclick="abrirRegistroAulas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Aulas</button>` : '');
+       onclick="abrirRegistroAulas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Aulas</button>`;
 
   // Grupo 2 — análise/resultado + exportação
   const importsBtn = qtdPendentes > 0 ? `
@@ -13014,10 +13010,228 @@ const HABILIDADES_EM_PE = {
   // Demais disciplinas: em construção — adicionadas nas próximas etapas.
 };
 
-// ── Listas fixas do SIEPE (curso, recurso didático, situação didática) ──
+// ── Base de habilidades — Rede Municipal de Caruaru (SIEC) ──────────
+// Fundamental — Anos Finais, Organizador Curricular por Unidade Didática
+// (4 unidades = 4 bimestres). Estrutura FLAT (cada item já combina
+// unidade temática + objeto de conhecimento + habilidade), igual à
+// tabela do próprio SIEC — sem agrupamento por objetos como no estadual.
+// Fonte: Organizador Curricular por Unidade Didática — Matemática,
+// Ensino Fundamental Anos Finais, SEE Caruaru.
+const HABILIDADES_EF_CRU = {
+  'Matemática': {
+    6: {
+      1: [
+        { unidadeTematica:'NÚMEROS', objeto:'Sistema de numeração decimal: características, leitura, escrita e comparação de números naturais e de números racionais representados na forma decimal', codigo:'EF06MA01CRU', descricao:'Comparar, ordenar, ler e escrever números naturais e números racionais cuja representação decimal é finita, fazendo uso da reta numérica.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Sistema de numeração decimal: características, leitura, escrita e comparação de números naturais e de números racionais representados na forma decimal', codigo:'EF06MA02CRU', descricao:'Reconhecer o sistema de numeração decimal, como o que prevaleceu no mundo ocidental, e destacar semelhanças e diferenças com outros sistemas, sistematizando suas principais características (base, valor posicional e função do zero).' },
+        { unidadeTematica:'NÚMEROS', objeto:'Operações (adição, subtração, multiplicação, divisão e potenciação) com números naturais. Divisão euclidiana', codigo:'EF06MA03CRU', descricao:'Resolver e elaborar problemas que envolvam cálculos (mentais ou escritos, exatos ou aproximados) com números naturais, por meio de estratégias variadas, com e sem uso de calculadora.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Propriedades da igualdade', codigo:'EF06MA14CRU', descricao:'Reconhecer que a relação de igualdade matemática não se altera ao adicionar, subtrair, multiplicar ou dividir os seus dois membros por um mesmo número e utilizar essa noção para determinar valores desconhecidos na resolução de problemas.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Plano cartesiano: associação dos vértices de um polígono a pares ordenados', codigo:'EF06MA16CRU', descricao:'Associar pares ordenados de números a pontos do plano cartesiano do 1º quadrante, em situações como a localização dos vértices de um polígono.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Prismas e pirâmides: planificações e relações entre seus elementos (vértices, faces e arestas)', codigo:'EF06MA17CRU', descricao:'Quantificar e estabelecer relações entre o número de vértices, faces e arestas de prismas e pirâmides, em função do seu polígono da base.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Problemas sobre medidas envolvendo grandezas como comprimento, massa, tempo, temperatura, área, capacidade e volume', codigo:'EF06MA24CRU', descricao:'Resolver e elaborar problemas que envolvam as grandezas comprimento, massa, tempo, temperatura, área e suas transformações, capacidade e volume, sem uso de fórmulas.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Leitura e interpretação de tabelas e gráficos (de colunas ou barras simples ou múltiplas) referentes a variáveis categóricas e variáveis numéricas', codigo:'EF06MA31CRU', descricao:'Identificar as variáveis e suas frequências e os elementos constitutivos (título, eixos, legendas, fontes e datas) em diferentes tipos de gráfico.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Leitura e interpretação de tabelas e gráficos (de colunas ou barras simples ou múltiplas) referentes a variáveis categóricas e variáveis numéricas', codigo:'EF06MA32CRU', descricao:'Interpretar e resolver situações que envolvam dados de pesquisas sobre contextos ambientais, sustentabilidade, trânsito, consumo responsável, entre outros, redigindo textos para sintetizar conclusões.' },
+      ],
+      2: [
+        { unidadeTematica:'NÚMEROS', objeto:'Fluxograma para determinar a paridade de um número natural. Múltiplos e divisores de um número natural. Números primos e compostos.', codigo:'EF06MA04CRU', descricao:'Construir algoritmo em linguagem natural e representá-lo por fluxograma que indique a resolução de um problema simples (por exemplo, se um número natural qualquer é par).' },
+        { unidadeTematica:'NÚMEROS', objeto:'Fluxograma para determinar a paridade de um número natural. Múltiplos e divisores de um número natural. Números primos e compostos.', codigo:'EF06MA05CRU', descricao:'Classificar números naturais em primos e compostos, estabelecer relações entre números, expressas pelos termos "é múltiplo de", "é divisor de", "é fator de", e critérios de divisibilidade.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Fluxograma para determinar a paridade de um número natural. Múltiplos e divisores de um número natural. Números primos e compostos.', codigo:'EF06MA06CRU', descricao:'Resolver e elaborar problemas que envolvam as ideias de múltiplo e de divisor, por meio de estratégias variadas.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Problemas que tratam da partição de um todo em duas partes desiguais, envolvendo razões entre as partes e entre uma das partes e o todo', codigo:'EF06MA15CRU', descricao:'Resolver e elaborar problemas que envolvam a partilha de uma quantidade em duas partes desiguais, envolvendo relações aditivas e multiplicativas, bem como a razão entre as partes e entre uma das partes e o todo.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Polígonos: classificações quanto ao número de vértices, às medidas de lados e ângulos e ao paralelismo e perpendicularismo dos lados.', codigo:'EF06MA18CRU', descricao:'Reconhecer, nomear e comparar polígonos, considerando lados, vértices e ângulos, classificando-os em regulares e não regulares.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Polígonos: classificações quanto ao número de vértices, às medidas de lados e ângulos e ao paralelismo e perpendicularismo dos lados.', codigo:'EF06MA19CRU', descricao:'Identificar características dos triângulos e classificá-los em relação às medidas dos lados e dos ângulos.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Polígonos: classificações quanto ao número de vértices, às medidas de lados e ângulos e ao paralelismo e perpendicularismo dos lados.', codigo:'EF06MA20CRU', descricao:'Identificar características dos quadriláteros, classificá-los em relação a lados e a ângulos e reconhecer a inclusão e a intersecção de classes entre eles.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Ângulos: noção, usos e medida (não convencionais e convencionais — modelos de ângulos retos, transferidor e tecnologias digitais)', codigo:'EF06MA25CRU', descricao:'Reconhecer a abertura do ângulo como grandeza associada às figuras geométricas.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Diferentes tipos de representação de informações: gráficos e fluxogramas.', codigo:'EF06MA34CRU', descricao:'Interpretar e desenvolver fluxogramas simples, identificando as relações entre os objetos representados (posição de cidades, hierarquia de funcionários etc.).' },
+      ],
+      3: [
+        { unidadeTematica:'NÚMEROS', objeto:'Frações: significados (parte/todo, quociente), equivalência, comparação, adição e subtração; cálculo da fração de um número natural; adição e subtração de frações.', codigo:'EF06MA07CRU', descricao:'Compreender, comparar e ordenar frações associadas às ideias de partes de inteiros e resultado de divisão, identificando frações equivalentes.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Frações: significados (parte/todo, quociente), equivalência, comparação, adição e subtração; cálculo da fração de um número natural; adição e subtração de frações.', codigo:'EF06MA08CRU', descricao:'Reconhecer que os números racionais positivos podem ser expressos nas formas fracionária e decimal, relacionando-os a pontos na reta numérica.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Frações: significados (parte/todo, quociente), equivalência, comparação, adição e subtração; cálculo da fração de um número natural; adição e subtração de frações.', codigo:'EF06MA09CRU', descricao:'Resolver e elaborar problemas que envolvam o cálculo da fração de uma quantidade e cujo resultado seja um número natural, com e sem uso de calculadora.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Frações: significados (parte/todo, quociente), equivalência, comparação, adição e subtração; cálculo da fração de um número natural; adição e subtração de frações.', codigo:'EF06MA10CRU', descricao:'Resolver e elaborar problemas que envolvam adição ou subtração com números racionais positivos na representação fracionária.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Propriedades da igualdade', codigo:'EF06MA14CRU', descricao:'Reconhecer que a relação de igualdade matemática não se altera ao adicionar, subtrair, multiplicar ou dividir os seus dois membros por um mesmo número, utilizando essa noção na resolução de problemas.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Construção de figuras semelhantes: ampliação e redução de figuras planas em malhas quadriculadas.', codigo:'EF06MA21CRU', descricao:'Construir figuras planas semelhantes em situações de ampliação e de redução, com o uso de malhas quadriculadas, plano cartesiano ou tecnologias digitais.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Ângulos: noção, usos e medida (não convencionais e convencionais — modelos de ângulos retos, transferidor e tecnologias digitais)', codigo:'EF06MA26CRU', descricao:'Resolver problemas que envolvam a noção de ângulo em diferentes contextos e em situações reais, como ângulo de visão, giros, etc.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Ângulos: noção, usos e medida (não convencionais e convencionais — modelos de ângulos retos, transferidor e tecnologias digitais)', codigo:'EF06MA27CRU', descricao:'Determinar e classificar medidas da abertura de ângulos, por meio de transferidor e/ou tecnologias digitais.' },
+      ],
+      4: [
+        { unidadeTematica:'NÚMEROS', objeto:'Operações (adição, subtração, multiplicação, divisão e potenciação) com números racionais', codigo:'EF06MA11CRU', descricao:'Resolver e elaborar problemas com números racionais positivos na representação decimal, envolvendo as quatro operações fundamentais e a potenciação.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Aproximação de números para múltiplos de potências de 10', codigo:'EF06MA12CRU', descricao:'Fazer estimativas de quantidades e aproximar números para múltiplos da potência de 10 mais próxima.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Cálculo de porcentagens por meio de estratégias diversas, sem fazer uso da "regra de três"', codigo:'EF06MA13CRU', descricao:'Resolver e elaborar problemas que envolvam porcentagens, com base na ideia de proporcionalidade, sem fazer uso da "regra de três".' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Problemas que tratam da partição de um todo em duas partes desiguais, envolvendo razões entre as partes e entre uma das partes e o todo', codigo:'EF06MA15CRU', descricao:'Resolver e elaborar problemas que envolvam a partilha de uma quantidade em duas partes desiguais, envolvendo a razão entre as partes e entre uma das partes e o todo.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Construção de retas paralelas e perpendiculares, fazendo uso de réguas, esquadros e softwares.', codigo:'EF06MA22CRU', descricao:'Utilizar instrumentos, como réguas e esquadros, ou softwares para representações de retas paralelas e perpendiculares e construção de quadriláteros.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Construção de retas paralelas e perpendiculares, fazendo uso de réguas, esquadros e softwares.', codigo:'EF06MA23CRU', descricao:'Construir algoritmo para resolver situações passo a passo (dobraduras, deslocamento de um objeto no plano segundo pontos de referência e distâncias fornecidas).' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Plantas baixas e vistas aéreas', codigo:'EF06MA28CRU', descricao:'Interpretar, descrever e desenhar plantas baixas simples de residências e vistas aéreas.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Perímetro de um quadrado como grandeza proporcional à medida do lado', codigo:'EF06MA29CRU', descricao:'Analisar e descrever mudanças que ocorrem no perímetro e na área de um quadrado ao se ampliarem ou reduzirem, igualmente, as medidas de seus lados.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Coleta de dados, organização e registro. Construção de diferentes tipos de gráficos para representá-los e interpretação das informações.', codigo:'EF06MA33CRU', descricao:'Planejar e coletar dados de pesquisa referente a práticas sociais escolhidas pelos alunos, fazendo uso de planilhas eletrônicas para registro e interpretação das informações.' },
+      ],
+    },
+    7: {
+      1: [
+        { unidadeTematica:'NÚMEROS', objeto:'Múltiplos e divisores de um número natural', codigo:'EF07MA01CRU', descricao:'Resolver e elaborar problemas com números naturais, envolvendo as noções de divisor e de múltiplo, podendo incluir MDC ou MMC, sem a aplicação de algoritmos.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Cálculo de porcentagens e de acréscimos e decréscimos simples', codigo:'EF07MA02CRU', descricao:'Resolver e elaborar problemas que envolvam porcentagens, como acréscimos e decréscimos simples, no contexto de educação financeira.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Números inteiros: usos, história, ordenação, associação com pontos da reta numérica e operações', codigo:'EF07MA03CRU', descricao:'Comparar e ordenar números inteiros em diferentes contextos, associá-los a pontos da reta numérica e utilizá-los em adição e subtração.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Linguagem algébrica: variável e incógnita.', codigo:'EF07MA13CRU', descricao:'Compreender a ideia de variável, representada por letra ou símbolo, para expressar relação entre duas grandezas, diferenciando-a da ideia de incógnita.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Transformações geométricas de polígonos no plano cartesiano: multiplicação das coordenadas por um número inteiro e obtenção de simétricos em relação aos eixos e à origem.', codigo:'EF07MA19CRU', descricao:'Realizar transformações de polígonos representados no plano cartesiano, decorrentes da multiplicação das coordenadas de seus vértices por um número inteiro.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Transformações geométricas de polígonos no plano cartesiano: multiplicação das coordenadas por um número inteiro e obtenção de simétricos em relação aos eixos e à origem.', codigo:'EF07MA20CRU', descricao:'Reconhecer e representar, no plano cartesiano, o simétrico de figuras em relação aos eixos e à origem.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Simetrias de translação, rotação e reflexão', codigo:'EF07MA21CRU', descricao:'Reconhecer e construir figuras obtidas por simetrias de translação, rotação e reflexão, vinculando esse estudo a obras de arte e elementos arquitetônicos.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Problemas envolvendo medições', codigo:'EF07MA29CRU', descricao:'Resolver e elaborar problemas que envolvam medidas de grandezas, reconhecendo que toda medida empírica é aproximada.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Experimentos aleatórios: espaço amostral e estimativa de probabilidade por meio de frequência de ocorrências.', codigo:'EF07MA34CRU', descricao:'Planejar e realizar experimentos aleatórios ou simulações envolvendo cálculo de probabilidades ou estimativas por meio de frequência de ocorrências.' },
+      ],
+      2: [
+        { unidadeTematica:'NÚMEROS', objeto:'Números inteiros: usos, história, ordenação, associação com pontos da reta numérica e operações', codigo:'EF07MA04CRU', descricao:'Resolver e elaborar problemas que envolvam operações com números inteiros.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Fração e seus significados: como parte de inteiros, resultado da divisão, razão e operador', codigo:'EF07MA05CRU', descricao:'Resolver um mesmo problema utilizando diferentes algoritmos.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Fração e seus significados: como parte de inteiros, resultado da divisão, razão e operador', codigo:'EF07MA06CRU', descricao:'Reconhecer que as resoluções de um grupo de problemas que têm a mesma estrutura podem ser obtidas utilizando os mesmos procedimentos.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Linguagem algébrica: variável e incógnita', codigo:'EF07MA14CRU', descricao:'Classificar sequências em recursivas e não recursivas, reconhecendo que o conceito de recursão está presente na matemática, nas artes e na literatura.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Linguagem algébrica: variável e incógnita', codigo:'EF07MA15CRU', descricao:'Utilizar a simbologia algébrica para expressar regularidades encontradas em sequências numéricas.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'A circunferência como lugar geométrico', codigo:'EF07MA22CRU', descricao:'Construir circunferências, utilizando compasso, reconhecê-las como lugar geométrico e utilizá-las em composições artísticas e problemas com objetos equidistantes.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Relações entre os ângulos formados por retas paralelas intersectadas por uma transversal', codigo:'EF07MA23CRU', descricao:'Verificar relações entre os ângulos formados por retas paralelas cortadas por uma transversal, com e sem uso de softwares de geometria dinâmica.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Equivalência de área de figuras planas: cálculo de áreas de figuras que podem ser decompostas por outras, cujas áreas podem ser facilmente determinadas como triângulos e quadriláteros', codigo:'EF07MA31CRU', descricao:'Estabelecer expressões de cálculo de área de triângulos e de quadriláteros.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Equivalência de área de figuras planas: cálculo de áreas de figuras que podem ser decompostas por outras, cujas áreas podem ser facilmente determinadas como triângulos e quadriláteros', codigo:'EF07MA32CRU', descricao:'Resolver e elaborar problemas de cálculo de medida de área de figuras planas decompostas por quadrados, retângulos e/ou triângulos, utilizando a equivalência entre áreas.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Estatística: média e amplitude de um conjunto de dados', codigo:'EF07MA35CRU', descricao:'Compreender o significado de média estatística como indicador da tendência de uma pesquisa, calculando seu valor e relacionando-o à amplitude do conjunto de dados.' },
+      ],
+      3: [
+        { unidadeTematica:'NÚMEROS', objeto:'Fração e seus significados: como parte de inteiros, resultado da divisão, razão e operador', codigo:'EF07MA07CRU', descricao:'Representar por meio de um fluxograma os passos utilizados para resolver um grupo de problemas.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Fração e seus significados: como parte de inteiros, resultado da divisão, razão e operador', codigo:'EF07MA08CRU', descricao:'Comparar e ordenar frações associadas às ideias de partes de inteiros, resultado da divisão, razão e operador.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Fração e seus significados: como parte de inteiros, resultado da divisão, razão e operador', codigo:'EF07MA09CRU', descricao:'Utilizar, na resolução de problemas, a associação entre razão e fração, como 2/3 para expressar a razão de duas partes de uma grandeza para três de outra.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Equivalência de expressões algébricas: identificação da regularidade de uma sequência numérica', codigo:'EF07MA16CRU', descricao:'Reconhecer se duas expressões algébricas obtidas para descrever a regularidade de uma mesma sequência numérica são ou não equivalentes.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Problemas envolvendo grandezas diretamente proporcionais e grandezas inversamente proporcionais', codigo:'EF07MA17CRU', descricao:'Resolver e elaborar problemas que envolvam variação de proporcionalidade direta e inversa entre duas grandezas, utilizando sentença algébrica.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Triângulos: construção, condição de existência e soma das medidas dos ângulos internos', codigo:'EF07MA24CRU', descricao:'Construir triângulos, usando régua e compasso, reconhecer a condição de existência quanto à medida dos lados e verificar que a soma dos ângulos internos é 180°.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Triângulos: construção, condição de existência e soma das medidas dos ângulos internos', codigo:'EF07MA25CRU', descricao:'Reconhecer a rigidez geométrica dos triângulos e suas aplicações em estruturas arquitetônicas e artes plásticas.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Triângulos: construção, condição de existência e soma das medidas dos ângulos internos', codigo:'EF07MA26CRU', descricao:'Descrever, por escrito e por meio de um fluxograma, um algoritmo para a construção de um triângulo qualquer, conhecidas as medidas dos três lados.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Cálculo de volume de blocos retangulares, utilizando unidades de medida convencionais mais usuais.', codigo:'EF07MA30CRU', descricao:'Resolver e elaborar problemas de cálculo de medida do volume de blocos retangulares (m³, dm³, cm³).' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Pesquisa amostral e pesquisa censitária. Planejamento de pesquisa, coleta e organização dos dados, construção de tabelas e gráficos e interpretação das informações', codigo:'EF07MA36CRU', descricao:'Planejar e realizar pesquisa envolvendo tema da realidade social, identificando a necessidade de ser censitária ou amostral, comunicando os dados por relatório escrito.' },
+      ],
+      4: [
+        { unidadeTematica:'NÚMEROS', objeto:'Números racionais na representação fracionária e na decimal: usos, ordenação e associação com pontos da reta numérica e operações', codigo:'EF07MA10CRU', descricao:'Comparar e ordenar números racionais em diferentes contextos e associá-los a pontos da reta numérica.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Números racionais na representação fracionária e na decimal: usos, ordenação e associação com pontos da reta numérica e operações', codigo:'EF07MA11CRU', descricao:'Compreender e utilizar a multiplicação e a divisão de números racionais, a relação entre elas e suas propriedades operatórias.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Números racionais na representação fracionária e na decimal: usos, ordenação e associação com pontos da reta numérica e operações', codigo:'EF07MA12CRU', descricao:'Resolver e elaborar problemas que envolvam as operações com números racionais.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Equações polinomiais do 1º grau', codigo:'EF07MA18CRU', descricao:'Resolver e elaborar problemas que possam ser representados por equações polinomiais de 1º grau, redutíveis à forma ax + b = c.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Polígonos regulares: quadrado e triângulo equilátero.', codigo:'EF07MA27CRU', descricao:'Calcular medidas de ângulos internos de polígonos regulares, sem uso de fórmulas, vinculadas à construção de mosaicos e ladrilhamentos.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Polígonos regulares: quadrado e triângulo equilátero.', codigo:'EF07MA28CRU', descricao:'Descrever, por escrito e por meio de um fluxograma, um algoritmo para a construção de um polígono regular, conhecida a medida do lado.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Medida do comprimento da circunferência', codigo:'EF07MA33CRU', descricao:'Estabelecer o número π como a razão entre a medida de uma circunferência e seu diâmetro, inclusive em problemas de natureza histórica.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Gráficos de setores: interpretação, pertinência e construção para representar conjunto de dados', codigo:'EF07MA37CRU', descricao:'Interpretar e analisar dados apresentados em gráfico de setores divulgados pela mídia, compreendendo quando é conveniente sua utilização.' },
+      ],
+    },
+    8: {
+      1: [
+        { unidadeTematica:'NÚMEROS', objeto:'Notação científica', codigo:'EF08MA01CRU', descricao:'Efetuar cálculos com potências de expoentes inteiros e aplicar esse conhecimento na representação de números em notação científica.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Potenciação e radiciação', codigo:'EF08MA02CRU', descricao:'Resolver e elaborar problemas usando a relação entre potenciação e radiciação, representando uma raiz como potência de expoente fracionário.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Valor numérico de expressões algébrica', codigo:'EF08MA06CRU', descricao:'Resolver e elaborar problemas que envolvam cálculo do valor numérico de expressões algébricas, utilizando as propriedades das operações.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Associação de uma equação linear de 1º grau a uma reta no plano cartesiano', codigo:'EF08MA07CRU', descricao:'Associar uma equação linear de 1º grau com duas incógnitas a uma reta no plano cartesiano.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Congruência de triângulos e demonstrações de propriedades de quadriláteros', codigo:'EF08MA14CRU', descricao:'Demonstrar propriedades de quadriláteros por meio da identificação da congruência de triângulos.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Área de figuras planas. Área do círculo e comprimento de sua circunferência', codigo:'EF08MA19CRU', descricao:'Resolver e elaborar problemas que envolvam medidas de área de figuras geométricas, em situações como determinar medida de terrenos.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Gráficos de barras, colunas, linhas ou setores e seus elementos constitutivos e adequação para determinado conjunto de dados', codigo:'EF08MA23CRU', descricao:'Avaliar a adequação de diferentes tipos de gráficos para representar um conjunto de dados e uma pesquisa.' },
+      ],
+      2: [
+        { unidadeTematica:'NÚMEROS', objeto:'O princípio multiplicativo da contagem', codigo:'EF08MA03CRU', descricao:'Resolver e elaborar problemas de contagem cuja resolução envolva a aplicação do princípio multiplicativo.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Sistema de equações polinomiais de 1° grau: resolução algébrica e representação no plano cartesiano', codigo:'EF08MA08CRU', descricao:'Resolver e elaborar problemas representados por sistemas de equações de 1º grau com duas incógnitas, utilizando o plano cartesiano como recurso.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Equação polinomial de 2º grau do tipo ax² = b', codigo:'EF08MA09CRU', descricao:'Resolver e elaborar, com e sem uso de tecnologias, problemas representados por equações polinomiais de 2º grau do tipo ax² = b.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Construções geométricas: ângulos de 90°, 60°, 45° e 30° e polígonos regulares', codigo:'EF08MA15CRU', descricao:'Construir, com instrumentos de desenho ou softwares, mediatriz, bissetriz, ângulos de 90°, 60°, 45° e 30° e polígonos regulares.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Construções geométricas: ângulos de 90°, 60°, 45° e 30° e polígonos regulares', codigo:'EF08MA16CRU', descricao:'Descrever, por escrito e por fluxograma, um algoritmo pra construção de um hexágono regular, a partir do ângulo central e uso de esquadros e compassos.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Princípio multiplicativo da contagem; Soma das probabilidades de todos os elementos de um espaço amostral', codigo:'EF08MA22CRU', descricao:'Calcular a probabilidade de eventos, com base no espaço amostral, reconhecendo que a soma das probabilidades de todos os elementos é igual a 1.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Organização dos dados de uma variável contínua em classes', codigo:'EF08MA24CRU', descricao:'Classificar as frequências de uma variável contínua de uma pesquisa em classes, resumindo os dados pra tomada de decisões.' },
+      ],
+      3: [
+        { unidadeTematica:'NÚMEROS', objeto:'Porcentagens', codigo:'EF08MA04CRU', descricao:'Resolver e elaborar problemas envolvendo cálculo de porcentagens, incluindo o uso de tecnologias digitais.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Sequências recursivas e não recursivas', codigo:'EF08MA10CRU', descricao:'Identificar a regularidade de uma sequência numérica ou figura não recursiva, construindo um algoritmo por fluxograma que indique os próximos termos.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Sequências recursivas e não recursivas', codigo:'EF08MA11CRU', descricao:'Identificar a regularidade de uma sequência numérica recursiva, construindo um algoritmo por fluxograma que indique os números seguintes.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Mediatriz e bissetriz como lugares geométricos: construção e problema', codigo:'EF08MA17CRU', descricao:'Aplicar os conceitos de mediatriz e bissetriz como lugares geométricos na resolução de problemas.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Volume de cilindro reto. Medidas de capacidade', codigo:'EF08MA20CRU', descricao:'Reconhecer a relação entre litro/decímetro cúbico e litro/metro cúbico, resolvendo problemas de capacidade de recipientes.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Pesquisas censitária ou amostral. Planejamento e execução de pesquisa amostral', codigo:'EF08MA26CRU', descricao:'Selecionar razões (física, ética, econômica) que justificam pesquisas amostrais e não censitárias, reconhecendo diferentes formas de amostragem.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Pesquisas censitária ou amostral. Planejamento e execução de pesquisa amostral', codigo:'EF08MA27CRU', descricao:'Planejar e executar pesquisa amostral, selecionando técnica adequada e escrevendo relatório com gráficos, medidas de tendência central e amplitude.' },
+      ],
+      4: [
+        { unidadeTematica:'NÚMEROS', objeto:'Dízimas periódicas: fração geratriz', codigo:'EF08MA05CRU', descricao:'Reconhecer e utilizar procedimentos para a obtenção de uma fração geratriz para uma dízima periódica.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Variação de grandezas: diretamente proporcionais, inversamente proporcionais ou não proporcionais', codigo:'EF08MA12CRU', descricao:'Identificar a natureza da variação de duas grandezas, expressando a relação por sentença algébrica e representando-a no plano cartesiano.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Variação de grandezas: diretamente proporcionais, inversamente proporcionais ou não proporcionais', codigo:'EF08MA13CRU', descricao:'Resolver e elaborar problemas que envolvam grandezas diretamente ou inversamente proporcionais, incluindo situações do cotidiano.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Transformações geométricas: simetrias de translação, reflexão e rotação', codigo:'EF08MA18CRU', descricao:'Reconhecer e construir figuras obtidas por composições de transformações geométricas (translação, reflexão e rotação).' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Volume de cilindro reto. Medidas de capacidade', codigo:'EF08MA21CRU', descricao:'Resolver e elaborar problemas que envolvam o cálculo do volume de recipiente cujo formato é o de um bloco retangular.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Medidas de Tendência central e de dispersão', codigo:'EF08MA25CRU', descricao:'Obter os valores de medidas de tendência central de uma pesquisa (média, moda e mediana), relacionando-os com a dispersão (amplitude).' },
+      ],
+    },
+    9: {
+      1: [
+        { unidadeTematica:'NÚMEROS', objeto:'Necessidade dos números reais para medir qualquer segmento de reta. Números irracionais: reconhecimento e localização de alguns na reta numérica', codigo:'EF09MA01CRU', descricao:'Reconhecer que, fixada uma unidade de comprimento, existem segmentos de reta cujo comprimento não é expresso por número racional.' },
+        { unidadeTematica:'NÚMEROS', objeto:'Necessidade dos números reais para medir qualquer segmento de reta. Números irracionais: reconhecimento e localização de alguns na reta numérica', codigo:'EF09MA02CRU', descricao:'Reconhecer um número irracional como um número real cuja representação decimal é infinita e não periódica, estimando sua localização na reta numérica.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Funções: representações numérica, algébrica e gráfica', codigo:'EF09MA06CRU', descricao:'Compreender as funções como relações de dependência unívoca entre duas variáveis e suas representações numérica, algébrica e gráfica.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Demonstrações de relações entre os ângulos formados por retas paralelas intersectadas por uma transversal', codigo:'EF09MA10CRU', descricao:'Demonstrar relações simples entre os ângulos formados por retas paralelas cortadas por uma transversal.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Relações entre arcos e ângulos na circunferência de um círculo', codigo:'EF09MA11CRU', descricao:'Resolver problemas por meio do estabelecimento de relações entre arcos, ângulos centrais e ângulos inscritos na circunferência.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Semelhança de triângulos', codigo:'EF09MA12CRU', descricao:'Reconhecer as condições necessárias e suficientes para que dois triângulos sejam semelhantes.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Análise de probabilidade de eventos aleatórios: eventos dependentes e independentes', codigo:'EF09MA20CRU', descricao:'Reconhecer, em experimentos aleatórios, eventos independentes e dependentes, calculando a probabilidade de sua ocorrência.' },
+      ],
+      2: [
+        { unidadeTematica:'NÚMEROS', objeto:'Potências com expoentes negativos e fracionários', codigo:'EF09MA03CRU', descricao:'Efetuar cálculos com potências de números reais, inclusive com expoentes fracionários e negativos.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Razão entre grandezas de espécies diferentes', codigo:'EF09MA07CRU', descricao:'Resolver problemas que envolvam a razão entre duas grandezas de espécies diferentes, como velocidade e densidade demográfica.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Relações métricas no triângulo retângulo. Teorema de Pitágoras: verificações experimentais e demonstração. Retas paralelas cortadas por transversais: teoremas de proporcionalidade e verificações experimentais', codigo:'EF09MA13CRU', descricao:'Demonstrar relações métricas do triângulo retângulo, entre elas o teorema de Pitágoras, utilizando a semelhança de triângulos.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Relações métricas no triângulo retângulo. Teorema de Pitágoras: verificações experimentais e demonstração. Retas paralelas cortadas por transversais: teoremas de proporcionalidade e verificações experimentais', codigo:'EF09MAACRU', descricao:'Demonstrar e aplicar o teorema de Tales dado um feixe de retas paralelas cortadas por duas ou mais transversais.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Relações métricas no triângulo retângulo. Teorema de Pitágoras: verificações experimentais e demonstração. Retas paralelas cortadas por transversais: teoremas de proporcionalidade e verificações experimentais', codigo:'EF09MA14CRU', descricao:'Resolver e elaborar problemas de aplicação do teorema de Pitágoras ou das relações de proporcionalidade envolvendo retas paralelas cortadas por secantes.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Volume de prismas e cilindros', codigo:'EF09MA19CRU', descricao:'Resolver e elaborar problemas que envolvam medidas de volumes de prismas e de cilindros retos, em situações cotidianas.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Análise de gráficos divulgados pela mídia: elementos que podem induzir a erros de leitura ou de interpretação', codigo:'EF09MA21CRU', descricao:'Analisar e identificar, em gráficos divulgados pela mídia, elementos que podem induzir a erros de leitura, como escalas inapropriadas ou omissão de dados.' },
+      ],
+      3: [
+        { unidadeTematica:'NÚMEROS', objeto:'Números reais: notação científica e problemas', codigo:'EF09MA04CRU', descricao:'Resolver e elaborar problemas com números reais, inclusive em notação científica, envolvendo as diferentes operações.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Grandezas diretamente proporcionais e grandezas inversamente proporcionais', codigo:'EF09MA08CRU', descricao:'Resolver e elaborar problemas que envolvam relações de proporcionalidade direta e inversa entre duas ou mais grandezas, inclusive escalas.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Polígonos regulares', codigo:'EF09MA15CRU', descricao:'Descrever, por escrito e por meio de fluxograma, um algoritmo para a construção de um polígono regular cuja medida do lado é conhecida.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Distância entre pontos no plano cartesiano', codigo:'EF09MA16CRU', descricao:'Determinar o ponto médio de um segmento de reta e a distância entre dois pontos quaisquer no plano cartesiano, sem uso de fórmulas.' },
+        { unidadeTematica:'GRANDEZAS E MEDIDAS', objeto:'Unidades de medida para medir distâncias muito grandes e muito pequenas. Unidades de medida utilizadas na informática', codigo:'EF09MA18CRU', descricao:'Reconhecer e empregar unidades usadas para expressar medidas muito grandes ou muito pequenas (distância entre planetas, tamanho de vírus, armazenamento de dados etc.).' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Leitura, interpretação e representação de dados de pesquisa expressos em tabelas de dupla entrada, gráficos de colunas simples e agrupadas, gráficos de barras e de setores e gráficos pictóricos', codigo:'EF09MA22CRU', descricao:'Escolher e construir o gráfico mais adequado (colunas, setores, linhas, pictogramas) para apresentar um conjunto de dados.' },
+      ],
+      4: [
+        { unidadeTematica:'NÚMEROS', objeto:'Porcentagens: problemas que envolvem cálculo de percentuais sucessivos', codigo:'EF09MA05CRU', descricao:'Resolver e elaborar problemas que envolvam porcentagens, com percentuais sucessivos, no contexto da educação financeira.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Expressões algébricas: fatoração e produtos notáveis. Resolução de equações polinomiais do 2º grau por meio de fatorações', codigo:'EF09MA09CRU', descricao:'Compreender os processos de fatoração de expressões algébricas, com base em suas relações com os produtos notáveis.' },
+        { unidadeTematica:'ÁLGEBRA', objeto:'Expressões algébricas: fatoração e produtos notáveis. Resolução de equações polinomiais do 2º grau por meio de fatorações', codigo:'EF09MA09ACRU', descricao:'Resolver e elaborar problemas que possam ser representados por equações polinomiais do 2º grau, utilizando processos geométricos e algébricos.' },
+        { unidadeTematica:'GEOMETRIA', objeto:'Vistas ortogonais de figuras espaciais', codigo:'EF09MA17CRU', descricao:'Reconhecer vistas ortogonais de figuras espaciais e aplicar esse conhecimento para desenhar objetos em perspectiva.' },
+        { unidadeTematica:'PROBABILIDADE E ESTATÍSTICA', objeto:'Planejamento e execução de pesquisa amostral e apresentação de relatório', codigo:'EF09MA23CRU', descricao:'Planejar e executar pesquisa amostral envolvendo tema da realidade social, comunicando os resultados por relatório com medidas de tendência central e amplitude.' },
+      ],
+    },
+  },
+  // Demais disciplinas do Fundamental: em construção.
+};
+
+// ── Listas fixas do SIEC (Caruaru — rede municipal) ──────────────────
+const CURSOS_SIEC = [
+  { valor:'EF9AF', label:'EF9AF — Ensino Fundamental Anos Finais' },
+];
+
+// Recurso/situação didática do SIEC — listas oficiais completas.
+// "Outros" aparece duas vezes nos dois sistemas: uma opção simples de marcar,
+// e outra (a do fim da lista) que abre uma caixa de texto pra especificar.
+const RECURSOS_DIDATICOS_SIEC = [
+  'Blocos Lógicos','Caderno','Calculadora','Celular','Computador','Data Show',
+  'Fichas de Exercícios','Filmes','Globo Terrestre','Imagens e/ou Vídeos','Jogos Pedagógicos',
+  'Jornais e/ou Revistas','Livro Didático','Livro Paradidático','Lousa','Lousa Digital','Mapas',
+  'Materiais Esportivos','Material Artístico','Material Dourado','Material Impresso',
+  'Micro System','Microscópio','Músicas','Outros','Sistema de Posicionamento Global','Tablet',
+  'Televisão','Ábaco','Outros (especifique)',
+];
+const SITUACOES_DIDATICAS_SIEC = [
+  'Sem situação didática',
+  'Apresentação de Problemas com mediação para construção de estratégias de resolução',
+  'Atividade Individual','Aula teórico-prática','Construção de Jogos',
+  'Construção de Maquetes/Croquis','Debates','Estudo Dirigido','Estudo de Caso',
+  'Experimentos Científicos','Exposição de Conteúdos','Leitura e Interpretação de Textos',
+  'Outros','Pesquisas','Produção de Texto','Realização de Excursões ou Visitas','Trabalho em Grupo',
+  'Outros (especifique)',
+];
+// Turno de 1 letra usado pelo SIEC, a partir do turno já cadastrado na turma
+const TURNO_SIEC_LETRA = { manha:'M', tarde:'T', noite:'N' };
+
+// No SIEPE só existe um "Outros" (e ele já abre a caixa de texto). No SIEC
+// existem DOIS "Outros" — um simples (só marcar) e outro no fim da lista
+// que abre a caixa de texto pra especificar. Esta função devolve a string
+// exata que deve disparar o campo de texto livre, conforme o sistema.
+function _chaveOutrosEspecificar(municipal){
+  return municipal ? 'Outros (especifique)' : 'Outros';
+}
+
+
 const CURSOS_SIEPE = [
-  { valor:'EM35', label:'EM35 — Integral 35h (disciplinas regulares)', idSiepe:'1010' },
-  { valor:'EM35-ITFT', label:'EM35-ITFT — Integral 35h (Itinerário Formativo)', idSiepe:'1088' },
+  { valor:'EM30', label:'EM30 — Regular (30h, disciplinas regulares)' },
+  { valor:'EM30-ITFT', label:'EM30-ITFT — Regular (30h, Itinerário Formativo)' },
+  { valor:'EM35', label:'EM35 — Integral 35h (disciplinas regulares)' },
+  { valor:'EM35-ITFT', label:'EM35-ITFT — Integral 35h (Itinerário Formativo)' },
+  { valor:'EM45', label:'EM45 — Integral 45h (disciplinas regulares)' },
+  { valor:'EM45-ITFT', label:'EM45-ITFT — Integral 45h (Itinerário Formativo)' },
+  { valor:'EJAMEDIO', label:'EJAMEDIO — Educação de Jovens e Adultos' },
 ];
 
 const RECURSOS_DIDATICOS_SIEPE = [
@@ -13085,13 +13299,12 @@ function _turmaPorId(turmaId){
   return _turmas.find(t=>t.id===turmaId) || null;
 }
 
+function _ehMunicipal(turma){ return turma?.escolaTipo === 'municipal'; }
+
 window.abrirRegistroAulas = async function(){
   const turma = _turmaAtual;
   if(!turma){ showToast('Abra uma turma primeiro', 'error'); return; }
-  if(turma.escolaTipo==='municipal'){
-    showToast('Registro de Aulas ainda não está disponível pra turmas de rede municipal.', 'error');
-    return;
-  }
+  const municipal = _ehMunicipal(turma);
 
   document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
   _esconderSubtabsDesempenho();
@@ -13105,8 +13318,10 @@ window.abrirRegistroAulas = async function(){
 
   // Reinicia o estado de trabalho do formulário de aula a cada abertura da aba
   window._aulaForm = {
-    disciplina:'', serie:'', trimestre:'',
-    habilidadesSelecionadas:[],   // [{codigo, objeto}]
+    municipal,
+    disciplina:'', serie:'', periodo:'',   // periodo = trimestre (estadual) ou unidade/bimestre (municipal)
+    habilidadesSelecionadas:[],   // [{codigo, objeto}] (estadual) ou [{codigo, objeto, unidadeTematica}] (municipal)
+    outraHabilidade:'', habilidadeNaoTrabalhada:false,
     conteudo:'', complementacao:'',
     recursos:[], recursoOutro:'',
     situacoes:[], situacaoOutro:'',
@@ -13114,37 +13329,34 @@ window.abrirRegistroAulas = async function(){
   };
 
   const collGrade = !!window._painelColapsado?.['grade-'+turma.id+'-0'];
+  const sistemaNome = municipal ? 'SIEC' : 'SIEPE';
 
   el.innerHTML = `
   <div class="medias-card" style="margin-bottom:14px;">
     <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Registro de Aulas</h4>
     <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
       Cadastre a habilidade/objeto de conhecimento trabalhados numa aula, escreva o conteúdo e aplique
-      automaticamente pra outras turmas e datas. Depois exporte tudo pra preencher no SIEPE.
+      automaticamente pra outras turmas e datas. Depois exporte tudo pra preencher no ${sistemaNome}.
       Pra configurar a grade de horários de <strong>todas as suas turmas de uma vez</strong>, use o card
       "Horários" no painel inicial.
     </p>
   </div>
 
   <div class="medias-card" id="curso-siepe-card" style="margin-bottom:14px;">
-    <h4 style="margin-bottom:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> Curso no SIEPE</h4>
+    <h4 style="margin-bottom:8px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg> Curso no ${sistemaNome}</h4>
     <p style="color:var(--pe-muted);font-size:.78rem;margin:0 0 8px;">
       Usado pra montar a busca certa na tela de "Registro de Conteúdos Curriculares Trabalhados".
-      EM35 e EM35-ITFT existem oficialmente só pra turmas de Integral 35h — EM35 pras disciplinas regulares,
-      EM35-ITFT pras de Itinerário Formativo.
+      ${municipal ? 'Confirma se é este o curso da turma na rede municipal.' : 'Escolha o código certo pro turno e disciplina dessa turma (regular ou Itinerário Formativo, conforme o caso).'}
     </p>
-    ${(turma.turno!=='turno1' && turma.turno!=='turno2') ? `
-    <p style="color:var(--pe-warn);font-size:.76rem;margin:0 0 8px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;padding:8px 10px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      Essa turma é do turno "${turma.turno?turnoLabel(turma.turno):'não definido'}", que ainda não tem o código de curso do SIEPE
-      confirmado (EM35/EM35-ITFT são só do Integral 35h). Você já pode marcar um dos valores abaixo pra não perder o
-      cadastro, mas a exportação pro SIEPE só vai funcionar de verdade quando confirmarmos o código certo desse turno —
-      os horários em si já funcionam normalmente pra qualquer turno.
-    </p>` : ''}
+    ${municipal ? `
+    <select class="nota-input" style="width:100%;max-width:360px;" onchange="onCursoSiecChange('${turma.id}',this.value)">
+      <option value="">— Selecionar —</option>
+      ${CURSOS_SIEC.map(c=>`<option value="${c.valor}" ${turma.cursoSiec===c.valor?'selected':''}>${c.label}</option>`).join('')}
+    </select>` : `
     <select class="nota-input" style="width:100%;max-width:360px;" onchange="onCursoSiepeChange('${turma.id}',this.value)">
       <option value="">— Selecionar —</option>
       ${CURSOS_SIEPE.map(c=>`<option value="${c.valor}" ${turma.cursoSiepe===c.valor?'selected':''}>${c.label}</option>`).join('')}
-    </select>
+    </select>`}
   </div>
 
   <div class="medias-card" id="grade-horarios-card">
@@ -13166,7 +13378,7 @@ window.abrirRegistroAulas = async function(){
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
       <h4 style="margin:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Aulas registradas nesta turma</h4>
       <button class="atv-card-transferir-btn" onclick="exportarAulasParaSiepe('${turma.id}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar para o SIEPE
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar para o ${sistemaNome}
       </button>
     </div>
     <div id="aulas-lista-body"><p style="color:var(--pe-muted);font-size:.8rem;">Carregando...</p></div>
@@ -13181,6 +13393,17 @@ window.onCursoSiepeChange = async function(turmaId, valor){
   try{
     await setDoc(doc(db,...turmaPath(turmaId)), { cursoSiepe: valor }, { merge:true });
     showToast('Curso do SIEPE salvo!', 'success');
+  }catch(e){
+    showToast('Erro ao salvar curso: '+e.message, 'error');
+  }
+};
+
+window.onCursoSiecChange = async function(turmaId, valor){
+  const turma = _turmaPorId(turmaId); if(!turma) return;
+  turma.cursoSiec = valor;
+  try{
+    await setDoc(doc(db,...turmaPath(turmaId)), { cursoSiec: valor }, { merge:true });
+    showToast('Curso do SIEC salvo!', 'success');
   }catch(e){
     showToast('Erro ao salvar curso: '+e.message, 'error');
   }
@@ -13345,7 +13568,17 @@ window.salvarGradeHorarios = async function(turmaId){
 
 function _renderFormularioAula(){
   const f = window._aulaForm;
-  const disciplinas = Object.keys(HABILIDADES_EM_PE);
+  const municipal = f.municipal;
+  const disciplinas = Object.keys(municipal ? HABILIDADES_EF_CRU : HABILIDADES_EM_PE);
+  const seriesOpts = municipal
+    ? [6,7,8,9].map(s=>`<option value="${s}" ${f.serie==s?'selected':''}>${s}º Ano</option>`).join('')
+    : [1,2,3].map(s=>`<option value="${s}" ${f.serie==s?'selected':''}>${s}º Ano</option>`).join('');
+  const periodoLabel = municipal ? 'Unidade (bimestre)' : 'Trimestre';
+  const periodoOpts = municipal
+    ? [1,2,3,4].map(p=>`<option value="${p}" ${f.periodo==p?'selected':''}>${p}ª Unidade</option>`).join('')
+    : [1,2,3].map(p=>`<option value="${p}" ${f.periodo==p?'selected':''}>${p}º Trimestre</option>`).join('');
+  const recursosLista = municipal ? RECURSOS_DIDATICOS_SIEC : RECURSOS_DIDATICOS_SIEPE;
+  const situacoesLista = municipal ? SITUACOES_DIDATICAS_SIEC : SITUACOES_DIDATICAS_SIEPE;
 
   const bannerEdicao = f.editando ? `
   <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:#e8f0fe;border:1px solid #b3d4fc;border-radius:6px;padding:8px 12px;margin-bottom:14px;">
@@ -13370,18 +13603,14 @@ function _renderFormularioAula(){
       <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Série</label>
       <select id="aula-serie" class="nota-input" style="width:100%;" onchange="onSerieAulaChange(this.value)">
         <option value="">— Selecionar —</option>
-        <option value="1" ${f.serie==1?'selected':''}>1º Ano</option>
-        <option value="2" ${f.serie==2?'selected':''}>2º Ano</option>
-        <option value="3" ${f.serie==3?'selected':''}>3º Ano</option>
+        ${seriesOpts}
       </select>
     </div>
     <div style="flex:1;min-width:140px;">
-      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Trimestre</label>
-      <select id="aula-trimestre" class="nota-input" style="width:100%;" onchange="onTrimestreAulaChange(this.value)">
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">${periodoLabel}</label>
+      <select id="aula-periodo" class="nota-input" style="width:100%;" onchange="onPeriodoAulaChange(this.value)">
         <option value="">— Selecionar —</option>
-        <option value="1" ${f.trimestre==1?'selected':''}>1º Trimestre</option>
-        <option value="2" ${f.trimestre==2?'selected':''}>2º Trimestre</option>
-        <option value="3" ${f.trimestre==3?'selected':''}>3º Trimestre</option>
+        ${periodoOpts}
       </select>
     </div>
   </div>
@@ -13389,46 +13618,58 @@ function _renderFormularioAula(){
   <div style="margin-bottom:14px;">
     <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:6px;">Habilidade(s) e objeto(s) de conhecimento</label>
     <div id="aula-habilidades-lista">${_renderHabilidadesLista()}</div>
+    ${municipal ? `
+    <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;margin-top:8px;cursor:pointer;">
+      <input type="checkbox" ${f.habilidadeNaoTrabalhada?'checked':''} onchange="window._aulaForm.habilidadeNaoTrabalhada=this.checked">
+      Habilidade não trabalhada
+    </label>
+    <div style="margin-top:8px;">
+      <label style="font-size:.73rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Outra habilidade / Competência <span style="font-weight:400;color:var(--pe-muted);">(opcional)</span></label>
+      <textarea id="aula-outra-habilidade" class="nota-input" style="width:100%;min-height:50px;font-family:inherit;"
+        placeholder="Se nenhuma habilidade da lista serve, descreva aqui..."
+        onchange="window._aulaForm.outraHabilidade=this.value">${f.outraHabilidade||''}</textarea>
+    </div>` : ''}
   </div>
 
   <div style="margin-bottom:14px;">
-    <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Conteúdo trabalhado *</label>
+    <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Conteúdo${municipal?' trabalhado em situação didática':' trabalhado'} *</label>
     <textarea id="aula-conteudo" class="nota-input" style="width:100%;min-height:70px;font-family:inherit;"
       placeholder="Descreva o conteúdo trabalhado nesta aula..."
       onchange="window._aulaForm.conteudo=this.value">${f.conteudo||''}</textarea>
   </div>
 
+  ${!municipal ? `
   <div style="margin-bottom:14px;">
     <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Complementação de conteúdos <span style="font-weight:400;color:var(--pe-muted);">(opcional)</span></label>
     <textarea id="aula-complementacao" class="nota-input" style="width:100%;min-height:50px;font-family:inherit;"
       placeholder="Complementação opcional..."
       onchange="window._aulaForm.complementacao=this.value">${f.complementacao||''}</textarea>
-  </div>
+  </div>` : ''}
 
   <div class="grade-horarios-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
     <div style="flex:1;min-width:220px;">
-      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Recurso(s) didático(s)</label>
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Recurso(s) didático(s) *</label>
       <div style="max-height:150px;overflow-y:auto;border:1.5px solid var(--pe-border);border-radius:6px;padding:6px 8px;background:#fff;">
-        ${RECURSOS_DIDATICOS_SIEPE.map(r=>{
+        ${recursosLista.map(r=>{
           const marcado = f.recursos.includes(r);
           return `<label style="display:flex;align-items:center;gap:6px;font-size:.76rem;padding:2px 0;cursor:pointer;">
             <input type="checkbox" ${marcado?'checked':''} onchange="toggleRecursoAula('${r.replace(/'/g,"\\'")}')"> ${r}
           </label>`;
         }).join('')}
       </div>
-      ${f.recursos.includes('Outros') ? `<input type="text" id="aula-recurso-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique o recurso..." value="${f.recursoOutro||''}" onchange="window._aulaForm.recursoOutro=this.value">` : ''}
+      ${f.recursos.includes(_chaveOutrosEspecificar(municipal)) ? `<input type="text" id="aula-recurso-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique o recurso..." value="${f.recursoOutro||''}" onchange="window._aulaForm.recursoOutro=this.value">` : ''}
     </div>
     <div style="flex:1;min-width:220px;">
-      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Situação(ões) didática(s)</label>
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Situação(ões) didática(s)${municipal?' <span style="font-weight:400;color:var(--pe-muted);">(opcional)</span>':' *'}</label>
       <div style="max-height:150px;overflow-y:auto;border:1.5px solid var(--pe-border);border-radius:6px;padding:6px 8px;background:#fff;">
-        ${SITUACOES_DIDATICAS_SIEPE.map(s=>{
+        ${situacoesLista.map(s=>{
           const marcado = f.situacoes.includes(s);
           return `<label style="display:flex;align-items:center;gap:6px;font-size:.76rem;padding:2px 0;cursor:pointer;">
             <input type="checkbox" ${marcado?'checked':''} onchange="toggleSituacaoAula('${s.replace(/'/g,"\\'")}')"> ${s}
           </label>`;
         }).join('')}
       </div>
-      ${f.situacoes.includes('Outros') ? `<input type="text" id="aula-situacao-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique a situação..." value="${f.situacaoOutro||''}" onchange="window._aulaForm.situacaoOutro=this.value">` : ''}
+      ${f.situacoes.includes(_chaveOutrosEspecificar(municipal)) ? `<input type="text" id="aula-situacao-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique a situação..." value="${f.situacaoOutro||''}" onchange="window._aulaForm.situacaoOutro=this.value">` : ''}
     </div>
   </div>
 
@@ -13446,10 +13687,33 @@ function _renderFormularioAula(){
 
 function _renderHabilidadesLista(){
   const f = window._aulaForm;
-  if(!f.disciplina || !f.serie || !f.trimestre){
-    return `<p style="color:var(--pe-muted);font-size:.8rem;">Escolha disciplina, série e trimestre pra ver as habilidades.</p>`;
+  const municipal = f.municipal;
+  if(!f.disciplina || !f.serie || !f.periodo){
+    return `<p style="color:var(--pe-muted);font-size:.8rem;">Escolha disciplina, série e ${municipal?'unidade':'trimestre'} pra ver as habilidades.</p>`;
   }
-  const lista = HABILIDADES_EM_PE[f.disciplina]?.[f.serie]?.[f.trimestre] || [];
+
+  if(municipal){
+    const lista = HABILIDADES_EF_CRU[f.disciplina]?.[f.serie]?.[f.periodo] || [];
+    if(!lista.length){
+      return `<p style="color:var(--pe-muted);font-size:.8rem;">Nenhuma habilidade cadastrada ainda pra essa combinação.</p>`;
+    }
+    return `<div style="border:1.5px solid var(--pe-border);border-radius:6px;overflow:hidden;">
+      ${lista.map(h=>{
+        const marcado = f.habilidadesSelecionadas.some(s=>s.codigo===h.codigo);
+        return `<label style="display:flex;align-items:flex-start;gap:8px;font-size:.74rem;padding:8px 10px;border-bottom:1px solid var(--pe-border);cursor:pointer;">
+          <input type="checkbox" ${marcado?'checked':''} style="margin-top:2px;flex-shrink:0;"
+            onchange="toggleHabilidadeObjeto('${h.codigo.replace(/'/g,"\\'")}','${(h.objeto||'').replace(/'/g,"\\'")}','${(h.unidadeTematica||'').replace(/'/g,"\\'")}')">
+          <span>
+            <span style="font-weight:700;color:var(--pe-blue);">${h.unidadeTematica}</span> —
+            <span style="color:var(--pe-muted);">${h.objeto}</span><br>
+            <strong>(${h.codigo})</strong> ${h.descricao}
+          </span>
+        </label>`;
+      }).join('')}
+    </div>`;
+  }
+
+  const lista = HABILIDADES_EM_PE[f.disciplina]?.[f.serie]?.[f.periodo] || [];
   if(!lista.length){
     return `<p style="color:var(--pe-muted);font-size:.8rem;">Nenhuma habilidade cadastrada ainda pra essa combinação.</p>`;
   }
@@ -13470,7 +13734,7 @@ function _renderHabilidadesLista(){
 
 window.onDisciplinaAulaChange = function(v){
   window._aulaForm.disciplina = v;
-  window._aulaForm.serie = ''; window._aulaForm.trimestre = '';
+  window._aulaForm.serie = ''; window._aulaForm.periodo = '';
   window._aulaForm.habilidadesSelecionadas = [];
   document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
 };
@@ -13479,29 +13743,29 @@ window.onSerieAulaChange = function(v){
   window._aulaForm.habilidadesSelecionadas = [];
   document.getElementById('aula-habilidades-lista').innerHTML = _renderHabilidadesLista();
 };
-window.onTrimestreAulaChange = function(v){
-  window._aulaForm.trimestre = v;
+window.onPeriodoAulaChange = function(v){
+  window._aulaForm.periodo = v;
   window._aulaForm.habilidadesSelecionadas = [];
   document.getElementById('aula-habilidades-lista').innerHTML = _renderHabilidadesLista();
 };
-window.toggleHabilidadeObjeto = function(codigo, objeto){
+window.toggleHabilidadeObjeto = function(codigo, objeto, unidadeTematica){
   const f = window._aulaForm;
   const i = f.habilidadesSelecionadas.findIndex(s=>s.codigo===codigo && s.objeto===objeto);
   if(i>=0) f.habilidadesSelecionadas.splice(i,1);
-  else f.habilidadesSelecionadas.push({codigo, objeto});
+  else f.habilidadesSelecionadas.push(unidadeTematica ? {codigo, objeto, unidadeTematica} : {codigo, objeto});
 };
 window.toggleRecursoAula = function(r){
   const f = window._aulaForm;
   const i = f.recursos.indexOf(r);
   if(i>=0) f.recursos.splice(i,1); else f.recursos.push(r);
-  if(!f.recursos.includes('Outros')) f.recursoOutro = '';
+  if(!f.recursos.includes(_chaveOutrosEspecificar(f.municipal))) f.recursoOutro = '';
   document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
 };
 window.toggleSituacaoAula = function(s){
   const f = window._aulaForm;
   const i = f.situacoes.indexOf(s);
   if(i>=0) f.situacoes.splice(i,1); else f.situacoes.push(s);
-  if(!f.situacoes.includes('Outros')) f.situacaoOutro = '';
+  if(!f.situacoes.includes(_chaveOutrosEspecificar(f.municipal))) f.situacaoOutro = '';
   document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
 };
 
@@ -13565,31 +13829,45 @@ function horariosDoDia(turma, dataStr){
 
 window.registrarAula = async function(){
   const f = window._aulaForm;
+  const municipal = f.municipal;
   const msgEl = document.getElementById('aula-form-msg');
   const erro = (txt)=>{ if(msgEl){ msgEl.textContent = txt; msgEl.className='ob-msg error'; } showToast(txt,'error'); };
 
-  if(!f.disciplina || !f.serie || !f.trimestre) return erro('Escolha disciplina, série e trimestre.');
-  if(!f.habilidadesSelecionadas.length) return erro('Marque ao menos um objeto de conhecimento.');
+  if(!f.disciplina || !f.serie || !f.periodo) return erro(`Escolha disciplina, série e ${municipal?'unidade':'trimestre'}.`);
+  if(!municipal || !f.habilidadeNaoTrabalhada){
+    if(!f.habilidadesSelecionadas.length && !(municipal && (f.outraHabilidade||'').trim())){
+      return erro(municipal
+        ? 'Marque ao menos uma habilidade, descreva "Outra habilidade" ou marque "Habilidade não trabalhada".'
+        : 'Marque ao menos um objeto de conhecimento.');
+    }
+  }
   if(!(f.conteudo||'').trim()) return erro('Preencha o conteúdo trabalhado.');
   if(!f.recursos.length) return erro('Marque ao menos um recurso didático.');
-  if(f.recursos.includes('Outros') && !(f.recursoOutro||'').trim()) return erro('Especifique o recurso didático "Outros".');
-  if(!f.situacoes.length) return erro('Marque ao menos uma situação didática.');
-  if(f.situacoes.includes('Outros') && !(f.situacaoOutro||'').trim()) return erro('Especifique a situação didática "Outros".');
+  if(f.recursos.includes(_chaveOutrosEspecificar(municipal)) && !(f.recursoOutro||'').trim()) return erro('Especifique o recurso didático "Outros".');
+  if(!municipal && !f.situacoes.length) return erro('Marque ao menos uma situação didática.');
+  if(f.situacoes.includes(_chaveOutrosEspecificar(municipal)) && !(f.situacaoOutro||'').trim()) return erro('Especifique a situação didática "Outros".');
   const aplicacoesValidas = f.aplicacoes.filter(a=>a.turmaId && a.data);
   if(!aplicacoesValidas.length) return erro('Preencha ao menos uma turma e data em "Aplicar para".');
 
   const editando = f.editando; // {grupo:[{turmaId,aulaId,criadoEm}]} — se vier de "Editar"
   showLoading(editando ? 'Salvando alterações...' : 'Registrando aula...');
   try{
-    const recursosFinal   = f.recursos.map(r=>r==='Outros' ? f.recursoOutro.trim() : r);
-    const situacoesFinal  = f.situacoes.map(s=>s==='Outros' ? f.situacaoOutro.trim() : s);
+    const chaveOutros = _chaveOutrosEspecificar(municipal);
+    const recursosFinal   = f.recursos.map(r=>r===chaveOutros ? f.recursoOutro.trim() : r);
+    const situacoesFinal  = f.situacoes.map(s=>s===chaveOutros ? f.situacaoOutro.trim() : s);
     const payloadBase = {
-      disciplina: f.disciplina, serie: Number(f.serie), trimestre: Number(f.trimestre),
+      municipal,
+      disciplina: f.disciplina, serie: Number(f.serie), periodo: Number(f.periodo),
       habilidades: f.habilidadesSelecionadas,
       conteudo: f.conteudo.trim(),
-      complementacao: (f.complementacao||'').trim(),
       recursos: recursosFinal,
       situacoes: situacoesFinal,
+      ...(municipal ? {
+        outraHabilidade: (f.outraHabilidade||'').trim(),
+        habilidadeNaoTrabalhada: !!f.habilidadeNaoTrabalhada,
+      } : {
+        complementacao: (f.complementacao||'').trim(),
+      }),
     };
 
     const gruposAntigos = editando?.grupo || [];   // membros que existiam antes da edição
@@ -13635,8 +13913,10 @@ window.registrarAula = async function(){
 
     // Reseta o formulário mantendo a turma atual como primeira aplicação
     window._aulaForm = {
-      disciplina:'', serie:'', trimestre:'',
-      habilidadesSelecionadas:[], conteudo:'', complementacao:'',
+      municipal,
+      disciplina:'', serie:'', periodo:'',
+      habilidadesSelecionadas:[], outraHabilidade:'', habilidadeNaoTrabalhada:false,
+      conteudo:'', complementacao:'',
       recursos:[], recursoOutro:'', situacoes:[], situacaoOutro:'',
       aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[] } ],
     };
@@ -13650,8 +13930,10 @@ window.registrarAula = async function(){
 
 window.cancelarEdicaoAula = function(){
   window._aulaForm = {
-    disciplina:'', serie:'', trimestre:'',
-    habilidadesSelecionadas:[], conteudo:'', complementacao:'',
+    municipal: _ehMunicipal(_turmaAtual),
+    disciplina:'', serie:'', periodo:'',
+    habilidadesSelecionadas:[], outraHabilidade:'', habilidadeNaoTrabalhada:false,
+    conteudo:'', complementacao:'',
     recursos:[], recursoOutro:'', situacoes:[], situacaoOutro:'',
     aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[] } ],
   };
@@ -13690,8 +13972,10 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
     }
 
     window._aulaForm = {
-      disciplina: a.disciplina||'', serie: String(a.serie||''), trimestre: String(a.trimestre||''),
+      municipal: !!a.municipal,
+      disciplina: a.disciplina||'', serie: String(a.serie||''), periodo: String(a.periodo ?? a.trimestre ?? ''),
       habilidadesSelecionadas: a.habilidades ? JSON.parse(JSON.stringify(a.habilidades)) : [],
+      outraHabilidade: a.outraHabilidade||'', habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
       conteudo: a.conteudo||'', complementacao: a.complementacao||'',
       recursos: a.recursos ? [...a.recursos] : [], recursoOutro:'',
       situacoes: a.situacoes ? [...a.situacoes] : [], situacaoOutro:'',
@@ -13726,12 +14010,14 @@ window.carregarAulasRegistradas = async function(turmaId){
     itens.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
     listaEl.innerHTML = itens.map(a=>{
       const qtdGrupo = Array.isArray(a.grupo) ? a.grupo.length : 1;
+      const periodo = a.periodo ?? a.trimestre;
+      const periodoLabel = a.municipal ? `${periodo}ª Unid.` : `${periodo}º Trim.`;
       return `
       <div style="border:1.5px solid var(--pe-border);border-radius:6px;padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
         <div style="font-size:.78rem;">
-          <strong>${a.data||'—'}</strong> · ${a.disciplina||''} · ${a.serie}º Ano · ${a.trimestre}º Trim.
+          <strong>${a.data||'—'}</strong> · ${a.disciplina||''} · ${a.serie}º Ano · ${periodoLabel}
           ${qtdGrupo>1 ? `<span style="font-size:.68rem;background:#e8f0fe;color:var(--pe-blue);padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">aplicada em ${qtdGrupo} turmas/datas</span>` : ''}
-          <div style="color:var(--pe-muted);margin-top:2px;">${(a.habilidades||[]).map(h=>h.codigo).join(', ')}</div>
+          <div style="color:var(--pe-muted);margin-top:2px;">${(a.habilidades||[]).map(h=>h.codigo).join(', ')||(a.habilidadeNaoTrabalhada?'Habilidade não trabalhada':'')}</div>
           <div style="color:var(--pe-muted);margin-top:2px;">${(a.conteudo||'').slice(0,120)}${(a.conteudo||'').length>120?'...':''}</div>
         </div>
         <div style="display:flex;gap:6px;flex-shrink:0;">
@@ -13769,14 +14055,16 @@ window.excluirAulaRegistrada = async function(turmaId, aulaId){
 window.exportarAulasParaSiepe = async function(turmaId){
   const turma = _turmaPorId(turmaId);
   if(!turma){ showToast('Turma não encontrada.', 'error'); return; }
+  const municipal = _ehMunicipal(turma);
 
-  if(!turma.cursoSiepe){
-    showToast('Escolha o "Curso no SIEPE" dessa turma antes de exportar.', 'error');
+  const cursoValor = municipal ? turma.cursoSiec : turma.cursoSiepe;
+  if(!cursoValor){
+    showToast(`Escolha o "Curso no ${municipal?'SIEC':'SIEPE'}" dessa turma antes de exportar.`, 'error');
     return;
   }
-  const curso = CURSOS_SIEPE.find(c=>c.valor===turma.cursoSiepe);
+  const curso = (municipal ? CURSOS_SIEC : CURSOS_SIEPE).find(c=>c.valor===cursoValor);
 
-  showLoading('Preparando exportação para o SIEPE...');
+  showLoading(`Preparando exportação para o ${municipal?'SIEC':'SIEPE'}...`);
   try{
     const snap = await getDocs(collection(db, ...turmaPath(turmaId), 'aulas'));
     if(snap.empty){
@@ -13790,7 +14078,7 @@ window.exportarAulasParaSiepe = async function(turmaId){
     aulas.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
 
     const payload = {
-      versao: 'nm-siepe-aulas-v1',
+      versao: municipal ? 'nm-siec-aulas-v1' : 'nm-siepe-aulas-v1',
       exportadoEm: new Date().toISOString(),
       turma: {
         nome: `${turma.serie||''} ${turma.turma||''}`.trim(),
@@ -13798,19 +14086,24 @@ window.exportarAulasParaSiepe = async function(turmaId){
         turmaTexto: turma.turma||'',
         anoLetivo: turma.anoLetivo || new Date().getFullYear(),
         curso: curso.valor,
-        cursoIdSiepe: curso.idSiepe,
+        ...(municipal ? { turno: TURNO_SIEC_LETRA[turma.turno]||'' } : {}),
       },
       aulas: aulas.map(a=>({
         data: a.data,
         horarios: a.horarios||[],           // textos do intervalo de horas (ex.: "07:00 às 07:50") — sem ID interno
         disciplina: a.disciplina,
-        serie: a.serie,                      // 1/2/3 — usado só de referência
-        trimestre: a.trimestre,              // 1/2/3 — período a escolher no picker de habilidade
-        habilidades: (a.habilidades||[]).map(h=>({ codigo:h.codigo, objeto:h.objeto })),
+        serie: a.serie,
+        periodo: a.periodo ?? a.trimestre,   // trimestre (SIEPE) ou unidade/bimestre (SIEC)
+        habilidades: (a.habilidades||[]).map(h=>municipal ? {codigo:h.codigo, objeto:h.objeto, unidadeTematica:h.unidadeTematica} : {codigo:h.codigo, objeto:h.objeto}),
         conteudo: a.conteudo||'',
-        complementacao: a.complementacao||'',
         recursos: a.recursos||[],
         situacoes: a.situacoes||[],
+        ...(municipal ? {
+          outraHabilidade: a.outraHabilidade||'',
+          habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
+        } : {
+          complementacao: a.complementacao||'',
+        }),
       })),
     };
 
@@ -13820,11 +14113,11 @@ window.exportarAulasParaSiepe = async function(turmaId){
     const url  = URL.createObjectURL(blob);
     const aTag = document.createElement('a');
     const nomeSafe = payload.turma.nome.replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_') || 'turma';
-    aTag.download = `NM_Aulas_SIEPE_${nomeSafe}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;
+    aTag.download = `NM_Aulas_${municipal?'SIEC':'SIEPE'}_${nomeSafe}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;
     aTag.href = url;
     aTag.click();
     URL.revokeObjectURL(url);
-    showToast(`${aulas.length} aula(s) exportada(s) para o SIEPE!`, 'success');
+    showToast(`${aulas.length} aula(s) exportada(s) para o ${municipal?'SIEC':'SIEPE'}!`, 'success');
   } catch(e){
     hideLoading();
     showToast('Erro ao exportar: '+e.message, 'error');
