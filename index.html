@@ -3565,7 +3565,7 @@ body.dark-mode .stat-card-btn:active{
         <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
           Tipo de rede *
         </label>
-        <select id="escola-tipo-modal-select" style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;">
+        <select id="escola-tipo-modal-select" onchange="_toggleCursosOfertadosWrap()" style="width:100%;padding:11px 13px;border:1.5px solid var(--pe-border);border-radius:var(--radius-sm);font-size:.92rem;">
           <option value="municipal">Rede Municipal</option>
           <option value="estadual">Rede Estadual (SEE-PE)</option>
         </select>
@@ -3578,6 +3578,24 @@ body.dark-mode .stat-card-btn:active{
           <option value="bimestral">Bimestral (4 bimestres)</option>
           <option value="trimestral">Trimestral (3 trimestres)</option>
         </select>
+      </div>
+      <div class="ob-field" id="escola-cursos-ofertados-wrap" style="margin-top:14px;">
+        <label style="font-size:.78rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:5px;">
+          Cursos ofertados (Ensino Médio)
+        </label>
+        <p style="font-size:.72rem;color:var(--pe-muted);margin:0 0 8px;">
+          Marque quantos essa escola oferecer (ex.: Integral 35h + EJA). Isso pré-define automaticamente o código
+          de curso das turmas — Formação Geral Básica (Português, Matemática, Física, Química, Biologia/Ciências,
+          História, Geografia, Filosofia, Sociologia, Língua Inglesa, Artes, Educação Física) ou Itinerário
+          Formativo (qualquer outra disciplina).
+        </p>
+        <div style="display:flex;flex-direction:column;gap:6px;">
+          ${CURSO_BASE_OPCOES_EM.map(o=>`
+            <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;">
+              <input type="checkbox" class="escola-curso-ofertado-chk" value="${o.chave}">
+              ${o.label}
+            </label>`).join('')}
+        </div>
       </div>
       <div id="escola-tipo-modal-msg" class="auth-msg" style="margin-top:10px;"></div>
       <div style="display:flex;gap:10px;margin-top:16px;">
@@ -7694,9 +7712,21 @@ window.openEscolaTipoModal = function(escolaId){
   document.getElementById('escola-tipo-modal-nome').textContent  = escola.nome;
   document.getElementById('escola-tipo-modal-select').value      = escola.tipo    || 'municipal';
   document.getElementById('escola-sistema-modal-select').value   = escola.sistema || 'bimestral';
+  document.querySelectorAll('.escola-curso-ofertado-chk').forEach(chk=>{
+    chk.checked = (escola.cursosOfertados||[]).includes(chk.value);
+  });
   document.getElementById('escola-tipo-modal-msg').textContent   = '';
   document.getElementById('escola-tipo-modal-msg').className     = 'auth-msg';
   document.getElementById('escola-tipo-modal').style.display     = 'flex';
+  _toggleCursosOfertadosWrap();
+};
+
+// Cursos ofertados só faz sentido pra rede estadual (Ensino Médio) —
+// a rede municipal (Fundamental) usa um único curso fixo (EF9AF).
+window._toggleCursosOfertadosWrap = function(){
+  const tipo = document.getElementById('escola-tipo-modal-select')?.value;
+  const wrap = document.getElementById('escola-cursos-ofertados-wrap');
+  if(wrap) wrap.style.display = (tipo==='estadual') ? 'block' : 'none';
 };
 
 window.closeEscolaTipoModal = function(){
@@ -7707,13 +7737,16 @@ window.saveEscolaTipoModal = async function(){
   const escolaId  = document.getElementById('escola-tipo-modal-id').value;
   const novoTipo  = document.getElementById('escola-tipo-modal-select').value;
   const novoSist  = document.getElementById('escola-sistema-modal-select').value;
+  const novosCursos = [...document.querySelectorAll('.escola-curso-ofertado-chk:checked')].map(el=>el.value);
   const escola    = _escolas.find(e=>e.id===escolaId);
   if(!escola) return;
 
-  const sistAtual   = escola.sistema || 'bimestral';
-  const tipoIgual   = escola.tipo    === novoTipo;
-  const sistIgual   = sistAtual === novoSist;
-  if(tipoIgual && sistIgual){
+  const sistAtual    = escola.sistema || 'bimestral';
+  const cursosAtuais = escola.cursosOfertados || [];
+  const tipoIgual     = escola.tipo    === novoTipo;
+  const sistIgual     = sistAtual === novoSist;
+  const cursosIguais  = cursosAtuais.length===novosCursos.length && cursosAtuais.every(c=>novosCursos.includes(c));
+  if(tipoIgual && sistIgual && cursosIguais){
     closeEscolaTipoModal();
     showToast('Nenhuma alteração detectada.','info');
     return;
@@ -7757,9 +7790,10 @@ window.saveEscolaTipoModal = async function(){
   try {
     // Salva escola
     await setDoc(doc(db,'users',_uid,'escolas',escolaId),
-      { tipo: novoTipo, sistema: novoSist }, { merge: true });
+      { tipo: novoTipo, sistema: novoSist, cursosOfertados: novosCursos }, { merge: true });
     escola.tipo    = novoTipo;
     escola.sistema = novoSist;
+    escola.cursosOfertados = novosCursos;
 
     // Propaga tipo/sistema para todas as turmas vinculadas
     await Promise.all(turmasAfetadas.map(t =>
@@ -7771,11 +7805,23 @@ window.saveEscolaTipoModal = async function(){
       t.sistema    = novoSist;
     });
 
+    // ── Pré-preenche o curso do SIEPE das turmas que ainda não têm um
+    //    definido manualmente, com base nos cursos ofertados agora ──────
+    if(!cursosIguais && novosCursos.length){
+      const turmasSemCurso = turmasAfetadas.filter(t=>!t.cursoSiepe);
+      await Promise.all(turmasSemCurso.map(t=>{
+        const cursoCalc = _calcularCursoParaTurma(escola, t);
+        if(!cursoCalc) return Promise.resolve();
+        t.cursoSiepe = cursoCalc;
+        return setDoc(doc(db,...turmaPath(t.id)), { cursoSiepe: cursoCalc }, { merge:true });
+      }));
+    }
+
     // ── Migração das unidades letivas (só quando o sistema mudou) ────────
     if(!sistIgual){
       for(const turma of turmasAfetadas){
         await _migrarUnidadesTurma(turma.id, sistAtual, novoSist);
-        // Limpa cache para for��ar releitura na próxima abertura
+        // Limpa cache para forçar releitura na próxima abertura
         delete _unidades[turma.id];
       }
     }
@@ -7791,6 +7837,7 @@ window.saveEscolaTipoModal = async function(){
     const msg = [];
     if(!tipoIgual) msg.push(`rede → ${escolaTipoLabel(novoTipo)}`);
     if(!sistIgual) msg.push(`sistema → ${novoSist==='trimestral'?'Trimestral':'Bimestral'}`);
+    if(!cursosIguais) msg.push(`cursos ofertados atualizados`);
     showToast(
       `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg> Escola atualizada (${msg.join(', ')}). ${turmasAfetadas.length} turma(s) sincronizadas.`,
       'success'
@@ -13234,6 +13281,40 @@ const CURSOS_SIEPE = [
   { valor:'EJAMEDIO', label:'EJAMEDIO — Educação de Jovens e Adultos' },
 ];
 
+// ── Cursos ofertados pela escola (cadastro da escola) ────────────────
+// Cada "curso base" que a escola oferece já sabe seu código de Formação
+// Geral Básica e de Itinerário Formativo (EJA não tem variante ITFT).
+// Uma escola pode oferecer mais de um ao mesmo tempo (ex.: Integral 35h + EJA).
+const CURSO_BASE_OPCOES_EM = [
+  { chave:'30h', label:'Regular (30h)', turnos:['manha','tarde'], fgb:'EM30', itft:'EM30-ITFT' },
+  { chave:'35h', label:'Integral 35h',  turnos:['turno1','turno2'], fgb:'EM35', itft:'EM35-ITFT' },
+  { chave:'45h', label:'Integral 45h',  turnos:[], fgb:'EM45', itft:'EM45-ITFT' },
+  { chave:'eja', label:'EJA',           turnos:['noite'], fgb:'EJAMEDIO', itft:null },
+];
+
+// Disciplinas da Formação Geral Básica do Ensino Médio — qualquer outra
+// disciplina cadastrada numa turma é tratada como Itinerário Formativo.
+const DISCIPLINAS_FGB_MEDIO = [
+  'Língua Portuguesa','Matemática','Física','Química','Biologia','Ciências',
+  'História','Geografia','Filosofia','Sociologia','Língua Inglesa','Artes','Educação Física',
+];
+
+// Calcula o código de curso (SIEPE) certo pra uma turma, com base nos
+// cursos que a escola dela oferece + se a disciplina é da FGB ou não.
+// Retorna null se a escola ainda não tem cursos ofertados configurados.
+function _calcularCursoParaTurma(escola, turma){
+  if(!escola?.cursosOfertados?.length) return null;
+  const chaveDoTurno = CURSO_BASE_OPCOES_EM.find(o=>o.turnos.includes(turma.turno))?.chave;
+  const chave = (chaveDoTurno && escola.cursosOfertados.includes(chaveDoTurno))
+    ? chaveDoTurno : escola.cursosOfertados[0];
+  const opcao = CURSO_BASE_OPCOES_EM.find(o=>o.chave===chave);
+  if(!opcao) return null;
+  if(chave==='eja') return opcao.fgb; // EJA não tem variante de Itinerário
+  const disciplinaNorm = (turma.disciplina||'').trim().toLowerCase();
+  const ehFGB = DISCIPLINAS_FGB_MEDIO.some(d=>d.toLowerCase()===disciplinaNorm);
+  return ehFGB ? opcao.fgb : opcao.itft;
+}
+
 const RECURSOS_DIDATICOS_SIEPE = [
   'Aparelho de DVD','Aparelho de SOM','Aparelho de TV','Calculadora','Computador','DataShow',
   'EEDUCA PE','Fichas de Exercícios','Filmes','GPS','Globo Terrestre','Jogos Pedagógicos',
@@ -13313,6 +13394,18 @@ window.abrirRegistroAulas = async function(){
   const el = document.getElementById('unidade-content');
   if(!el) return;
 
+  // Pré-preenche o curso (SIEPE) automaticamente, com base nos cursos que a
+  // escola oferece + se a disciplina é da FGB ou do Itinerário — só quando
+  // a turma ainda não tem um curso definido manualmente.
+  if(!municipal && !turma.cursoSiepe){
+    const escola = _escolas.find(e=>e.id===turma.escolaId) || _escolasGeridas.find(e=>e.id===turma.escolaId);
+    const cursoCalc = _calcularCursoParaTurma(escola, turma);
+    if(cursoCalc){
+      turma.cursoSiepe = cursoCalc;
+      setDoc(doc(db,...turmaPath(turma.id)), { cursoSiepe: cursoCalc }, { merge:true }).catch(()=>{});
+    }
+  }
+
   if(!turma.gradeHorarios) turma.gradeHorarios = {};
   DIAS_SEMANA_GRADE.forEach(d=>{ if(!Array.isArray(turma.gradeHorarios[d.chave])) turma.gradeHorarios[d.chave] = []; });
 
@@ -13377,14 +13470,204 @@ window.abrirRegistroAulas = async function(){
   <div class="medias-card" id="aulas-lista-card" style="margin-top:14px;">
     <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
       <h4 style="margin:0;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Aulas registradas nesta turma</h4>
-      <button class="atv-card-transferir-btn" onclick="exportarAulasParaSiepe('${turma.id}')">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar para o ${sistemaNome}
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        <button class="atv-card-transferir-btn" onclick="exportarAulasParaSiepe('${turma.id}')" title="Exporta todas as aulas registradas só desta turma">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar esta turma
+        </button>
+        <button class="atv-card-transferir-btn" onclick="toggleExportarPorData()" title="Exporta as aulas de uma data específica, juntando todas as suas turmas num arquivo só">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Exportar por data (todas as turmas)
+        </button>
+        <button class="atv-card-transferir-btn" onclick="toggleExportarPorTurma()" title="Escolha quais turmas entram no mesmo arquivo de exportação">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Exportar por turma (escolher quais)
+        </button>
+      </div>
+    </div>
+    <div id="exportar-por-turma-painel" style="display:none;margin-bottom:12px;padding:10px 12px;background:#f0f6ff;border:1px solid #b3d4fc;border-radius:8px;">
+      <p style="font-size:.76rem;color:var(--pe-muted);margin:0 0 8px;">
+        Marque quais turmas entram no mesmo arquivo — pega <strong>todas as aulas registradas</strong> de cada uma
+        marcada (sem filtrar por data). Útil pra levar de uma vez várias turmas que a extensão vai processar em sequência.
+      </p>
+      <div id="exportar-por-turma-lista" style="max-height:180px;overflow-y:auto;background:#fff;border:1px solid var(--pe-border);border-radius:6px;padding:6px 8px;margin-bottom:8px;">
+        ${_turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t) && (t.cursoSiepe || t.cursoSiec)).map(t=>`
+          <label style="display:flex;align-items:center;gap:6px;font-size:.76rem;padding:2px 0;cursor:pointer;">
+            <input type="checkbox" class="exportar-turma-chk" value="${t.id}" ${t.id===turma.id?'checked':''}>
+            ${t.serie||''} ${t.turma||''} · ${t.disciplina||'(sem disciplina)'} · ${_ehMunicipal(t)?'SIEC':'SIEPE'}
+          </label>`).join('') || `<span style="font-size:.74rem;color:var(--pe-muted);">Nenhuma turma com curso configurado ainda.</span>`}
+      </div>
+      <button class="btn-aplicar-qtd" onclick="exportarAulasPorTurma()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Gerar arquivo
       </button>
+    </div>
+    <div id="exportar-por-data-painel" style="display:none;margin-bottom:12px;padding:10px 12px;background:#f0f6ff;border:1px solid #b3d4fc;border-radius:8px;">
+      <p style="font-size:.76rem;color:var(--pe-muted);margin:0 0 8px;">
+        Gera um arquivo com as aulas de uma data escolhida, reunindo <strong>todas as suas turmas</strong> que tiverem
+        registro naquele dia — um grupo por turma dentro do mesmo arquivo. Serve tanto pra extensão processar várias
+        turmas de uma vez quanto, se algo não funcionar, pra você subir manualmente o mesmo arquivo em cada turma.
+      </p>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <input type="date" id="exportar-por-data-input" class="nota-input" style="max-width:200px;" value="${_hojeISO()}">
+        <button class="btn-aplicar-qtd" onclick="exportarAulasPorData()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Gerar arquivo
+        </button>
+      </div>
     </div>
     <div id="aulas-lista-body"><p style="color:var(--pe-muted);font-size:.8rem;">Carregando...</p></div>
   </div>`;
 
   carregarAulasRegistradas(turma.id);
+};
+
+window.toggleExportarPorData = function(){
+  const painel = document.getElementById('exportar-por-data-painel');
+  if(!painel) return;
+  painel.style.display = painel.style.display==='none' ? 'block' : 'none';
+};
+
+window.toggleExportarPorTurma = function(){
+  const painel = document.getElementById('exportar-por-turma-painel');
+  if(!painel) return;
+  painel.style.display = painel.style.display==='none' ? 'block' : 'none';
+};
+
+window.exportarAulasPorTurma = async function(){
+  const marcadas = [...document.querySelectorAll('.exportar-turma-chk:checked')].map(el=>el.value);
+  if(!marcadas.length){ showToast('Marque ao menos uma turma.', 'error'); return; }
+
+  showLoading('Buscando aulas das turmas escolhidas...');
+  try{
+    const grupos = [];
+
+    for(const turmaId of marcadas){
+      const turma = _turmaPorId(turmaId);
+      if(!turma) continue;
+      const municipal = _ehMunicipal(turma);
+      const snap = await getDocs(collection(db, ...turmaPath(turma.id), 'aulas'));
+      const aulas = [];
+      snap.forEach(d=>aulas.push(d.data()));
+      if(!aulas.length) continue;
+
+      const cursoValor = municipal ? turma.cursoSiec : turma.cursoSiepe;
+      const curso = (municipal ? CURSOS_SIEC : CURSOS_SIEPE).find(c=>c.valor===cursoValor);
+
+      grupos.push({
+        sistema: municipal ? 'SIEC' : 'SIEPE',
+        turma: {
+          nome: `${turma.serie||''} ${turma.turma||''}`.trim(),
+          serieTexto: turma.serie||'', turmaTexto: turma.turma||'',
+          anoLetivo: turma.anoLetivo || new Date().getFullYear(),
+          curso: curso?.valor || cursoValor,
+          ...(municipal ? { turno: TURNO_SIEC_LETRA[turma.turno]||'' } : {}),
+        },
+        aulas: aulas.map(a=>({
+          data: a.data, horarios: a.horarios||[], disciplina: a.disciplina, serie: a.serie,
+          periodo: a.periodo ?? a.trimestre,
+          habilidades: (a.habilidades||[]).map(h=>municipal ? {codigo:h.codigo, objeto:h.objeto, unidadeTematica:h.unidadeTematica} : {codigo:h.codigo, objeto:h.objeto}),
+          conteudo: a.conteudo||'', recursos: a.recursos||[], situacoes: a.situacoes||[],
+          ...(municipal ? {
+            outraHabilidade: a.outraHabilidade||'', habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
+          } : {
+            complementacao: a.complementacao||'',
+          }),
+        })),
+      });
+    }
+
+    hideLoading();
+    if(!grupos.length){
+      showToast('Nenhuma aula registrada nas turmas marcadas.', 'error');
+      return;
+    }
+
+    const payload = {
+      versao: 'nm-aulas-por-turma-v1',
+      exportadoEm: new Date().toISOString(),
+      turmas: grupos,
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const aTag = document.createElement('a');
+    aTag.download = `NM_Aulas_PorTurma_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;
+    aTag.href = url;
+    aTag.click();
+    URL.revokeObjectURL(url);
+    showToast(`${grupos.length} turma(s) exportada(s) num arquivo só!`, 'success');
+  } catch(e){
+    hideLoading();
+    showToast('Erro ao exportar: '+e.message, 'error');
+  }
+};
+
+window.exportarAulasPorData = async function(){
+  const dataEl = document.getElementById('exportar-por-data-input');
+  const data = dataEl?.value;
+  if(!data){ showToast('Escolha uma data.', 'error'); return; }
+
+  showLoading('Buscando aulas dessa data em todas as turmas...');
+  try{
+    // Só considera turmas ativas, não genéricas, e que já têm o curso do
+    // sistema certo configurado (senão não dá pra montar o grupo direito).
+    const turmasElegiveis = _turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t) && (t.cursoSiepe || t.cursoSiec));
+    const grupos = [];
+
+    for(const turma of turmasElegiveis){
+      const municipal = _ehMunicipal(turma);
+      const snap = await getDocs(collection(db, ...turmaPath(turma.id), 'aulas'));
+      const aulasDoDia = [];
+      snap.forEach(d=>{ const a=d.data(); if(a.data===data) aulasDoDia.push(a); });
+      if(!aulasDoDia.length) continue;
+
+      const cursoValor = municipal ? turma.cursoSiec : turma.cursoSiepe;
+      const curso = (municipal ? CURSOS_SIEC : CURSOS_SIEPE).find(c=>c.valor===cursoValor);
+
+      grupos.push({
+        sistema: municipal ? 'SIEC' : 'SIEPE',
+        turma: {
+          nome: `${turma.serie||''} ${turma.turma||''}`.trim(),
+          serieTexto: turma.serie||'', turmaTexto: turma.turma||'',
+          anoLetivo: turma.anoLetivo || new Date().getFullYear(),
+          curso: curso?.valor || cursoValor,
+          ...(municipal ? { turno: TURNO_SIEC_LETRA[turma.turno]||'' } : {}),
+        },
+        aulas: aulasDoDia.map(a=>({
+          data: a.data, horarios: a.horarios||[], disciplina: a.disciplina, serie: a.serie,
+          periodo: a.periodo ?? a.trimestre,
+          habilidades: (a.habilidades||[]).map(h=>municipal ? {codigo:h.codigo, objeto:h.objeto, unidadeTematica:h.unidadeTematica} : {codigo:h.codigo, objeto:h.objeto}),
+          conteudo: a.conteudo||'', recursos: a.recursos||[], situacoes: a.situacoes||[],
+          ...(municipal ? {
+            outraHabilidade: a.outraHabilidade||'', habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
+          } : {
+            complementacao: a.complementacao||'',
+          }),
+        })),
+      });
+    }
+
+    hideLoading();
+    if(!grupos.length){
+      showToast('Nenhuma aula encontrada nessa data, em nenhuma turma.', 'error');
+      return;
+    }
+
+    const payload = {
+      versao: 'nm-aulas-por-data-v1',
+      exportadoEm: new Date().toISOString(),
+      data,
+      turmas: grupos,
+    };
+    const json = JSON.stringify(payload, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const url  = URL.createObjectURL(blob);
+    const aTag = document.createElement('a');
+    aTag.download = `NM_Aulas_PorData_${data}.json`;
+    aTag.href = url;
+    aTag.click();
+    URL.revokeObjectURL(url);
+    showToast(`${grupos.length} turma(s) com aula em ${data} — arquivo exportado!`, 'success');
+  } catch(e){
+    hideLoading();
+    showToast('Erro ao exportar: '+e.message, 'error');
+  }
 };
 
 window.onCursoSiepeChange = async function(turmaId, valor){
