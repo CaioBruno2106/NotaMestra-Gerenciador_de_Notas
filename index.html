@@ -3590,11 +3590,18 @@ body.dark-mode .stat-card-btn:active{
           Formativo (qualquer outra disciplina).
         </p>
         <div style="display:flex;flex-direction:column;gap:6px;">
-          ${CURSO_BASE_OPCOES_EM.map(o=>`
-            <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;">
-              <input type="checkbox" class="escola-curso-ofertado-chk" value="${o.chave}">
-              ${o.label}
-            </label>`).join('')}
+          <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" class="escola-curso-ofertado-chk" value="30h"> Regular (30h)
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" class="escola-curso-ofertado-chk" value="35h"> Integral 35h
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" class="escola-curso-ofertado-chk" value="45h"> Integral 45h
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:.82rem;cursor:pointer;">
+            <input type="checkbox" class="escola-curso-ofertado-chk" value="eja"> EJA
+          </label>
         </div>
       </div>
       <div id="escola-tipo-modal-msg" class="auth-msg" style="margin-top:10px;"></div>
@@ -10687,11 +10694,10 @@ function rerenderTabelaAtvCard(uid, idx){
   // Encontra o container da tabela antiga (é o último .lancamento-tabela do body)
   const body = card.querySelector('.atv-card-body');
   if(!body) return;
-  // Remove tabelas antigas dentro do card
-  body.querySelectorAll('.lancamento-tabela, .unidade-empty').forEach(el=>{
-    // Mantém o aviso "Nenhum aluno" só se for o aviso global do header
-    if(!el.closest('#atividades-section-'+uid)) el.remove();
-  });
+  // Remove tabelas antigas dentro do card (o body já está restrito a este
+  // card, então não precisa checar ancestralidade — antes isso nunca removia
+  // nada, deixando a tabela antiga duplicada/desatualizada na tela)
+  body.querySelectorAll('.lancamento-tabela, .unidade-empty').forEach(el=>el.remove());
   // Adiciona a nova tabela
   const wrapper = document.createElement('div');
   wrapper.innerHTML = renderTabelaAtv(unidade, idx, atv, alunos);
@@ -12347,7 +12353,7 @@ window.onTipoAtvChange = function(uid, idx){
     trabalho: ['tipo-badge-trabalho','<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg> Trabalho'],
   };
   const badge = document.querySelector(`#atv-card-${uid}-${idx} .atv-card-tipo-badge`);
-  if(badge){ badge.className=`atv-card-tipo-badge ${map[tipo][0]}`; badge.textContent=map[tipo][1]; }
+  if(badge){ badge.className=`atv-card-tipo-badge ${map[tipo][0]}`; badge.innerHTML=map[tipo][1]; }
 
   const vP = document.getElementById(`vistos-panel-${uid}-${idx}`);
   const tP = document.getElementById(`trabalho-panel-${uid}-${idx}`);
