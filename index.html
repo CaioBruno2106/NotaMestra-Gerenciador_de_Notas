@@ -6802,7 +6802,10 @@ window.renderModalHorarios = function(){
 };
 
 function _renderHorariosMinhasTurmas(){
-  const turmas = _turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t) && t.criadoPor===_uid);
+  // Turmas pessoais (não vinculadas a uma escola compartilhada) nunca ganham
+  // o campo criadoPor — só turmas criadas dentro do fluxo de gestão de escola
+  // têm esse campo. Ausência de criadoPor também conta como "sua turma".
+  const turmas = _turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t) && (!t.criadoPor || t.criadoPor===_uid));
   if(!turmas.length) return `<div class="ob-empty">Nenhuma turma cadastrada ainda.</div>`;
   return turmas.map(t=>_renderCardHorarioTurma(t)).join('');
 }
