@@ -8759,9 +8759,16 @@ function calcNotaTrabalho(atv, criteriosAluno){
   return arredondarPE(nota).toFixed(1);
 }
 
-function calcNotaTrabalhoNum(atv, criteriosAluno){
+function calcNotaTrabalhoNum(atv, criteriosAluno, ai){
   const v = calcNotaTrabalho(atv, criteriosAluno);
-  return v === '—' ? 0 : parseFloat(v);
+  if(v !== '—') return parseFloat(v);
+  // Sem critérios preenchidos ainda: cai para a nota anterior preservada
+  // (lançamento direto/vistos antes de virar Trabalho), se existir.
+  if(ai!=null && atv.notaAnteriorAluno && atv.notaAnteriorAluno[ai] != null){
+    const anterior = parseFloat(atv.notaAnteriorAluno[ai]);
+    if(!isNaN(anterior)) return anterior;
+  }
+  return 0;
 }
 
 // Verifica se um aluno já possui nota definida para esta atividade de trabalho —
@@ -8944,7 +8951,7 @@ function renderTabelaSoma(unidade, alunos, regras){
         val = parseFloat(calcNotaVistos(atv, marcados))||0;
       } else if(atv.tipo==='trabalho'){
         const crits = (typeof nc?.atv[idx]?.[ai]==='object') ? nc.atv[idx][ai] : {};
-        val = calcNotaTrabalhoNum(atv, crits);
+        val = calcNotaTrabalhoNum(atv, crits, ai);
       } else {
         val = parseFloat(nc?.atv[idx]?.[ai])||0;
       }
@@ -9459,7 +9466,7 @@ function _trabStep3(uid, idx, atv, alunos){
           const crits= (notas[ai]&&typeof notas[ai]==='object')?notas[ai]:{};
           const tds  = colsInd.map(col=>{ const v=trabCritVal(crits,col.s,col.c.id);
             return `<td class="col-visto" style="text-align:center;">${_trabCell(uid,idx,{kind:'ind',ai},col.s,col.c.id,col.c,v,formato)}</td>`; }).join('');
-          return `<tr><td class="col-aluno">${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td></tr>`;
+          return `<tr><td class="col-aluno">${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}">${_trabNotaExibicaoHtml(atv,crits,ai)}</td></tr>`;
         }).join('');
         tabHtml = `<table class="notas-table"><thead><tr><th class="col-aluno">Integrante</th>${ths}<th class="col-nota">Nota</th></tr></thead><tbody>${rows}</tbody></table>`;
       } else {
@@ -9654,7 +9661,7 @@ function _trabStep3(uid, idx, atv, alunos){
         const v = trabCritVal(crits, col.s, col.c.id);
         return `<td class="col-visto" style="text-align:center;" title="${col.c.niveis.join(' | ').replace(/"/g,'&quot;')}">${_trabCell(uid,idx,{kind:'ind',ai},col.s,col.c.id,col.c,v,formato)}</td>`;
       }).join('');
-      return `<tr><td class="col-aluno">${ai+1}. ${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}"><strong>${calcNotaTrabalho(atv,crits)}</strong></td></tr>`;
+      return `<tr><td class="col-aluno">${ai+1}. ${nome}</td>${tds}<td class="col-nota" id="nota-trab-${uid}-${idx}-${ai}">${_trabNotaExibicaoHtml(atv,crits,ai)}</td></tr>`;
     }).join('');
 
     const tabela = membersIdx.length
@@ -9791,7 +9798,7 @@ function _trabEnsureCrit(uid, idx, ai){
 function _trabUpdNotaCell(uid, idx, ai){
   const atv=_atvConfig[uid]?.atividades[idx];
   const cel=document.getElementById(`nota-trab-${uid}-${idx}-${ai}`);
-  if(cel) cel.innerHTML=`<strong>${calcNotaTrabalho(atv,_notasCache[uid].atv[idx][ai])}</strong>`;
+  if(cel) cel.innerHTML=_trabNotaExibicaoHtml(atv,_notasCache[uid].atv[idx][ai],ai);
 }
 function _trabSetVal(uid, idx, ai, sub, critId, val){
   const atv=_atvConfig[uid]?.atividades[idx];
@@ -10774,7 +10781,7 @@ function recalcularPrevia(uid, ai){
       somaAtv += parseFloat(calcNotaVistos(atv, marcados))||0;
     } else if(atv.tipo==='trabalho'){
       const crits = typeof notaAtvRaw==='object' ? notaAtvRaw : {};
-      somaAtv += calcNotaTrabalhoNum(atv, crits);
+      somaAtv += calcNotaTrabalhoNum(atv, crits, ai);
     } else {
       somaAtv += parseFloat(notaAtvRaw)||0;
     }
@@ -10893,7 +10900,7 @@ function calcularNotaUnidadeAluno(uid, ai, regras){
       somaAtv += parseFloat(calcNotaVistos(atv, marcados))||0;
     } else if(atv.tipo==='trabalho'){
       const crits = typeof raw==='object' ? raw : {};
-      somaAtv += calcNotaTrabalhoNum(atv, crits);
+      somaAtv += calcNotaTrabalhoNum(atv, crits, ai);
     } else {
       somaAtv += parseFloat(raw)||0;
     }
@@ -12537,8 +12544,169 @@ const HABILIDADES_EM_PE = {
       ],
     },
   },
-  // Matemática e demais disciplinas: em construção — adicionadas nas próximas etapas.
+  'Matemática': {
+    1: {
+      1: [
+        { codigo:'EM13MAT313PE29', descricao:'Utilizar, quando necessário, a notação científica e sua ordem de grandeza para expressar medida, compreendendo algarismos significativos e duvidosos e reconhecendo que toda medida é uma aproximação.',
+          objetos:['Notação Científica.','Medidas. Ordem de Grandeza.','Algarismos significativos e duvidosos.'] },
+        { codigo:'EM13MAT314PE30', descricao:'Resolver e elaborar situações-problema envolvendo grandezas determinadas pela razão ou pelo produto de outras (aceleração, densidade, energia elétrica, entre outras).',
+          objetos:['Grandezas: razão ou produto de outras grandezas.'] },
+        { codigo:'EM13MAT103PE05', descricao:'Compreender a ideia de grandeza e as conversões possíveis entre elas, identificando-as a partir de experimentos, textos científicos e/ou midiáticos.',
+          objetos:['Ideia e Conversão de Grandezas.'] },
+        { codigo:'EM13MAT103PE06', descricao:'Interpretar textos científicos ou midiáticos, identificando unidades de medida de diferentes grandezas e as conversões possíveis, inseridas ou não no Sistema Internacional (SI).',
+          objetos:['Unidades de Medida de uma Grandeza.','Sistema Internacional (SI).'] },
+        { codigo:'EM13MAT301PE17', descricao:'Resolver e elaborar situações-problema do cotidiano envolvendo equações lineares simultâneas (sistemas de equações do 1º grau), usando técnicas algébricas e gráficas.',
+          objetos:['Equações lineares e sistemas de equações do 1º grau e sua representação gráfica.'] },
+        { codigo:'EM13MAT510PE49', descricao:'Investigar conjuntos de dados relativos ao comportamento de duas variáveis numéricas, levando em conta a variação e utilizando uma reta para descrever a relação observada.',
+          objetos:['Variáveis numéricas e conjunto de dados numéricos.'] },
+        { codigo:'EM13MAT201PE13', descricao:'Propor ou participar de ações adequadas às demandas de sua região/comunidade, envolvendo medições e cálculos de perímetro, área, volume, capacidade e massa, relacionando funções algébricas.',
+          objetos:['Medição e cálculo de perímetro, área, volume, capacidade e massa.','Funções algébricas aplicadas a essas grandezas.'] },
+        { codigo:'EM13MAT201PE14', descricao:'Mobilizar conceitos e propriedades para estabelecer as fórmulas de medida da área e do volume em figuras geométricas, associando-as aos conceitos de "função área" e "função volume".',
+          objetos:['Conceitos, propriedades e medidas de área e volume.'] },
+        { codigo:'EM13MAT307PE23', descricao:'Utilizar diferentes modelos de situações-problema para obtenção da medida da área de uma superfície (aproximação por cortes, composição e decomposição), deduzindo expressões de cálculo.',
+          objetos:['Área de figuras geométricas planas.'] },
+      ],
+      2: [
+        { codigo:'EM13MAT302PE18', descricao:'Construir modelos matemáticos, a partir das leis de formação, para resolver situações-problema envolvendo funções polinomiais do 1º e 2º graus.',
+          objetos:['Sequências numéricas.','Funções polinomiais do 1º e 2º graus.'] },
+        { codigo:'EM13MAT401PE33', descricao:'Converter representações algébricas de funções polinomiais do 1º grau em representações geométricas no plano cartesiano, distinguindo os casos de comportamento proporcional.',
+          objetos:['Funções polinomiais do 1º grau: proporcionalidade.'] },
+        { codigo:'EM13MAT402PE34', descricao:'Converter e analisar representações algébricas de funções polinomiais do 2º grau no plano cartesiano, reconhecendo o papel dos coeficientes a, b e c no gráfico.',
+          objetos:['Funções polinomiais do 2º grau: proporcionalidade.'] },
+        { codigo:'EM13MAT404PE36', descricao:'Analisar funções definidas por uma ou mais sentenças (tabela do Imposto de Renda, contas de luz, água, gás etc.), identificando domínio, imagem, crescimento e decrescimento.',
+          objetos:['Funções: representações algébricas e gráficas.','Domínios de validade. Imagem.','Crescimento e decrescimento.'] },
+        { codigo:'EM13MAT501PE40', descricao:'Investigar relações entre números expressos em tabelas para representá-los no plano cartesiano, reconhecendo quando essa representação é de função polinomial de 1º grau.',
+          objetos:['Função polinomial do 1º grau: relações e representações.','Função modular.'] },
+        { codigo:'EM13MAT502PE41', descricao:'Investigar relações entre números expressos em tabelas, reconhecendo quando essa representação é de função polinomial de 2º grau do tipo y = ax².',
+          objetos:['Função polinomial do 2º grau: relações e representações.'] },
+      ],
+      3: [
+        { codigo:'EM13MAT503PE42', descricao:'Investigar e reconhecer pontos de máximo ou de mínimo de funções quadráticas em contextos envolvendo superfícies, Matemática Financeira ou Cinemática.',
+          objetos:['Pontos de máximo e de mínimo de funções quadráticas.'] },
+        { codigo:'EM13MAT101PE01', descricao:'Interpretar criticamente situações econômicas, sociais e fatos relativos às Ciências da Natureza que envolvam variação de grandezas, pela análise de gráficos de funções e taxas de variação.',
+          objetos:['Gráficos de funções.','Variação de grandezas.','Taxas de variação.'] },
+        { codigo:'EM13MAT507PE46', descricao:'Identificar e associar progressões aritméticas (PA) a funções afins de domínios discretos, para análise de propriedades, dedução de fórmulas e resolução de problemas.',
+          objetos:['Função afim de domínio discreto.','Progressão aritmética.'] },
+        { codigo:'EM13MAT508PE47', descricao:'Identificar e associar progressões geométricas (PG) a funções exponenciais de domínios discretos, para análise de propriedades, dedução de fórmulas e resolução de problemas.',
+          objetos:['Função exponencial de domínio discreto.','Progressão geométrica.'] },
+        { codigo:'EM13MAT104PE07', descricao:'Compreender e aplicar o conceito de taxa e de índice, investigando, analisando criticamente e produzindo argumentos no contexto socioeconômico.',
+          objetos:['Conceitos de taxa e índice: compreensão e aplicação.'] },
+        { codigo:'EM13MAT202PE15', descricao:'Realizar pesquisa amostral, comunicando os resultados por meio de relatórios com gráficos e interpretação das medidas de tendência central e de dispersão (amplitude e desvio padrão).',
+          objetos:['Dados de pesquisas estatísticas.','Gráficos estatísticos.','Medidas de tendência central e de dispersão.'] },
+      ],
+    },
+    2: {
+      1: [
+        { codigo:'EM13MAT316PE32', descricao:'Resolver e elaborar situações-problema envolvendo cálculo e interpretação das medidas de tendência central (média, moda, mediana) e de dispersão (amplitude, variância, desvio padrão).',
+          objetos:['Medidas de tendência central e de dispersão.'] },
+        { codigo:'EM13MAT406PE38', descricao:'Construir e interpretar tabelas e gráficos de frequências com base em dados de pesquisas estatísticas relacionadas ao cotidiano.',
+          objetos:['Gráficos e tabelas de frequências de pesquisas estatísticas.'] },
+        { codigo:'EM13MAT104PE08', descricao:'Interpretar conceitos envolvendo taxas e índices na resolução de situações-problema relacionadas às atividades humanas (taxas de inflação, entre outras).',
+          objetos:['Conceitos de taxa e índice: resolução de situações-problema.'] },
+        { codigo:'EM13MAT104PE09', descricao:'Investigar os processos de cálculo envolvendo taxas e índices de natureza socioeconômica (IR, ICMS, IPTU, IPVA), a fim de produzir análise e argumentos.',
+          objetos:['Conceitos de taxa e índice: investigação.'] },
+        { codigo:'EM13MAT203PE16', descricao:'Utilizar conceitos matemáticos no planejamento, execução e análise de ações com aplicativos e planilhas (controle de orçamento familiar, simuladores de juros simples e compostos).',
+          objetos:['Planilhas financeiras: planejamento, execução e análise orçamentária e de renda.'] },
+      ],
+      2: [
+        { codigo:'EM13MAT102PE02', descricao:'Analisar informações de natureza científica e social obtidas da leitura de amostras de pesquisas estatísticas, gráficos, infográficos e tabelas, prevendo tendências que podem induzir a erros.',
+          objetos:['Pesquisas estatísticas: tabelas, gráficos e infográficos.'] },
+        { codigo:'EM13MAT102PE03', descricao:'Interpretar e utilizar tabelas e gráficos, construindo argumentos e/ou inferências e identificando possíveis inadequações que induzam ao erro de interpretação (escalas e amostras não apropriadas).',
+          objetos:['Tabelas e gráficos: argumentos e/ou inferências, inadequações.'] },
+        { codigo:'EM13MAT102PE04', descricao:'Analisar criticamente amostras de pesquisas estatísticas apresentadas em relatórios divulgados por diferentes meios de comunicação.',
+          objetos:['Amostras de pesquisas estatísticas.'] },
+        { codigo:'EM13MAT310PE26', descricao:'Resolver e elaborar situações-problema de contagem envolvendo agrupamentos que dependam ou não da ordem dos elementos, por meio dos princípios multiplicativo e aditivo e da Análise Combinatória.',
+          objetos:['Agrupamentos de elementos (dependentes ou não da ordem, com ou sem repetição).','Princípio multiplicativo e aditivo.','Análise Combinatória: permutação, arranjo e combinação.'] },
+        { codigo:'EM13MAT505PE44', descricao:'Investigar e resolver situações-problema sobre ladrilhamento do plano, conjecturando sobre tipos ou composição de polígonos utilizáveis, generalizando padrões observados.',
+          objetos:['Polígonos: tipos ou composições.'] },
+        { codigo:'EM13MAT505PE45', descricao:'Representar e interpretar graficamente a variação da área e do perímetro de um polígono regular quando os comprimentos de seus lados variam, classificando as funções envolvidas.',
+          objetos:['Polígonos regulares: área e perímetro.'] },
+      ],
+      3: [
+        { codigo:'EM13MAT309PE25', descricao:'Resolver e elaborar situações-problema envolvendo cálculo de áreas totais e volumes de sólidos geométricos (prismas, pirâmides e corpos redondos).',
+          objetos:['Áreas e volumes de sólidos geométricos.'] },
+        { codigo:'EM13MAT304PE20', descricao:'Resolver e elaborar situações-problema envolvendo funções exponenciais, interpretando a variação das grandezas envolvidas (Matemática Financeira, entre outros contextos).',
+          objetos:['Funções exponenciais: variação de grandezas.'] },
+        { codigo:'EM13MAT305PE21', descricao:'Resolver e elaborar situações-problema envolvendo funções logarítmicas, interpretando a variação das grandezas (radioatividade, Matemática Financeira, entre outros contextos).',
+          objetos:['Funções logarítmicas: variação de grandezas.'] },
+        { codigo:'EM13MAT403PE35', descricao:'Analisar e estabelecer relações entre representações de funções exponenciais e logarítmicas expressas em tabelas e planos cartesianos, identificando características fundamentais como funções inversas.',
+          objetos:['Funções exponenciais e logarítmicas: relações, representações e características.'] },
+        { codigo:'EM13MAT308PE24a', descricao:'Aplicar as relações métricas e as noções de congruência e semelhança para resolver e elaborar situações-problema que envolvam triângulos em variados contextos.',
+          objetos:['Congruência e semelhança de triângulos.','Relações métricas e razões trigonométricas no triângulo retângulo.'] },
+      ],
+    },
+    3: {
+      1: [
+        { codigo:'EM13MAT303PE19', descricao:'Interpretar e comparar situações-problema envolvendo juros simples e compostos, usando planilhas e gráficos, enfatizando o comportamento linear e exponencial de cada caso.',
+          objetos:['Juros simples e compostos: planilhas e gráficos de funções afins e exponenciais.'] },
+        { codigo:'EM13MAT308PE24b', descricao:'Aplicar as leis de seno e cosseno para resolver e elaborar situações-problema que envolvam triângulos em variados contextos.',
+          objetos:['Leis do seno e cosseno.'] },
+        { codigo:'EM13MAT306PE22', descricao:'Resolver e elaborar situações-problema envolvendo as funções seno e cosseno, comparando com contextos de fenômenos cíclicos (círculo trigonométrico) e periódicos.',
+          objetos:['Funções seno e cosseno.'] },
+        { codigo:'EM13MAT105PE10', descricao:'Identificar e interpretar as transformações isométricas (translação, reflexão, rotação e composições) para construir figuras, analisando elementos da natureza e produções humanas.',
+          objetos:['Transformações isométricas.'] },
+        { codigo:'EM13MAT105PE11', descricao:'Aplicar as transformações homotéticas para construir e analisar figuras da natureza e diferentes produções humanas (fractais, construções civis, obras de arte, entre outras).',
+          objetos:['Transformações homotéticas.'] },
+      ],
+      2: [
+        { codigo:'EM13MAT509PE48', descricao:'Compreender e investigar a deformação de ângulos e áreas decorrentes de diferentes projeções usadas em cartografia ou em outros contextos (ortogonal, cilíndrica e cônica).',
+          objetos:['Ângulos e áreas: projeções.'] },
+        { codigo:'EM13MAT504PE43', descricao:'Investigar e compreender processos de obtenção da medida do volume de prismas, pirâmides, cilindros, cones e esferas, incluindo o princípio de Cavalieri.',
+          objetos:['Volume dos prismas, pirâmides, cilindros, cones e esferas.','Princípio de Cavalieri.'] },
+        { codigo:'EM13MAT407PE39', descricao:'Interpretar e comparar conjuntos de dados estatísticos por meio de diferentes diagramas, tabelas e gráficos (histograma, box-plot, ramos e folhas), identificando os mais eficientes para análise.',
+          objetos:['Diagramas, tabelas e gráficos de pesquisas estatísticas.'] },
+        { codigo:'EM13MAT106PE12', descricao:'Identificar e interpretar situações do cotidiano envolvendo riscos probabilísticos em que é necessário fazer escolhas (método contraceptivo, tratamento médico, entre outros).',
+          objetos:['Riscos probabilísticos.'] },
+      ],
+      3: [
+        { codigo:'EM13MAT311PE27', descricao:'Identificar e descrever o espaço amostral de eventos aleatórios, realizando contagem das possibilidades, para resolver e elaborar situações-problema envolvendo cálculo de probabilidade.',
+          objetos:['Probabilidade: espaço amostral e contagem.'] },
+        { codigo:'EM13MAT312PE28', descricao:'Resolver e elaborar situações-problema envolvendo cálculo de probabilidade (simples, da união, da interseção, condicional) de eventos em experimentos aleatórios sucessivos.',
+          objetos:['Probabilidade: cálculos simples, da união, da interseção, condicional.'] },
+        { codigo:'EM13MAT511PE50', descricao:'Reconhecer a existência de diferentes tipos de espaços amostrais, discretos ou não, e de eventos, equiprováveis ou não, investigando implicações no cálculo de probabilidades.',
+          objetos:['Probabilidade: espaços amostrais discretos ou não; eventos equiprováveis ou não.'] },
+        { codigo:'EM13MAT315PE31', descricao:'Investigar e registrar, por meio de um fluxograma, se possível, um algoritmo que resolva uma situação-problema.',
+          objetos:['Algoritmo e fluxograma.'] },
+        { codigo:'EM13MAT405PE37', descricao:'Utilizar conceitos ou noções iniciais de uma linguagem de programação na implementação de algoritmos escritos em língua materna e/ou na linguagem matemática.',
+          objetos:['Algoritmos de programação.'] },
+      ],
+    },
+  },
+  // Demais disciplinas: em construção — adicionadas nas próximas etapas.
 };
+
+// ── Listas fixas do SIEPE (curso, recurso didático, situação didática) ──
+const CURSOS_SIEPE = [
+  { valor:'EM35', label:'EM35 — Ensino Médio' },
+  { valor:'EM35-ITFT', label:'EM35-ITFT — Ensino Médio com Itinerários' },
+];
+
+const RECURSOS_DIDATICOS_SIEPE = [
+  'Aparelho de DVD','Aparelho de SOM','Aparelho de TV','Calculadora','Computador','DataShow',
+  'EEDUCA PE','Fichas de Exercícios','Filmes','GPS','Globo Terrestre','Jogos Pedagógicos',
+  'Jornais e Revistas','Livro Didático','Livro Paradidático','Mapas','Microscópio','Música',
+  'Plataforma de Vídeo Aulas','Rede Sociais','Redes Sociais','Sites da WEB','Slides em PowerPoint',
+  'Software','Textos Escritos','Vídeos da TV Escola','Outros',
+];
+
+const SITUACOES_DIDATICAS_SIEPE = [
+  'Sem situação didática',
+  'Apresentação de situações problemas c mediação p construção de estrategias q solucionem os problemas',
+  'Construção de jogos e materiais pedagógicos',
+  'Construção de maquetes e croquis',
+  'Construção de textos escritos individual e/ou coletivos',
+  'Debates',
+  'Estudo dirigido',
+  'Exposição do conteúdo',
+  'Leitura e analise interpretativa de textos',
+  'Realização de excursões e visitas-museus,espaço,ciências,laboratórios,cinema,teatro,universidade...',
+  'Realização de pesquisas individual e/ ouem grupo',
+  'Realização de projeto pedagógico interdisciplinar',
+  'Realização experimentos cientifico',
+  'Resolução de exercicio individual e/ou em grupo',
+  'Trabalho em grupo',
+  'Outros',
+];
 
 // ── Aba "Aulas" — Registro de Aulas (Fase 1: Grade de Horários) ─────
 const DIAS_SEMANA_GRADE = [
@@ -12563,33 +12731,65 @@ window.abrirRegistroAulas = async function(){
   if(!turma.gradeHorarios) turma.gradeHorarios = {};
   DIAS_SEMANA_GRADE.forEach(d=>{ if(!Array.isArray(turma.gradeHorarios[d.chave])) turma.gradeHorarios[d.chave] = []; });
 
+  // Reinicia o estado de trabalho do formulário de aula a cada abertura da aba
+  window._aulaForm = {
+    disciplina:'', serie:'', trimestre:'',
+    habilidadesSelecionadas:[],   // [{codigo, objeto}]
+    conteudo:'', complementacao:'',
+    recurso:'', recursoOutro:'',
+    situacao:'', situacaoOutro:'',
+    aplicacoes:[ { turmaId: turma.id, data: _hojeISO(), horarios: [] } ],
+  };
+
+  const collGrade = !!window._painelColapsado?.['grade-'+turma.id+'-0'];
+
   el.innerHTML = `
   <div class="medias-card" style="margin-bottom:14px;">
     <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Registro de Aulas</h4>
     <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
-      Cadastre habilidades trabalhadas em uma aula e aplique automaticamente pra outras turmas e datas —
-      depois exporte tudo pra preencher no SIEPE. Essa área está sendo construída aos poucos; por enquanto,
-      configure a grade de horários da turma abaixo (isso é usado nos próximos passos).
+      Cadastre a habilidade/objeto de conhecimento trabalhados numa aula, escreva o conteúdo e aplique
+      automaticamente pra outras turmas e datas. Depois exporte tudo pra preencher no SIEPE.
     </p>
   </div>
 
   <div class="medias-card" id="grade-horarios-card">
-    <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Grade de horários da turma</h4>
-    <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 14px;">
-      Pra cada dia com aula, cadastre um rótulo (ex.: "1º horário — 07:00-07:50") e o <strong>ID do horário no SIEPE</strong>
-      (o número interno que aparece ao marcar aquele horário na tela "Registro de Conteúdos Curriculares Trabalhados" — dá pra
-      conferir inspecionando o checkbox do horário, ou perguntando pra extensão depois de marcar uma vez).
-      Isso pode ser preenchido pela coordenação/gestão ou pelo próprio professor.
-    </p>
-    <div id="grade-horarios-dias">
-      ${DIAS_SEMANA_GRADE.map(d=>_renderDiaGradeHorarios(d)).join('')}
+    <div class="vistos-config-title" onclick="toggleAtvSubPainel('grade','${turma.id}',0)" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:8px;user-select:none;padding:0;background:none;border:none;">
+      <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> Grade de horários da turma</span>
+      <span id="grade-painel-chevron-${turma.id}-0" style="font-size:.68rem;transition:transform .2s;flex-shrink:0;${collGrade?'transform:rotate(-90deg);':''}">▼</span>
     </div>
-    <button class="btn-aplicar-qtd" style="margin-top:10px;" onclick="salvarGradeHorarios()">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar grade de horários
-    </button>
-    <div id="grade-horarios-msg" class="ob-msg" style="margin-top:8px;"></div>
+    <div id="grade-painel-body-${turma.id}-0" style="${collGrade?'display:none;':''}margin-top:10px;">
+      <p style="color:var(--pe-muted);font-size:.8rem;margin:0 0 14px;">
+        Pra cada dia com aula, cadastre um rótulo (ex.: "1º horário — 07:00-07:50") e o <strong>ID do horário no SIEPE</strong>
+        (o número interno do checkbox daquele horário na tela "Registro de Conteúdos Curriculares Trabalhados").
+        Isso pode ser preenchido pela coordenação/gestão ou pelo próprio professor.
+      </p>
+      <div id="grade-horarios-dias">
+        ${DIAS_SEMANA_GRADE.map(d=>_renderDiaGradeHorarios(d)).join('')}
+      </div>
+      <button class="btn-aplicar-qtd" style="margin-top:10px;" onclick="salvarGradeHorarios()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> Salvar grade de horários
+      </button>
+      <div id="grade-horarios-msg" class="ob-msg" style="margin-top:8px;"></div>
+    </div>
+  </div>
+
+  <div class="medias-card" id="aula-form-card" style="margin-top:14px;">
+    <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg> Registrar aula</h4>
+    <div id="aula-form-body">${_renderFormularioAula()}</div>
+  </div>
+
+  <div class="medias-card" id="aulas-lista-card" style="margin-top:14px;">
+    <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg> Aulas registradas nesta turma</h4>
+    <div id="aulas-lista-body"><p style="color:var(--pe-muted);font-size:.8rem;">Carregando...</p></div>
   </div>`;
+
+  carregarAulasRegistradas(turma.id);
 };
+
+function _hojeISO(){
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
 
 function _renderDiaGradeHorarios(dia){
   const turma = _turmaAtual;
@@ -12661,6 +12861,293 @@ window.salvarGradeHorarios = async function(){
   } catch(e){
     if(msgEl){ msgEl.textContent = 'Erro ao salvar: '+e.message; msgEl.className = 'ob-msg error'; }
     showToast('Erro ao salvar grade de horários: '+e.message, 'error');
+  }
+};
+
+// ── Fase 3 — Formulário de Registro de Aula ─────────────────────────
+
+function _renderFormularioAula(){
+  const f = window._aulaForm;
+  const disciplinas = Object.keys(HABILIDADES_EM_PE);
+
+  return `
+  <div class="grade-horarios-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+    <div style="flex:1;min-width:180px;">
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Disciplina</label>
+      <select id="aula-disciplina" class="nota-input" style="width:100%;" onchange="onDisciplinaAulaChange(this.value)">
+        <option value="">— Selecionar —</option>
+        ${disciplinas.map(d=>`<option value="${d}" ${f.disciplina===d?'selected':''}>${d}</option>`).join('')}
+      </select>
+    </div>
+    <div style="flex:1;min-width:140px;">
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Série</label>
+      <select id="aula-serie" class="nota-input" style="width:100%;" onchange="onSerieAulaChange(this.value)">
+        <option value="">— Selecionar —</option>
+        <option value="1" ${f.serie==1?'selected':''}>1º Ano</option>
+        <option value="2" ${f.serie==2?'selected':''}>2º Ano</option>
+        <option value="3" ${f.serie==3?'selected':''}>3º Ano</option>
+      </select>
+    </div>
+    <div style="flex:1;min-width:140px;">
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Trimestre</label>
+      <select id="aula-trimestre" class="nota-input" style="width:100%;" onchange="onTrimestreAulaChange(this.value)">
+        <option value="">— Selecionar —</option>
+        <option value="1" ${f.trimestre==1?'selected':''}>1º Trimestre</option>
+        <option value="2" ${f.trimestre==2?'selected':''}>2º Trimestre</option>
+        <option value="3" ${f.trimestre==3?'selected':''}>3º Trimestre</option>
+      </select>
+    </div>
+  </div>
+
+  <div style="margin-bottom:14px;">
+    <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:6px;">Habilidade(s) e objeto(s) de conhecimento</label>
+    <div id="aula-habilidades-lista">${_renderHabilidadesLista()}</div>
+  </div>
+
+  <div style="margin-bottom:14px;">
+    <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Conteúdo trabalhado *</label>
+    <textarea id="aula-conteudo" class="nota-input" style="width:100%;min-height:70px;font-family:inherit;"
+      placeholder="Descreva o conteúdo trabalhado nesta aula..."
+      onchange="window._aulaForm.conteudo=this.value">${f.conteudo||''}</textarea>
+  </div>
+
+  <div style="margin-bottom:14px;">
+    <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Complementação de conteúdos <span style="font-weight:400;color:var(--pe-muted);">(opcional)</span></label>
+    <textarea id="aula-complementacao" class="nota-input" style="width:100%;min-height:50px;font-family:inherit;"
+      placeholder="Complementação opcional..."
+      onchange="window._aulaForm.complementacao=this.value">${f.complementacao||''}</textarea>
+  </div>
+
+  <div class="grade-horarios-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+    <div style="flex:1;min-width:220px;">
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Recurso didático</label>
+      <select id="aula-recurso" class="nota-input" style="width:100%;" onchange="onRecursoAulaChange(this.value)">
+        <option value="">— Selecionar —</option>
+        ${RECURSOS_DIDATICOS_SIEPE.map(r=>`<option value="${r}" ${f.recurso===r?'selected':''}>${r}</option>`).join('')}
+      </select>
+      ${f.recurso==='Outros' ? `<input type="text" id="aula-recurso-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique o recurso..." value="${f.recursoOutro||''}" onchange="window._aulaForm.recursoOutro=this.value">` : ''}
+    </div>
+    <div style="flex:1;min-width:220px;">
+      <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:4px;">Situação didática</label>
+      <select id="aula-situacao" class="nota-input" style="width:100%;" onchange="onSituacaoAulaChange(this.value)">
+        <option value="">— Selecionar —</option>
+        ${SITUACOES_DIDATICAS_SIEPE.map(s=>`<option value="${s}" ${f.situacao===s?'selected':''}>${s}</option>`).join('')}
+      </select>
+      ${f.situacao==='Outros' ? `<input type="text" id="aula-situacao-outro" class="nota-input" style="width:100%;margin-top:6px;" placeholder="Especifique a situação..." value="${f.situacaoOutro||''}" onchange="window._aulaForm.situacaoOutro=this.value">` : ''}
+    </div>
+  </div>
+
+  <div style="margin-bottom:10px;">
+    <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:6px;">Aplicar para (turma, data e horários)</label>
+    <div id="aula-aplicacoes-lista">${_renderAplicacoesLista()}</div>
+    <button type="button" class="atv-card-transferir-btn" style="margin-top:8px;" onclick="adicionarAplicacaoAula()">+ Adicionar turma/data</button>
+  </div>
+
+  <button class="btn-aplicar-qtd" onclick="registrarAula()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg> Registrar aula
+  </button>
+  <div id="aula-form-msg" class="ob-msg" style="margin-top:8px;"></div>`;
+}
+
+function _renderHabilidadesLista(){
+  const f = window._aulaForm;
+  if(!f.disciplina || !f.serie || !f.trimestre){
+    return `<p style="color:var(--pe-muted);font-size:.8rem;">Escolha disciplina, série e trimestre pra ver as habilidades.</p>`;
+  }
+  const lista = HABILIDADES_EM_PE[f.disciplina]?.[f.serie]?.[f.trimestre] || [];
+  if(!lista.length){
+    return `<p style="color:var(--pe-muted);font-size:.8rem;">Nenhuma habilidade cadastrada ainda pra essa combinação.</p>`;
+  }
+  return lista.map(h=>`
+    <div style="border:1.5px solid var(--pe-border);border-radius:6px;padding:8px 10px;margin-bottom:8px;">
+      <div style="font-size:.78rem;font-weight:700;color:var(--pe-blue);margin-bottom:2px;">${h.codigo}</div>
+      <div style="font-size:.72rem;color:var(--pe-muted);margin-bottom:6px;">${h.descricao}</div>
+      ${h.objetos.map(obj=>{
+        const marcado = f.habilidadesSelecionadas.some(s=>s.codigo===h.codigo && s.objeto===obj);
+        return `<label style="display:flex;align-items:flex-start;gap:6px;font-size:.76rem;margin-bottom:4px;cursor:pointer;">
+          <input type="checkbox" ${marcado?'checked':''} style="margin-top:2px;"
+            onchange="toggleHabilidadeObjeto('${h.codigo.replace(/'/g,"\\'")}','${obj.replace(/'/g,"\\'")}')">
+          <span>${obj}</span>
+        </label>`;
+      }).join('')}
+    </div>`).join('');
+}
+
+window.onDisciplinaAulaChange = function(v){
+  window._aulaForm.disciplina = v;
+  window._aulaForm.serie = ''; window._aulaForm.trimestre = '';
+  window._aulaForm.habilidadesSelecionadas = [];
+  document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
+};
+window.onSerieAulaChange = function(v){
+  window._aulaForm.serie = v;
+  window._aulaForm.habilidadesSelecionadas = [];
+  document.getElementById('aula-habilidades-lista').innerHTML = _renderHabilidadesLista();
+};
+window.onTrimestreAulaChange = function(v){
+  window._aulaForm.trimestre = v;
+  window._aulaForm.habilidadesSelecionadas = [];
+  document.getElementById('aula-habilidades-lista').innerHTML = _renderHabilidadesLista();
+};
+window.toggleHabilidadeObjeto = function(codigo, objeto){
+  const f = window._aulaForm;
+  const i = f.habilidadesSelecionadas.findIndex(s=>s.codigo===codigo && s.objeto===objeto);
+  if(i>=0) f.habilidadesSelecionadas.splice(i,1);
+  else f.habilidadesSelecionadas.push({codigo, objeto});
+};
+window.onRecursoAulaChange = function(v){
+  window._aulaForm.recurso = v; window._aulaForm.recursoOutro = '';
+  document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
+};
+window.onSituacaoAulaChange = function(v){
+  window._aulaForm.situacao = v; window._aulaForm.situacaoOutro = '';
+  document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
+};
+
+function _renderAplicacoesLista(){
+  const f = window._aulaForm;
+  return f.aplicacoes.map((ap,ai)=>{
+    const turma = _turmas.find(t=>t.id===ap.turmaId);
+    const horariosDisp = turma ? horariosDoDia(turma, ap.data) : [];
+    return `
+    <div class="grade-horarios-row" style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px;padding:8px;background:#f8f9fa;border-radius:6px;">
+      <select class="nota-input" style="flex:2;min-width:180px;" onchange="onAplicacaoTurmaChange(${ai},this.value)">
+        <option value="">— Turma —</option>
+        ${_turmas.filter(t=>t.ativo!==false).map(t=>`<option value="${t.id}" ${ap.turmaId===t.id?'selected':''}>${t.nome||t.serie+' '+t.turma}</option>`).join('')}
+      </select>
+      <input type="date" class="nota-input" style="flex:1;min-width:140px;" value="${ap.data||''}" onchange="onAplicacaoDataChange(${ai},this.value)">
+      <div style="flex:2;min-width:200px;display:flex;flex-wrap:wrap;gap:6px;">
+        ${horariosDisp.length ? horariosDisp.map(h=>{
+          const marcado = ap.horarios.includes(h.id);
+          return `<label style="display:flex;align-items:center;gap:4px;font-size:.74rem;background:#fff;border:1px solid var(--pe-border);border-radius:4px;padding:3px 7px;cursor:pointer;">
+            <input type="checkbox" ${marcado?'checked':''} onchange="toggleHorarioAplicacao(${ai},'${h.id}')"> ${h.label||h.id}
+          </label>`;
+        }).join('') : `<span style="font-size:.72rem;color:var(--pe-muted);">${turma?'Sem horários cadastrados pra esse dia':'Escolha a turma'}</span>`}
+      </div>
+      <button type="button" class="atv-card-limpar-btn" onclick="removerAplicacaoAula(${ai})" ${f.aplicacoes.length<=1?'disabled style="opacity:.35;"':''}>Remover</button>
+    </div>`;
+  }).join('');
+}
+
+window.adicionarAplicacaoAula = function(){
+  window._aulaForm.aplicacoes.push({ turmaId:'', data:_hojeISO(), horarios:[] });
+  document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
+};
+window.removerAplicacaoAula = function(ai){
+  if(window._aulaForm.aplicacoes.length<=1) return;
+  window._aulaForm.aplicacoes.splice(ai,1);
+  document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
+};
+window.onAplicacaoTurmaChange = function(ai, v){
+  window._aulaForm.aplicacoes[ai].turmaId = v;
+  window._aulaForm.aplicacoes[ai].horarios = [];
+  document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
+};
+window.onAplicacaoDataChange = function(ai, v){
+  window._aulaForm.aplicacoes[ai].data = v;
+  window._aulaForm.aplicacoes[ai].horarios = [];
+  document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
+};
+window.toggleHorarioAplicacao = function(ai, horarioId){
+  const ap = window._aulaForm.aplicacoes[ai];
+  const i = ap.horarios.indexOf(horarioId);
+  if(i>=0) ap.horarios.splice(i,1); else ap.horarios.push(horarioId);
+};
+
+function horariosDoDia(turma, dataStr){
+  if(!dataStr || !turma?.gradeHorarios) return [];
+  const dt = new Date(dataStr+'T00:00:00');
+  const chaves = ['dom','seg','ter','qua','qui','sex','sab'];
+  const chave = chaves[dt.getDay()];
+  return turma.gradeHorarios[chave] || [];
+}
+
+window.registrarAula = async function(){
+  const f = window._aulaForm;
+  const msgEl = document.getElementById('aula-form-msg');
+  const erro = (txt)=>{ if(msgEl){ msgEl.textContent = txt; msgEl.className='ob-msg error'; } showToast(txt,'error'); };
+
+  if(!f.disciplina || !f.serie || !f.trimestre) return erro('Escolha disciplina, série e trimestre.');
+  if(!f.habilidadesSelecionadas.length) return erro('Marque ao menos um objeto de conhecimento.');
+  if(!(f.conteudo||'').trim()) return erro('Preencha o conteúdo trabalhado.');
+  if(!f.recurso) return erro('Escolha o recurso didático.');
+  if(f.recurso==='Outros' && !(f.recursoOutro||'').trim()) return erro('Especifique o recurso didático.');
+  if(!f.situacao) return erro('Escolha a situação didática.');
+  if(f.situacao==='Outros' && !(f.situacaoOutro||'').trim()) return erro('Especifique a situação didática.');
+  const aplicacoesValidas = f.aplicacoes.filter(a=>a.turmaId && a.data);
+  if(!aplicacoesValidas.length) return erro('Preencha ao menos uma turma e data em "Aplicar para".');
+
+  showLoading('Registrando aula...');
+  try{
+    const payloadBase = {
+      disciplina: f.disciplina, serie: Number(f.serie), trimestre: Number(f.trimestre),
+      habilidades: f.habilidadesSelecionadas,
+      conteudo: f.conteudo.trim(),
+      complementacao: (f.complementacao||'').trim(),
+      recurso: f.recurso==='Outros' ? f.recursoOutro.trim() : f.recurso,
+      situacao: f.situacao==='Outros' ? f.situacaoOutro.trim() : f.situacao,
+      criadoEm: new Date().toISOString(),
+    };
+
+    for(const ap of aplicacoesValidas){
+      await addDoc(collection(db, ...turmaPath(ap.turmaId), 'aulas'), {
+        ...payloadBase, data: ap.data, horarios: ap.horarios,
+      });
+    }
+
+    hideLoading();
+    showToast(`Aula registrada em ${aplicacoesValidas.length} turma(s)/data(s)!`, 'success');
+    if(msgEl){ msgEl.textContent = ''; msgEl.className = 'ob-msg'; }
+
+    // Reseta o formulário mantendo a turma atual como primeira aplicação
+    window._aulaForm = {
+      disciplina:'', serie:'', trimestre:'',
+      habilidadesSelecionadas:[], conteudo:'', complementacao:'',
+      recurso:'', recursoOutro:'', situacao:'', situacaoOutro:'',
+      aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[] } ],
+    };
+    document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
+    carregarAulasRegistradas(_turmaAtual.id);
+  } catch(e){
+    hideLoading();
+    erro('Erro ao registrar: '+e.message);
+  }
+};
+
+window.carregarAulasRegistradas = async function(turmaId){
+  const listaEl = document.getElementById('aulas-lista-body');
+  if(!listaEl) return;
+  try{
+    const snap = await getDocs(collection(db, ...turmaPath(turmaId), 'aulas'));
+    if(snap.empty){
+      listaEl.innerHTML = `<p style="color:var(--pe-muted);font-size:.8rem;">Nenhuma aula registrada ainda.</p>`;
+      return;
+    }
+    const itens = [];
+    snap.forEach(d=>itens.push({id:d.id, ...d.data()}));
+    itens.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
+    listaEl.innerHTML = itens.map(a=>`
+      <div style="border:1.5px solid var(--pe-border);border-radius:6px;padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
+        <div style="font-size:.78rem;">
+          <strong>${a.data||'—'}</strong> · ${a.disciplina||''} · ${a.serie}º Ano · ${a.trimestre}º Trim.
+          <div style="color:var(--pe-muted);margin-top:2px;">${(a.habilidades||[]).map(h=>h.codigo).join(', ')}</div>
+          <div style="color:var(--pe-muted);margin-top:2px;">${(a.conteudo||'').slice(0,120)}${(a.conteudo||'').length>120?'...':''}</div>
+        </div>
+        <button type="button" class="atv-card-limpar-btn" onclick="excluirAulaRegistrada('${turmaId}','${a.id}')">Excluir</button>
+      </div>`).join('');
+  } catch(e){
+    listaEl.innerHTML = `<p style="color:var(--pe-red);font-size:.8rem;">Erro ao carregar: ${e.message}</p>`;
+  }
+};
+
+window.excluirAulaRegistrada = async function(turmaId, aulaId){
+  if(!confirm('Excluir esta aula registrada? Essa ação não pode ser desfeita.')) return;
+  try{
+    await deleteDoc(doc(db, ...turmaPath(turmaId), 'aulas', aulaId));
+    showToast('Aula excluída.', 'success');
+    carregarAulasRegistradas(turmaId);
+  } catch(e){
+    showToast('Erro ao excluir: '+e.message, 'error');
   }
 };
 
@@ -12812,14 +13299,21 @@ window.exportarUnidadeParaSiepe = function(uidStr){
     const atv = cfg.atividades[idx];
     if(!atv) return null;
     const raw = nc.atv[idx]?.[ai];
+
+    if(atv.tipo==='trabalho'){
+      const crits = (raw && typeof raw==='object') ? raw : {};
+      const temCrits    = Object.keys(crits).length > 0;
+      const temAnterior = atv.notaAnteriorAluno && atv.notaAnteriorAluno[ai] != null;
+      if(!temCrits && !temAnterior && (raw==null || raw==='')) return null;
+      const val = calcNotaTrabalhoNum(atv, crits, ai);
+      return isNaN(val) ? null : val;
+    }
+
     if(raw==null || raw===''){ return null; }
     let val;
     if(atv.tipo==='vistos'){
       const marc = (raw && typeof raw==='object') ? raw : {};
       val = parseFloat(calcNotaVistos(atv, marc));
-    } else if(atv.tipo==='trabalho'){
-      const crits = (raw && typeof raw==='object') ? raw : {};
-      val = calcNotaTrabalhoNum(atv, crits);
     } else {
       val = parseFloat(raw);
     }
@@ -12903,7 +13397,7 @@ function _exp_boletimHTMLAluno(turma, unidades, regras, alunoIdx){
         somaAtv += parseFloat(calcNotaVistos(atv, marc))||0;
       } else if(atv.tipo==='trabalho'){
         const crits = typeof raw==='object' ? raw : {};
-        somaAtv += calcNotaTrabalhoNum(atv, crits);
+        somaAtv += calcNotaTrabalhoNum(atv, crits, alunoIdx);
       } else somaAtv += parseFloat(raw)||0;
     });
     somaAtv = Math.min(somaAtv, regras.tetoAtividades);
@@ -13036,7 +13530,7 @@ window.gerarPlanilhaUnidade = function(uidStr){
         val = parseFloat(calcNotaVistos(atv, marc))||0;
       } else if(atv.tipo==='trabalho'){
         const crits = typeof raw==='object' ? raw : {};
-        val = calcNotaTrabalhoNum(atv, crits);
+        val = calcNotaTrabalhoNum(atv, crits, ai);
       } else val = parseFloat(raw)||0;
       return `<td class="num">${val ? val.toFixed(1) : '—'}</td>`;
     }).join('');
