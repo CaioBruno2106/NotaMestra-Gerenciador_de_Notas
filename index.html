@@ -3831,7 +3831,20 @@ let _escolaLinkPendente = (() => {
 let _escolasGeridas = [];
 
 function turmaPath(turmaId){
-  const origem = _turmaOrigem[turmaId];
+  let origem = _turmaOrigem[turmaId];
+  if(!origem || !origem.escolaId){
+    // _turmaOrigem pode não estar populado ainda (ex.: carregamento das
+    // escolas geridas ainda em andamento) — como rede de segurança, usa
+    // o escolaId que já vem gravado na própria turma em _turmas, que é
+    // preenchido de forma mais confiável. Isso evita que uma turma
+    // vinculada seja tratada como pessoal por engano (o que faria
+    // leituras/escritas caírem num caminho errado no banco).
+    const turma = _turmas.find(t=>t.id===turmaId);
+    if(turma && turma.escolaId){
+      origem = { escolaId: turma.escolaId };
+      _turmaOrigem[turmaId] = origem; // já aproveita e corrige o cache pra próxima vez
+    }
+  }
   if(origem && origem.escolaId){
     return ['escolas', origem.escolaId, 'turmas', turmaId];
   }
@@ -3984,7 +3997,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -6198,7 +6211,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════��══════════════════════════════════���══════
+// ════  ══════════════════════════════════   ══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -7161,7 +7174,7 @@ window.renderModalAlunos = function(){
 const MSG_PCD = 'O estudante é avaliado via relatório';
 function isPCD(a){ return !!(a && typeof a==='object' && a.pcd===true); }
 
-// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -7965,7 +7978,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -8069,7 +8082,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -9305,7 +9318,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────���────────────────────────
+// ── Toggle de seção colapsável ─────────────   ────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -11955,7 +11968,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════��═════════════════════════════════════════════════════════════════
+// ════  ═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -12411,7 +12424,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────��────────────────────────
+// ── Helpers de vistos ─────────────  ────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado (em qualquer dos 3 estados)
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
@@ -14199,7 +14212,21 @@ window.registrarAula = async function(){
     // Salva (atualiza ou cria) uma aplicação por turma/data — se a turma já
     // fazia parte do grupo original, atualiza o mesmo documento; senão, cria um novo.
     for(const ap of aplicacoesValidas){
-      const existente = gruposAntigos.find(g=>g.turmaId===ap.turmaId);
+      let existente = gruposAntigos.find(g=>g.turmaId===ap.turmaId);
+
+      // Rede de segurança: se essa turma não veio no grupo (por qualquer
+      // motivo — ex.: falha ao carregar a turma "irmã" na hora de editar),
+      // procura na PRÓPRIA turma se já existe uma aula na mesma data antes
+      // de criar um registro novo, pra nunca duplicar sem querer.
+      if(!existente){
+        try{
+          const snapExistentes = await getDocs(collection(db, ...turmaPath(ap.turmaId), 'aulas'));
+          let achado = null;
+          snapExistentes.forEach(d=>{ if(!achado && d.data().data===ap.data) achado = { aulaId:d.id, criadoEm:d.data().criadoEm }; });
+          if(achado) existente = { turmaId: ap.turmaId, ...achado };
+        } catch(e){ /* segue pro fluxo normal (cria) se essa checagem falhar */ }
+      }
+
       if(existente){
         await setDoc(doc(db, ...turmaPath(ap.turmaId), 'aulas', existente.aulaId), {
           ...payloadBase, data: ap.data, horarios: ap.horarios,
@@ -14280,6 +14307,7 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
 
     // Busca os dados de cada membro do grupo pra montar a lista "Aplicar para"
     const aplicacoes = [];
+    const falharam = [];
     for(const g of grupo){
       if(g.turmaId===turmaId && g.aulaId===aulaId){
         aplicacoes.push({ turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [] });
@@ -14290,9 +14318,17 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
         if(s2.exists()){
           const a2 = s2.data();
           aplicacoes.push({ turmaId: g.turmaId, data: a2.data||_hojeISO(), horarios: a2.horarios ? [...a2.horarios] : [] });
+        } else {
+          falharam.push(g.turmaId);
         }
-      } catch(e){ /* turma pode não existir mais / sem acesso — ignora esse membro */ }
+      } catch(e){ falharam.push(g.turmaId); }
     }
+
+    // Se alguma turma do grupo não pôde ser carregada, ela sai do grupo
+    // rastreado também — assim, ao salvar, o Nota Mestra não tenta apagar
+    // o registro dela (que continua existindo, só não deu pra carregar
+    // aqui) nem trata uma readição manual como duplicata por engano.
+    const grupoCarregado = grupo.filter(g=>!falharam.includes(g.turmaId));
 
     window._aulaForm = {
       municipal: !!a.municipal,
@@ -14303,7 +14339,7 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
       recursos: a.recursos ? [...a.recursos] : [], recursoOutro:'',
       situacoes: a.situacoes ? [...a.situacoes] : [], situacaoOutro:'',
       aplicacoes: aplicacoes.length ? aplicacoes : [{ turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [] }],
-      editando: { grupo },
+      editando: { grupo: grupoCarregado },
     };
 
     // Recursos/situações "Outros" salvos já vêm como texto livre (não como
@@ -14311,6 +14347,9 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
     // ficam como itens extras de texto livre, preservados na lista.
     document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
     document.getElementById('aula-form-card')?.scrollIntoView({behavior:'smooth', block:'start'});
+    if(falharam.length){
+      showToast(`Não consegui carregar ${falharam.length} turma(s) do grupo — elas NÃO foram apagadas, só não aparecem aqui pra edição. Se precisar mexer nelas, edite por lá diretamente.`, 'error');
+    }
     showToast(aplicacoes.length>1
       ? `Editando aula aplicada em ${aplicacoes.length} turma(s)/data(s) — salvar atualiza todas juntas.`
       : 'Edite os campos abaixo e clique em "Salvar alterações".', 'info');
