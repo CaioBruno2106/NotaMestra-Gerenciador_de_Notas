@@ -3835,12 +3835,14 @@ function turmaPath(turmaId){
   if(!origem || !origem.escolaId){
     // _turmaOrigem pode não estar populado ainda (ex.: carregamento das
     // escolas geridas ainda em andamento) — como rede de segurança, usa
-    // o escolaId que já vem gravado na própria turma em _turmas, que é
-    // preenchido de forma mais confiável. Isso evita que uma turma
-    // vinculada seja tratada como pessoal por engano (o que faria
-    // leituras/escritas caírem num caminho errado no banco).
+    // o escolaId que já vem gravado na própria turma em _turmas. MAS: uma
+    // turma de escola PESSOAL (não vinculada) também tem escolaId — só que
+    // apontando pra uma escola pessoal, não uma escola compartilhada de
+    // verdade. Por isso só usamos esse escolaId se ele bater com uma
+    // escola realmente vinculada (_escolasGeridas); senão, cai no caminho
+    // pessoal normalmente.
     const turma = _turmas.find(t=>t.id===turmaId);
-    if(turma && turma.escolaId){
+    if(turma && turma.escolaId && _escolasGeridas.some(e=>e.id===turma.escolaId)){
       origem = { escolaId: turma.escolaId };
       _turmaOrigem[turmaId] = origem; // já aproveita e corrige o cache pra próxima vez
     }
