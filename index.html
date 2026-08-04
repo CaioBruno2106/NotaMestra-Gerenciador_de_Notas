@@ -2850,7 +2850,7 @@ body.dark-mode .stat-card-btn:active{
         <div class="stat-label">Estudantes</div>
         <div class="stat-hint">toque para ver</div>
       </div>
-      <div class="stat-card stat-card-btn" onclick="abrirModalHorarios()" title="Configurar horários das turmas">
+      <div class="stat-card stat-card-btn" id="stat-card-horarios" onclick="abrirModalHorarios()" title="Configurar horários das turmas">
         <div class="stat-num"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div>
         <div class="stat-label">Horários</div>
         <div class="stat-hint">toque para configurar</div>
@@ -6291,6 +6291,11 @@ function renderDashboard(){
     }
   }
 
+  // "Horários" existe pra alimentar o Registro de Aulas, que não roda no
+  // app Android (a extensão do navegador é que consome esses dados).
+  const cardHorarios = document.getElementById('stat-card-horarios');
+  if(cardHorarios) cardHorarios.style.display = window.AndroidApp ? 'none' : '';
+
   // Popular select de backup por escola no card do dashboard
   _renderDashBkpEscolasSel();
   renderDashboardGestaoBtn();
@@ -6824,6 +6829,7 @@ window.setFiltroAlunos = function(filtro){
 
 // ── MODAL HORÁRIOS (centralizado — todas as turmas de uma vez) ─────
 window.abrirModalHorarios = async function(){
+  if(window.AndroidApp){ showToast('Configuração de horários não está disponível no aplicativo de celular. Use um computador.', 'error'); return; }
   document.getElementById('dm-horarios-overlay').style.display = 'flex';
   window._horariosModalTab = window._horariosModalTab || 'minhas';
   if(window._horariosModalTab==='gestao'){
@@ -8274,12 +8280,15 @@ function renderUnidadesTabs(unidades){
   const qtdPendentes = _importsPendentes.length;
 
   // Grupo 1 — trabalho do dia a dia: unidades + Aulas, sem cores diferentes
+  // "Aulas" fica indisponível no app Android — o Registro de Aulas existe
+  // pra alimentar a extensão do navegador (SIEPE/SIEC), que não roda no celular.
+  const isApkAulas = !!(window.AndroidApp);
   const gruposUnidades = unidades.map(u=>
     `<button class="unidade-tab" id="tab-btn-${u.id}"
        onclick="abrirUnidadePorId('${u.id}')">${u.label}</button>`
-  ).join('') + `
+  ).join('') + (isApkAulas ? '' : `
     <button class="unidade-tab" id="tab-btn-aulas"
-       onclick="abrirRegistroAulas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Aulas</button>`;
+       onclick="abrirRegistroAulas()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Aulas</button>`);
 
   // Grupo 2 — análise/resultado + exportação
   const importsBtn = qtdPendentes > 0 ? `
@@ -9381,6 +9390,7 @@ function renderAtvCard(unidade, idx, atv, alunos){
   };
   const [badgeCls, badgeTxt] = tipoMap[atv.tipo]||tipoMap.direto;
   const uid = unidade.id;
+  const isApk = !!(window.AndroidApp); // Transferir notas fica indisponível no app Android
 
   return `
   <div class="atv-card" id="atv-card-${uid}-${idx}">
@@ -9388,8 +9398,9 @@ function renderAtvCard(unidade, idx, atv, alunos){
       <div class="atv-card-num">${idx+1}</div>
       <div class="atv-card-title">${atv.nome||`Atividade ${idx+1}`}</div>
       <span class="atv-card-tipo-badge ${badgeCls}">${badgeTxt}</span>
+      ${isApk ? '' : `
       <button class="atv-card-transferir-btn" title="Transferir notas desta atividade para outra da mesma unidade"
-        onclick="event.stopPropagation();toggleTransferirNotas('${uid}',${idx})">Transferir notas</button>
+        onclick="event.stopPropagation();toggleTransferirNotas('${uid}',${idx})">Transferir notas</button>`}
       <button class="atv-card-limpar-btn" title="Limpar todas as notas desta atividade"
         onclick="event.stopPropagation();onLimparNotasAtv('${uid}',${idx})">Limpar notas</button>
       <span class="atv-card-chevron">▼</span>
@@ -10467,6 +10478,7 @@ window.onLimparNotasAtv = function(uid, idx){
 
 // ── Transferir notas de uma atividade para outra (mesma unidade) ─────
 window.toggleTransferirNotas = function(uid, idx, forcarFechar){
+  if(window.AndroidApp){ showToast('Transferir notas não está disponível no aplicativo de celular.', 'error'); return; }
   const panel = document.getElementById(`transferir-panel-${uid}-${idx}`);
   if(!panel) return;
   const abrir = forcarFechar ? false : (panel.style.display === 'none');
@@ -13371,8 +13383,8 @@ const TURNO_TEMPLATES = {
   ]},
   turno1: { label:'Integral 35h — 1º turno', aulas:[
     {n:1,inicio:'07:00',fim:'07:50'}, {n:2,inicio:'07:50',fim:'08:40'}, {n:3,inicio:'09:00',fim:'09:50'},
-    {n:4,inicio:'09:50',fim:'10:40'}, {n:5,inicio:'10:40',fim:'11:30'}, {n:6,inicio:'12:20',fim:'13:05'},
-    {n:7,inicio:'13:05',fim:'13:50'},
+    {n:4,inicio:'09:50',fim:'10:40'}, {n:5,inicio:'10:40',fim:'11:30'}, {n:6,inicio:'12:20',fim:'13:10'},
+    {n:7,inicio:'13:10',fim:'14:00'},
   ]},
   turno2: { label:'Integral 35h — 2º turno', aulas:[
     {n:1,inicio:'14:10',fim:'15:00'}, {n:2,inicio:'15:00',fim:'15:50'}, {n:3,inicio:'16:10',fim:'17:00'},
@@ -13389,6 +13401,7 @@ function _turmaPorId(turmaId){
 function _ehMunicipal(turma){ return turma?.escolaTipo === 'municipal'; }
 
 window.abrirRegistroAulas = async function(){
+  if(window.AndroidApp){ showToast('Registro de Aulas não está disponível no aplicativo de celular. Use um computador.', 'error'); return; }
   const turma = _turmaAtual;
   if(!turma){ showToast('Abra uma turma primeiro', 'error'); return; }
   const municipal = _ehMunicipal(turma);
@@ -13710,6 +13723,27 @@ function _renderGradeHorariosTurma(turma){
   DIAS_SEMANA_GRADE.forEach(d=>{ if(!Array.isArray(turma.gradeHorarios[d.chave])) turma.gradeHorarios[d.chave] = []; });
 
   const template = TURNO_TEMPLATES[turma.turno];
+
+  // Auto-correção: se algum horário já marcado tiver início/fim salvos
+  // diferentes do modelo atual (ex.: depois de um ajuste de horário
+  // oficial), corrige sozinho e salva de novo — sem precisar desmarcar
+  // e marcar de novo manualmente.
+  if(template){
+    let precisaSalvar = false;
+    DIAS_SEMANA_GRADE.forEach(d=>{
+      (turma.gradeHorarios[d.chave]||[]).forEach(h=>{
+        const aulaModelo = template.aulas.find(a=>a.n===h.aula);
+        if(aulaModelo && (h.inicio!==aulaModelo.inicio || h.fim!==aulaModelo.fim)){
+          h.inicio = aulaModelo.inicio;
+          h.fim    = aulaModelo.fim;
+          h.label  = `${h.aula}ª aula — ${aulaModelo.inicio} às ${aulaModelo.fim}`;
+          precisaSalvar = true;
+        }
+      });
+    });
+    if(precisaSalvar) salvarGradeHorarios(turma.id);
+  }
+
   if(!template){
     return `
     <p style="color:var(--pe-muted);font-size:.78rem;margin:0 0 10px;">
