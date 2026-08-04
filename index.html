@@ -8268,8 +8268,8 @@ window.openTurmaScreen = async function(turmaId){
     const uReal = unidadesFS.find(u=>u.ordem===ordemAtual) || unidadesFS[0];
     abrirUnidade(uReal);
   } catch(e){
-    console.warn('Firestore indisponível, usando dados locais:', e.message);
-    showToast('Modo offline — algumas funções limitadas','info');
+    console.error('[Nota Mestra] Falha ao carregar unidades da turma', turma.id, '—', e.code||'', e.message, e);
+    showToast(`Não consegui atualizar os dados da turma (${e.code||e.message||'erro desconhecido'}). Mostrando a última versão salva neste aparelho.`,'error');
   }
 };
 
@@ -8836,7 +8836,13 @@ let _avisosGenericaGlobal = []; // Avisos de sincronização de turma genérica 
 
 async function carregarImportsPendentesGlobal(forcar){
   if(!forcar && _importsPendentesGlobalEm && (Date.now()-_importsPendentesGlobalEm) < 60*1000) return; // evita reconsultar toda hora
-  const turmasAtivas = _turmas.filter(t=>t.ativo!==false);
+  // "importsPendentes" é um fluxo pessoal (gabaritos importados aguardando
+  // revisão do próprio professor) — só faz sentido checar nas turmas que
+  // são SUAS. Checar em turmas de outros professores (visíveis quando você
+  // é gestor/coordenador de uma escola) sempre dava "permission-denied",
+  // porque as regras do Firestore corretamente não deixam ler essa
+  // subcoleção de turma alheia — daí a enxurrada de erros no console.
+  const turmasAtivas = _turmas.filter(t=>t.ativo!==false && (!t.criadoPor || t.criadoPor===_uid));
   const resultado = [];
   await Promise.all(turmasAtivas.map(async turma => {
     try {
