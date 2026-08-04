@@ -1319,7 +1319,7 @@ body{ box-sizing:border-box; }
 }
 .tab-export-btn:hover, .tab-export-btn.active{ color:#fff; }
 .tab-export-menu{
-  position:absolute;top:100%;right:0;margin-top:6px;z-index:60;
+  position:fixed;z-index:5500;
   background:#fff;border-radius:8px;box-shadow:var(--shadow-lg);
   min-width:220px;padding:6px;display:none;
 }
@@ -3220,6 +3220,18 @@ body.dark-mode .stat-card-btn:active{
 
   <!-- Abas de unidade -->
   <div class="unidades-tabs-bar" id="unidades-tabs-bar"></div>
+
+  <!-- Menu de exportação — FORA da barra de abas de propósito: a barra tem
+       overflow-x:auto, e um overflow:auto/hidden corta qualquer descendente
+       que ultrapasse a caixa, mesmo com position:absolute ou fixed. Por
+       isso o menu vive aqui como irmão da barra, com position:fixed e
+       coordenadas calculadas em JS (toggleMenuExportacao) toda vez que abre. -->
+  <div class="tab-export-menu" id="menu-exportacao">
+    <button onclick="fecharMenuExportacao();abrirExportacaoTipo('boletim')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Boletim Individual</button>
+    <button onclick="fecharMenuExportacao();abrirExportacaoTipo('unidade')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Planilha por Unidade</button>
+    <button onclick="fecharMenuExportacao();abrirExportacaoTipo('final')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg> Planilha Final da Turma</button>
+    <button onclick="fecharMenuExportacao();abrirExportacaoTipo('siepe')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar para o SIEPE</button>
+  </div>
 
   <!-- Sub-abas de Desempenho (Consolidação/Diagnóstico/Simulados CAED) -->
   <div class="desempenho-subtabs-bar" id="desempenho-subtabs-bar" style="display:none;">
@@ -8319,30 +8331,69 @@ function renderUnidadesTabs(unidades){
       <button class="tab-export-btn" id="tab-btn-exportacao-icon" onclick="toggleMenuExportacao(event)" title="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.15em;height:1.15em;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       </button>
-      <div class="tab-export-menu" id="menu-exportacao">
-        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('boletim')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Boletim Individual</button>
-        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('unidade')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Planilha por Unidade</button>
-        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('final')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg> Planilha Final da Turma</button>
-        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('siepe')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar para o SIEPE</button>
-      </div>
     </div>`;
 }
 
+let _exportMenuFecharFn = null;
 window.toggleMenuExportacao = function(ev){
   ev.stopPropagation();
   const menu = document.getElementById('menu-exportacao');
   const btn  = document.getElementById('tab-btn-exportacao-icon');
   const abrir = !menu.classList.contains('open');
+
+  // Sempre limpa o listener anterior antes de decidir o que fazer agora —
+  // evita empilhar vários listeners de 'click' no document se o menu for
+  // aberto/fechado várias vezes clicando no próprio botão (em vez de
+  // clicar fora, que já removia o listener sozinho).
+  if(_exportMenuFecharFn){ document.removeEventListener('click', _exportMenuFecharFn); _exportMenuFecharFn = null; }
+
+  if(abrir){
+    // O menu agora vive fora da barra de abas (que tem overflow-x:auto e
+    // cortava ele) — por isso a posição é calculada aqui, na hora de
+    // abrir, a partir da posição real do botão na tela (position:fixed).
+    const r = btn.getBoundingClientRect();
+    menu.style.top   = (r.bottom + 6) + 'px';
+    menu.style.right = (window.innerWidth - r.right) + 'px';
+    menu.style.left  = 'auto';
+  }
   menu.classList.toggle('open', abrir);
   btn.classList.toggle('active', abrir);
   if(abrir){
-    const fechar = ()=>{ menu.classList.remove('open'); btn.classList.remove('active'); document.removeEventListener('click', fechar); };
-    document.addEventListener('click', fechar);
+    _exportMenuFecharFn = ()=>{ menu.classList.remove('open'); btn.classList.remove('active'); document.removeEventListener('click', _exportMenuFecharFn); _exportMenuFecharFn = null; };
+    document.addEventListener('click', _exportMenuFecharFn);
   }
 };
 window.fecharMenuExportacao = function(){
   document.getElementById('menu-exportacao')?.classList.remove('open');
   document.getElementById('tab-btn-exportacao-icon')?.classList.remove('active');
+  if(_exportMenuFecharFn){ document.removeEventListener('click', _exportMenuFecharFn); _exportMenuFecharFn = null; }
+};
+
+// ── Mesmo padrão do menu de exportação da turma, reaproveitado pro botão
+// "Imprimir relatório geral" da tela de Simulados CAED (Geral vs Por níveis) ──
+let _relGeralCaedFecharFn = null;
+window.toggleMenuRelatorioGeralCAED = function(ev){
+  ev.stopPropagation();
+  const menu = document.getElementById('menu-rel-geral-caed');
+  const btn  = document.getElementById('btn-rel-geral-caed');
+  if(!menu || !btn) return;
+  const abrir = !menu.classList.contains('open');
+  if(_relGeralCaedFecharFn){ document.removeEventListener('click', _relGeralCaedFecharFn); _relGeralCaedFecharFn = null; }
+  if(abrir){
+    const r = btn.getBoundingClientRect();
+    menu.style.top   = (r.bottom + 6) + 'px';
+    menu.style.right = (window.innerWidth - r.right) + 'px';
+    menu.style.left  = 'auto';
+  }
+  menu.classList.toggle('open', abrir);
+  if(abrir){
+    _relGeralCaedFecharFn = ()=>{ menu.classList.remove('open'); document.removeEventListener('click', _relGeralCaedFecharFn); _relGeralCaedFecharFn = null; };
+    document.addEventListener('click', _relGeralCaedFecharFn);
+  }
+};
+window.fecharMenuRelatorioGeralCAED = function(){
+  document.getElementById('menu-rel-geral-caed')?.classList.remove('open');
+  if(_relGeralCaedFecharFn){ document.removeEventListener('click', _relGeralCaedFecharFn); _relGeralCaedFecharFn = null; }
 };
 
 // ── Desempenho: agrupa Consolidação / Diagnóstico / Simulados CAED ──
@@ -11496,9 +11547,21 @@ function renderSimuladosCAEDList(turma, lista){
     <div class="caed-toolbar">
       <h3>Simulados CAED — ${escapeHtmlNM(turma.serie||'')} ${escapeHtmlNM(turma.turma||'')}</h3>
       <div class="caed-actions">
-        ${ lista.length ? `<button class="btn-caed-outline" onclick="abrirRelatorioGeralCAED()">Imprimir relatório geral</button>` : '' }
+        ${ lista.length ? `
+        <div class="tab-export-wrap" style="display:inline-block">
+          <button class="btn-caed-outline" id="btn-rel-geral-caed" onclick="toggleMenuRelatorioGeralCAED(event)">Imprimir relatório geral ▾</button>
+        </div>` : '' }
         <button class="btn-aplicar-qtd" onclick="abrirNovoSimuladoCAED()">+ Novo simulado</button>
       </div>
+    </div>
+
+    <!-- Menu com os dois formatos de relatório geral — position:fixed e
+         calculado em JS pelo mesmo motivo do menu de exportação da turma
+         (ver toggleMenuExportacao): não pode ficar dentro de um
+         container com overflow, senão o dropdown fica cortado. -->
+    <div class="tab-export-menu" id="menu-rel-geral-caed">
+      <button onclick="fecharMenuRelatorioGeralCAED();abrirRelatorioGeralCAED()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg> Geral (nota e nível por aluno)</button>
+      <button onclick="fecharMenuRelatorioGeralCAED();abrirRelatorioGeralCAEDPorNiveis()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.9V17h8v-2.1A7 7 0 0 0 12 2z"/></svg> Por níveis (% de acerto por nível)</button>
     </div>
 
     ${ lista.length===0
@@ -11905,6 +11968,84 @@ window.abrirRelatorioGeralCAED = async function(){
       <tbody>${linhas}</tbody>
     </table>
     ${distribuicaoHtml}
+    ${_exp_rodape()}
+  `;
+  abrirJanelaImpressao(html, 'landscape');
+};
+
+/* ── Relatório geral por NÍVEIS (turma inteira) — impresso ──
+   Complementa o "Geral": em vez de nota+nível por aluno, mostra, PRA CADA
+   SIMULADO, o % de acerto AGREGADO da turma em cada um dos 4 níveis
+   (soma acertos/total de todos os alunos daquele simulado, por nível) —
+   só entram simulados que têm `porNivel` salvo (os importados do Correção
+   Mestra; lançamentos manuais não têm esse detalhamento e ficam de fora
+   dessa tabela, mas continuam contando na distribuição de nível). */
+window.abrirRelatorioGeralCAEDPorNiveis = async function(){
+  const turma = _turmaAtual;
+  const lista = await carregarSimuladosCAED(turma.id);
+  if(!lista.length){ showToast('Nenhum simulado lançado ainda para gerar relatório','error'); return; }
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+
+  const NIVEIS_COM_QUESTAO = ['elementarI','elementarII','basico','desejavel'];
+
+  const linhasSimulados = lista.map(s => {
+    const agregado = {}; NIVEIS_COM_QUESTAO.forEach(n => agregado[n] = { acertos:0, total:0 });
+    let temPorNivel = false;
+    Object.values(s.resultados||{}).forEach(r => {
+      if(!r.porNivel) return;
+      temPorNivel = true;
+      NIVEIS_COM_QUESTAO.forEach(n => {
+        const info = r.porNivel[n];
+        if(info && info.total){ agregado[n].acertos += info.acertos; agregado[n].total += info.total; }
+      });
+    });
+    return { simulado: s, agregado, temPorNivel };
+  }).filter(x => x.temPorNivel);
+
+  const linhasHtml = linhasSimulados.map(({simulado, agregado}) => {
+    const cels = NIVEIS_COM_QUESTAO.map(n => {
+      const b = agregado[n];
+      if(!b.total) return `<td class="num">—</td>`;
+      const pct = Math.round(b.acertos/b.total*100);
+      return `<td class="num">${pct}% <span style="font-size:.65rem;color:#495057">(${b.acertos}/${b.total})</span></td>`;
+    }).join('');
+    return `<tr><td class="aluno">${escapeHtmlNM(simulado.nome)}${simulado.disciplina?` <span style="font-size:.7rem;color:#666">· ${escapeHtmlNM(simulado.disciplina)}</span>`:''}</td>${cels}</tr>`;
+  }).join('');
+
+  // Distribuição de nível ATINGIDO — igual à do relatório "Geral", pra
+  // manter os dois relatórios comparáveis mesmo olhando só um dos dois.
+  const contagem = {}; NIVEIS_SAEB.forEach(n=>contagem[n]=0);
+  let comDado = 0;
+  alunos.forEach((al, ai) => {
+    for(let i=lista.length-1; i>=0; i--){
+      const r = (lista[i].resultados||{})[ai];
+      if(r && r.nivel){ contagem[r.nivel]++; comDado++; break; }
+    }
+  });
+  const distribuicaoHtmlNiveis = `
+    <h2 class="sec">Distribuição de níveis (simulado mais recente de cada aluno)</h2>
+    <table>
+      <thead><tr><th class="aluno">Nível</th><th class="num">Alunos</th><th class="num">%</th></tr></thead>
+      <tbody>${NIVEIS_SAEB.map(n=>`<tr><td class="aluno">${NIVEIS_SAEB_LABEL[n]}</td><td class="num">${contagem[n]}</td><td class="num">${comDado?Math.round(contagem[n]/comDado*100):0}%</td></tr>`).join('')}</tbody>
+    </table>
+  `;
+
+  const c = _exp_cabHTML(turma, 'Relatório geral por níveis — Simulados CAED');
+  const html = `
+    ${c}
+    <div class="resumo">
+      <span class="t">Simulados com detalhamento por nível: ${linhasSimulados.length} de ${lista.length}</span>
+      <span class="a">Alunos: ${alunos.length}</span>
+    </div>
+    <h2 class="sec">% de acerto da turma, por nível, em cada simulado</h2>
+    ${ linhasSimulados.length ? `
+    <table>
+      <thead><tr><th class="aluno">Simulado</th><th class="num">Elementar I</th><th class="num">Elementar II</th><th class="num">Básico</th><th class="num">Desejável</th></tr></thead>
+      <tbody>${linhasHtml}</tbody>
+    </table>
+    <div style="font-size:.72rem;color:#666;margin-top:4px">Soma dos acertos de todos os alunos nas questões de cada nível daquele simulado.</div>
+    ` : `<div style="font-size:.85rem;color:#666">Nenhum simulado lançado nesta turma tem detalhamento por nível ainda (só simulados importados do Correção Mestra trazem esse dado).</div>` }
+    ${distribuicaoHtmlNiveis}
     ${_exp_rodape()}
   `;
   abrirJanelaImpressao(html, 'landscape');
