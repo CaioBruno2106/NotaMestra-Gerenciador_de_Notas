@@ -10872,10 +10872,11 @@ function atualizarOfflineBadge(){
   const label = document.getElementById('save-status-txt');
   if(!label) return;
   if(_offlineQueue.length>0){
-    const texto = navigator.onLine
-      ? `Sem conexão com o servidor (${_offlineQueue.length})`
-      : `Offline (${_offlineQueue.length})`;
-    setSaveStatus('offline', texto);
+    // Não tenta mais adivinhar se o problema é o wifi ou o servidor —
+    // navigator.onLine não é confiável o suficiente pra isso. Só avisa
+    // que tem algo pendente pra sincronizar; a tentativa automática a
+    // cada 15s (veja mais abaixo) cuida de reenviar assim que der certo.
+    setSaveStatus('offline', `Pendente p/ sincronizar (${_offlineQueue.length})`);
   }
 }
 
@@ -11006,10 +11007,12 @@ function carregarFilaLocalStorage(){
 }
 
 // ── Sincronizar fila offline quando voltar a conectar ────
+let _falhasSyncSeguidas = 0;
 async function sincronizarFilaOffline(){
   if(!_offlineQueue.length || !_uid) return;
   const fila = [..._offlineQueue];
   let sincronizados = 0;
+  let ultimoErro = null;
   for(const item of fila){
     try {
       await salvarPayloadFirestore(item.turmaId, item.unidadeId, item.payload);
@@ -11017,13 +11020,27 @@ async function sincronizarFilaOffline(){
         q=>!(q.turmaId===item.turmaId && q.unidadeId===item.unidadeId)
       );
       sincronizados++;
-    } catch(e){ break; } // Para se ainda offline
+    } catch(e){
+      ultimoErro = e;
+      console.error('[Nota Mestra] Falha ao sincronizar unidade pendente:', item.turmaId, item.unidadeId, e);
+      break; // Para essa rodada e tenta o resto de novo na próxima tentativa automática
+    }
   }
   salvarFilaLocalStorage();
+
   if(sincronizados>0){
+    _falhasSyncSeguidas = 0;
     showToast(`${sincronizados} unidade(s) sincronizadas com sucesso <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`,'success');
     setSaveStatus('saved','Salvo <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="20 6 9 17 4 12"/></svg>');
     setTimeout(()=>setSaveStatus('idle','Salvo'),3000);
+  } else if(ultimoErro){
+    // Se continuar falhando repetidamente, é bem provável que NÃO seja
+    // falta de conexão (senão teria dado certo em algum momento) — avisa
+    // com o erro de verdade, pra não ficar preso mudo achando que é wifi.
+    _falhasSyncSeguidas++;
+    if(_falhasSyncSeguidas===3 || _falhasSyncSeguidas%12===0){
+      showToast(`Ainda não consegui sincronizar (${_offlineQueue.length} pendente(s)). Detalhe técnico: ${ultimoErro.code||ultimoErro.message||'erro desconhecido'}.`, 'error');
+    }
   }
 }
 
@@ -11032,15 +11049,17 @@ window.addEventListener('online', ()=>{
   sincronizarFilaOffline();
 });
 
-// Rede de segurança: se a fila ficou presa (ex.: a falha foi um erro
-// passageiro do Firestore, não uma queda de wifi de verdade — nesse caso
-// o navegador nunca dispara o evento "online" de novo, porque pra ele a
-// conexão nunca caiu), tenta sincronizar sozinho de tempos em tempos.
+// Rede de segurança: se a fila ficou presa, tenta sincronizar sozinho de
+// tempos em tempos — SEM depender de navigator.onLine, que não é confiável
+// (só checa se a placa de rede está ativa, não se a internet funciona de
+// verdade; em algumas redes — proxy, firewall de escola etc. — ele pode
+// dizer "offline" com a internet passando bem). Deixa a própria tentativa
+// de salvar no Firestore ser quem decide se deu certo ou não.
 setInterval(()=>{
-  if(_offlineQueue.length>0 && navigator.onLine){
+  if(_offlineQueue.length>0){
     sincronizarFilaOffline();
   }
-}, 20000);
+}, 15000);
 
 // ── Carregar notas salvas ao abrir unidade ───────────────
 async function carregarNotasUnidade(turmaId, unidade){
