@@ -8643,7 +8643,7 @@ async function _aplicarSimuladoCAEDImportPendente(imp){
     const nNorm = _normNome(a.nome);
     const turmaIdx = alunosTurma.findIndex(at=>_normNome(typeof at==='string'?at:at.nome)===nNorm);
     if(turmaIdx < 0){ naoCasados++; return; }
-    resultados[turmaIdx] = { nota: (a.nota!=null && !isNaN(parseFloat(a.nota))) ? parseFloat(a.nota) : null, nivel: a.nivel||'' };
+    resultados[turmaIdx] = { nota: (a.nota!=null && !isNaN(parseFloat(a.nota))) ? parseFloat(a.nota) : null, nivel: a.nivel||'', porNivel: a.porNivel||null };
     importados++;
   });
 
@@ -11389,6 +11389,58 @@ const NIVEIS_SAEB_LABEL = {
   basico:      'Básico',
   desejavel:   'Desejável',
 };
+
+// ── Exibição do nível + porcentagens por nível (ver Obs do professor) ──
+// `porNivel`, quando presente, vem do Correção Mestra com o formato:
+// { elementarI:{acertos,total,percentualBruto,percentualAjustado}, elementarII:{...}, basico:{...}, desejavel:{...} }
+// — sempre com as 4 chaves, mas `total:0`/percentuais `null` nos níveis
+// que a prova não tinha questão nenhuma (ex: simulado só com Elementar
+// I e II, sem Básico/Desejável).
+//
+// Quando o simulado não tem questão de Básico nem de Desejável, o nível
+// "geral" (nivelAtingido) fica sempre travado em, no máximo, Elementar II
+// — o que é correto mas pode parecer estranho isolado ("por que nunca
+// passa disso?"). Por isso, nesse caso específico, além do nível travado
+// mostramos um selo extra Suficiente/Insuficiente: Suficiente = o aluno
+// dominou o nível mais alto que a prova avaliou; Insuficiente = não
+// dominou nem esse.
+function classificarNivelDisplay(nivel, porNivel) {
+  const labelBase = nivel ? NIVEIS_SAEB_LABEL[nivel] : NIVEIS_SAEB_LABEL.abaixo;
+  if (!porNivel) return { label: labelBase, extra: null };
+  const temBasicoOuDesejavel = (porNivel.basico?.total > 0) || (porNivel.desejavel?.total > 0);
+  if (temBasicoOuDesejavel) return { label: labelBase, extra: null };
+  const maiorComDados = (porNivel.elementarII?.total > 0) ? 'elementarII' : (porNivel.elementarI?.total > 0 ? 'elementarI' : null);
+  if (!maiorComDados) return { label: labelBase, extra: null };
+  const suficiente = nivel === maiorComDados;
+  return { label: labelBase, extra: suficiente ? 'Suficiente' : 'Insuficiente' };
+}
+
+// Resumo compacto "E-I 90% · E-II 60%" só com os níveis que têm questão.
+const _SIGLA_NIVEL = { elementarI: 'E-I', elementarII: 'E-II', basico: 'Bás', desejavel: 'Des' };
+function formatarPorNivelResumo(porNivel) {
+  if (!porNivel) return '';
+  return ['elementarI', 'elementarII', 'basico', 'desejavel'].map(n => {
+    const info = porNivel[n];
+    if (!info || !info.total) return null;
+    const pct = info.percentualBruto != null ? Math.round(info.percentualBruto) : null;
+    return pct != null ? `${_SIGLA_NIVEL[n]} ${pct}%` : null;
+  }).filter(Boolean).join(' · ');
+}
+
+// Badge completo (nível geral + selo Suficiente/Insuficiente quando cabe
+// + resumo de porcentagens por nível) — usado na tabela do simulado e no
+// relatório do aluno.
+function renderNivelBadgeHtml(nivel, porNivel) {
+  if (!nivel && !porNivel) return '—';
+  const { label, extra } = classificarNivelDisplay(nivel, porNivel);
+  const badge = `<span class="nivel-badge nivel-${nivel||'abaixo'}">${label}</span>`;
+  const extraBadge = extra
+    ? `<br><span class="nivel-badge" style="background:${extra==='Suficiente'?'#e8f5e9':'#fdecea'};color:${extra==='Suficiente'?'#2e7d32':'var(--pe-red)'};font-size:.68rem;margin-top:2px;display:inline-block">${extra} (só Elementar)</span>`
+    : '';
+  const resumo = formatarPorNivelResumo(porNivel);
+  const resumoHtml = resumo ? `<div style="font-size:.68rem;color:var(--pe-muted);margin-top:2px;white-space:nowrap">${resumo}</div>` : '';
+  return badge + extraBadge + resumoHtml;
+}
 let _simuladosCAED = {}; // cache por turmaId: [{id, nome, disciplina, data, bimestre, anoLetivo, resultados:{ai:{nota,nivel}}}]
 let _caedForm = null;    // estado do formulário de lançamento/edição em andamento
 
@@ -11533,7 +11585,7 @@ window.abrirTabelaSimuladoCAED = async function(id){
     return `<tr>
       <td class="col-aluno">${ai+1}. ${escapeHtmlNM(nome)}</td>
       <td style="text-align:center">${r && r.nota!=null ? r.nota.toFixed(1) : '—'}</td>
-      <td style="text-align:center">${r && r.nivel ? `<span class="nivel-badge nivel-${r.nivel}">${NIVEIS_SAEB_LABEL[r.nivel]}</span>` : '—'}</td>
+      <td style="text-align:center">${renderNivelBadgeHtml(r?.nivel, r?.porNivel)}</td>
     </tr>`;
   }).join('');
 
@@ -11743,8 +11795,8 @@ window.abrirRelatorioAlunoCAED = async function(alunoIdx){
 
   const linhas = lista.map(s => {
     const r = (s.resultados||{})[alunoIdx];
-    if(!r) return { simulado: s, nota:null, nivel:null };
-    return { simulado: s, nota: r.nota, nivel: r.nivel };
+    if(!r) return { simulado: s, nota:null, nivel:null, porNivel:null };
+    return { simulado: s, nota: r.nota, nivel: r.nivel, porNivel: r.porNivel||null };
   }).filter(x => x.nota!=null || x.nivel);
 
   const notasValidas = linhas.filter(x=>x.nota!=null).map(x=>x.nota);
@@ -11763,6 +11815,28 @@ window.abrirRelatorioAlunoCAED = async function(alunoIdx){
     <td class="num">${x.nivel?NIVEIS_SAEB_LABEL[x.nivel]:'—'}</td>
   </tr>`).join('');
 
+  // Detalhamento por nível — só entram simulados que têm porNivel (vindos
+  // do Correção Mestra; lançamentos manuais não têm essa informação).
+  const comPorNivel = linhas.filter(x => x.porNivel);
+  const detalheNivelHtml = comPorNivel.length ? `
+    <h2 class="sec">Detalhamento por nível</h2>
+    <table>
+      <thead><tr><th class="aluno">Simulado</th><th class="num">Elementar I</th><th class="num">Elementar II</th><th class="num">Básico</th><th class="num">Desejável</th></tr></thead>
+      <tbody>
+        ${comPorNivel.map(x => {
+          const cel = n => {
+            const info = x.porNivel[n];
+            if (!info || !info.total) return '<td class="num">—</td>';
+            const pct = info.percentualBruto != null ? Math.round(info.percentualBruto) : null;
+            return `<td class="num">${pct!=null?pct+'%':'—'} <span style="font-size:.65rem;color:#495057">(${info.acertos}/${info.total})</span></td>`;
+          };
+          return `<tr><td class="aluno">${escapeHtmlNM(x.simulado.nome)}</td>${cel('elementarI')}${cel('elementarII')}${cel('basico')}${cel('desejavel')}</tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+    <div style="font-size:.72rem;color:#666;margin-top:4px">% de acerto do aluno nas questões de cada nível daquele simulado.</div>
+  ` : '';
+
   const c = _exp_cabHTML(turma, `Boletim de simulados CAED — ${escapeHtmlNM(nome)}`);
   const html = `
     ${c}
@@ -11776,6 +11850,7 @@ window.abrirRelatorioAlunoCAED = async function(alunoIdx){
       <thead><tr><th class="aluno">Simulado</th><th class="num">Disciplina</th><th class="num">Data</th><th class="num">Nota</th><th class="num">Nível</th></tr></thead>
       <tbody>${linhasHtml || '<tr><td colspan="5" class="num">Nenhum simulado lançado para este aluno.</td></tr>'}</tbody>
     </table>
+    ${detalheNivelHtml}
     ${_exp_rodape()}
   `;
   abrirJanelaImpressao(html, 'portrait');
