@@ -14788,6 +14788,9 @@ window.abrirExportacaoTipo = async function(tipo){
 };
 
 // Router: decide qual tela renderizar dentro de #unidade-content.
+// Também exposta em window pois é chamada via onclick="" no HTML gerado
+// abaixo (dentro de <script type="module"> uma function declarada "solta"
+// não fica acessível a atributos onclick, que rodam no escopo global).
 function _exp_render(tipo){
   const el = document.getElementById('unidade-content');
   if(!el || !_expState.turma) return;
@@ -14798,6 +14801,7 @@ function _exp_render(tipo){
   if(tipo==='siepe')        return _exp_renderSiepe(turma, unidades);
   return _exp_renderMenu(turma, unidades);
 }
+window._exp_render = _exp_render;
 
 function _exp_voltarBtn(){
   return `<button type="button" class="exp-voltar-btn" onclick="_exp_render('menu')">
