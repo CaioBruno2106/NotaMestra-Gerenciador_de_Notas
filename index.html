@@ -1333,7 +1333,7 @@ body{ box-sizing:border-box; }
 }
 .tab-export-btn:hover, .tab-export-btn.active{ color:#fff; }
 .tab-export-menu{
-  position:absolute;top:100%;right:0;margin-top:6px;z-index:60;
+  position:fixed;z-index:9500;
   background:#fff;border-radius:8px;box-shadow:var(--shadow-lg);
   min-width:220px;padding:6px;display:none;
 }
@@ -2316,6 +2316,29 @@ body.dark-mode .stat-card-btn:active{
 if (window.AndroidApp) {
   document.documentElement.setAttribute('data-apk', '1');
 }
+
+// ── Captura global de erros (diagnóstico) ──────────────────────────────
+// Qualquer erro não tratado ou promise rejeitada agora aparece: (1) no
+// console, sempre, e (2) como um toast visível, assim que showToast()
+// existir. Isso evita "cliquei e não aconteceu nada" — se algo quebrar,
+// vai aparecer alguma coisa na tela.
+window.addEventListener('error', function(ev){
+  console.error('[Nota Mestra] Erro não tratado:', ev.error || ev.message, ev.filename, ev.lineno+':'+ev.colno);
+  try{
+    if(typeof showToast === 'function'){
+      showToast('Erro inesperado: ' + (ev.error?.message || ev.message || 'ver console (F12)'), 'error');
+    }
+  }catch(_e){}
+});
+window.addEventListener('unhandledrejection', function(ev){
+  console.error('[Nota Mestra] Promise rejeitada sem tratamento:', ev.reason);
+  try{
+    if(typeof showToast === 'function'){
+      const msg = (ev.reason && (ev.reason.message||ev.reason.code)) || ev.reason || 'ver console (F12)';
+      showToast('Erro inesperado: ' + msg, 'error');
+    }
+  }catch(_e){}
+});
 </script>
 
 <!-- ═══════════════════════ APK BARS ═══════════════════════ -->
@@ -8461,10 +8484,23 @@ function renderUnidadesTabs(unidades){
 }
 
 window.toggleMenuExportacao = function(ev){
+  console.log('[Export] toggleMenuExportacao chamado');
   ev.stopPropagation();
   const menu = document.getElementById('menu-exportacao');
   const btn  = document.getElementById('tab-btn-exportacao-icon');
+  if(!menu || !btn){ console.error('[Export] menu-exportacao ou tab-btn-exportacao-icon não encontrado no DOM', {menu, btn}); return; }
   const abrir = !menu.classList.contains('open');
+  console.log('[Export] abrindo menu?', abrir);
+  if(abrir){
+    // position:fixed — calcula a posição na tela na hora de abrir, já que o
+    // menu não fica mais preso (e sujeito a corte) dentro da barra de abas
+    // rolável (.unidades-tabs-bar tem overflow-x:auto, o que force o
+    // navegador a também cortar no eixo Y e escondia o menu).
+    const r = btn.getBoundingClientRect();
+    menu.style.top   = (r.bottom + 6) + 'px';
+    menu.style.right = (window.innerWidth - r.right) + 'px';
+    menu.style.left  = 'auto';
+  }
   menu.classList.toggle('open', abrir);
   btn.classList.toggle('active', abrir);
   if(abrir){
@@ -14757,23 +14793,27 @@ window.exportarAulasParaSiepe = async function(turmaId){
 let _expState = { turma: null, unidades: null };
 
 window.abrirExportacao = async function(tipoInicial){
+  console.log('[Export] abrirExportacao chamado, tipoInicial=', tipoInicial);
   const turma = _turmaAtual;
-  if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
+  if(!turma){ console.warn('[Export] sem _turmaAtual — abortando'); showToast('Abra uma turma primeiro','error'); return; }
 
   document.querySelectorAll('.unidade-tab').forEach(b=>b.classList.remove('active'));
   _esconderSubtabsDesempenho();
 
   const el = document.getElementById('unidade-content');
-  if(!el) return;
+  if(!el){ console.error('[Export] #unidade-content não encontrado no DOM'); return; }
   el.innerHTML = `<div class="unidade-empty"><span>⏳</span>Carregando dados para exportação...</div>`;
 
   try {
+    console.log('[Export] carregando unidades/consolidação...');
     const [unidades] = await Promise.all([
       carregarTodasUnidadesNotas(turma),
       carregarConsolidacao(turma.id),
     ]);
+    console.log('[Export] dados carregados, unidades=', unidades?.length, '— renderizando tela:', tipoInicial||'menu');
     _expState = { turma, unidades };
     _exp_render(tipoInicial || 'menu');
+    console.log('[Export] renderização concluída');
   } catch(e){
     console.error('[Nota Mestra] Falha ao carregar dados de exportação:', e);
     el.innerHTML = `<div class="unidade-empty"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Erro ao carregar dados (${e.code||e.message||'erro desconhecido'}).</div>`;
@@ -14784,6 +14824,7 @@ window.abrirExportacao = async function(tipoInicial){
 // (chamado pelo menu suspenso do ícone de exportação na barra de abas).
 // Cada tipo agora é uma tela própria — não é mais a mesma tela com scroll.
 window.abrirExportacaoTipo = async function(tipo){
+  console.log('[Export] abrirExportacaoTipo chamado, tipo=', tipo);
   await abrirExportacao(tipo);
 };
 
