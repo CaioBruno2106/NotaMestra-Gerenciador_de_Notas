@@ -424,6 +424,16 @@ html{ scrollbar-width:thin; scrollbar-color: var(--pe-blue) var(--pe-bg); }
 }
 ::-webkit-scrollbar-thumb:hover{ background:var(--pe-cyan); }
 ::-webkit-scrollbar-corner{ background:var(--pe-bg); }
+
+/* ── Versão APK (WebView Android) — sem barras de rolagem visíveis.
+   O `data-apk="1"` é marcado no <html> assim que window.AndroidApp é
+   detectado (ver script logo após <body>) e também via setAndroidInsets(). */
+html[data-apk="1"], html[data-apk="1"] *{
+  scrollbar-width:none !important;
+}
+html[data-apk="1"] ::-webkit-scrollbar{
+  display:none !important; width:0 !important; height:0 !important;
+}
 /* Dentro de superfícies escuras (cabeçalho navy, modais escuros) a rolagem usa tom mais claro */
 .turma-header-info::-webkit-scrollbar-track,
 .unidades-tabs-bar::-webkit-scrollbar-track{ background:var(--pe-navy); }
@@ -879,8 +889,12 @@ body{ box-sizing:border-box; }
 .btn-del-turma:hover{background:#f8d7da;}
 
 /* ── DASHBOARD placeholder ── */
+/* A rolagem acontece só dentro de .dashboard-body (ver abaixo); o próprio
+   #dashboard-screen não rola, então a .navbar (primeiro filho) nunca some
+   por baixo do topo — inclusive no APK, onde position:sticky é instável
+   dentro de WebViews mais antigas. */
 #dashboard-screen{
-  display:none;height:100dvh;max-height:100dvh;flex-direction:column;overflow-y:auto;
+  display:none;height:100dvh;max-height:100dvh;flex-direction:column;overflow:hidden;
 }
 #dashboard-screen.active{display:flex;}
 
@@ -926,7 +940,7 @@ body{ box-sizing:border-box; }
 .bl-red{background:var(--pe-red);flex:1;}
 .bl-cyan{background:var(--pe-cyan);flex:1;}
 
-.dashboard-body{flex:1;max-width:1100px;width:100%;margin:0 auto;padding:24px 16px;}
+.dashboard-body{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;max-width:1100px;width:100%;margin:0 auto;padding:24px 16px;}
 
 .welcome-banner{
   background:linear-gradient(135deg,var(--pe-navy),var(--pe-blue));
@@ -1319,7 +1333,7 @@ body{ box-sizing:border-box; }
 }
 .tab-export-btn:hover, .tab-export-btn.active{ color:#fff; }
 .tab-export-menu{
-  position:fixed;z-index:5500;
+  position:absolute;top:100%;right:0;margin-top:6px;z-index:60;
   background:#fff;border-radius:8px;box-shadow:var(--shadow-lg);
   min-width:220px;padding:6px;display:none;
 }
@@ -1571,6 +1585,70 @@ body.dark-mode .desempenho-subtab:hover{ background:#2a2a2a; }
   0%{ box-shadow:0 0 0 3px var(--pe-blue); }
   100%{ box-shadow:0 0 0 0 rgba(0,86,179,0); }
 }
+
+/* ── Telas individuais de exportação (uma por tipo, com prévia) ── */
+.exp-voltar-btn{
+  display:inline-flex;align-items:center;gap:6px;background:none;border:none;
+  color:var(--pe-blue);font-weight:700;font-size:.85rem;cursor:pointer;
+  padding:4px 0;margin-bottom:10px;
+}
+.exp-voltar-btn:hover{ text-decoration:underline; }
+.exp-tela-header{ display:flex;align-items:flex-start;gap:12px;flex-wrap:wrap;justify-content:space-between; }
+.exp-tela-header .exp-tela-titulo h3{
+  font-size:1.05rem;font-weight:800;color:var(--pe-navy);
+  display:flex;align-items:center;gap:8px;
+}
+.exp-tela-header .exp-tela-titulo p{
+  color:var(--pe-muted);font-size:.83rem;margin-top:4px;max-width:520px;
+}
+.exp-controles-row{
+  display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end;margin:14px 0;
+}
+.exp-controle-campo{ display:flex;flex-direction:column;gap:4px;min-width:200px;flex:1; }
+.exp-controle-campo label{ font-size:.72rem;font-weight:700;color:var(--pe-muted); }
+.exp-acoes-row{ display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 18px; }
+
+/* Bloco de prévia — funciona igual no navegador de PC e no APK: o iframe
+   contém o documento completo (mesmo CSS de impressão), escalado para caber
+   na largura da tela. Rola internamente se o conteúdo tiver mais de 1 página. */
+.exp-preview-bloco{
+  background:#eceff1;border:1px solid var(--pe-border);border-radius:10px;
+  padding:14px;margin-bottom:16px;
+}
+.exp-preview-bloco-label{
+  display:flex;align-items:center;gap:6px;font-size:.75rem;font-weight:700;
+  color:var(--pe-muted);text-transform:uppercase;letter-spacing:.03em;margin-bottom:10px;
+}
+.exp-preview-frame-wrap{
+  max-width:640px;margin:0 auto;background:#fff;border-radius:4px;
+  box-shadow:0 2px 14px rgba(0,0,0,.18);overflow:hidden;
+}
+.exp-preview-frame-wrap iframe{
+  width:100%;display:block;border:none;background:#fff;
+}
+.exp-preview-frame-wrap iframe.exp-preview-portrait{ aspect-ratio:210/297; }
+.exp-preview-frame-wrap iframe.exp-preview-landscape{ aspect-ratio:297/210; }
+.exp-preview-vazio{
+  padding:40px 16px;text-align:center;color:var(--pe-muted);font-size:.85rem;
+}
+
+/* Prévia "textual" (JSON do SIEPE) — mesma moldura, conteúdo em <pre> */
+.exp-preview-json{
+  max-height:360px;overflow:auto;background:#0d1b2a;color:#a5f3c4;
+  border-radius:8px;padding:14px;font-family:ui-monospace,Consolas,monospace;
+  font-size:.72rem;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+}
+
+/* Grade de navegação (tela inicial "Exportação e Boletim") */
+.exp-nav-grid{ display:grid;grid-template-columns:repeat(2,1fr);gap:14px; }
+@media(max-width:760px){ .exp-nav-grid{grid-template-columns:1fr;} }
+.exp-nav-card{
+  background:#fff;border:1.5px solid var(--pe-border);border-radius:var(--radius-md);
+  padding:16px;cursor:pointer;transition:var(--transition);text-align:left;width:100%;
+}
+.exp-nav-card:hover{ border-color:var(--pe-blue);box-shadow:var(--shadow-md);transform:translateY(-2px); }
+.exp-nav-card h4{ display:flex;align-items:center;gap:8px;color:var(--pe-navy);font-size:.95rem;font-weight:800; }
+.exp-nav-card p{ color:var(--pe-muted);font-size:.8rem;margin-top:6px; }
 .grp-integrante-row{display:flex;align-items:center;gap:6px;}
 .grp-integrante-row label{font-size:.73rem;font-weight:700;color:var(--pe-muted);min-width:22px;text-align:right;}
 .grp-integrante-row select{
@@ -1699,17 +1777,26 @@ body.dark-mode .desempenho-subtab:hover{ background:#2a2a2a; }
   font-size:.78rem;font-weight:700;color:#e65100;margin-bottom:10px;
 }
 .vistos-row{
-  display:flex;align-items:center;gap:8px;margin-bottom:8px;
+  display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap;
 }
 .vistos-row input[type=text]{
-  flex:1;padding:6px 10px;border:1.5px solid var(--pe-border);
+  flex:1 1 140px;min-width:0;padding:6px 10px;border:1.5px solid var(--pe-border);
   border-radius:6px;font-size:.82rem;outline:none;
 }
 .vistos-row input[type=date]{
   padding:6px 10px;border:1.5px solid var(--pe-border);
-  border-radius:6px;font-size:.82rem;outline:none;width:150px;
+  border-radius:6px;font-size:.82rem;outline:none;width:150px;flex-shrink:0;
 }
 .vistos-row input:focus{border-color:var(--pe-blue);}
+
+/* ── Mobile/APK: nome do visto e data não cabem na mesma linha — a data
+   quebra pra linha de baixo, ocupando a largura toda, em vez de vazar
+   pra fora da tela. ── */
+@media(max-width:480px){
+  .vistos-row input[type=date]{
+    flex-basis:100%;width:calc(100% - 30px);margin-left:30px;
+  }
+}
 .visto-num{
   width:22px;font-size:.72rem;font-weight:700;
   color:var(--pe-muted);text-align:right;flex-shrink:0;
@@ -1766,6 +1853,14 @@ body.dark-mode .desempenho-subtab:hover{ background:#2a2a2a; }
 }
 .soma-atv-table tr:last-child td{border-bottom:none;}
 .soma-atv-table tr:hover td{background:#f8f9fa;}
+/* Nome do aluno fixo também na tabela de somatório (mesma lógica do .notas-table) */
+.soma-atv-table th.col-nome, .soma-atv-table td.col-nome{
+  position:sticky; left:0; z-index:2; background:#fff;
+  box-shadow:2px 0 5px -3px rgba(0,0,0,.25);
+}
+.soma-atv-table thead th.col-nome{ z-index:3; background:#f1f3f5; }
+.soma-atv-table tr:hover td.col-nome{ background:#f8f9fa; }
+body.dark-mode .soma-atv-table td.col-nome{ background:var(--pe-card); }
 .soma-cell{
   font-weight:800;color:var(--pe-blue);
 }
@@ -1860,6 +1955,33 @@ body.dark-mode .desempenho-subtab:hover{ background:#2a2a2a; }
 .col-visto{width:50px;text-align:center;}
 .col-preview{width:70px;text-align:center;color:var(--pe-blue);font-weight:700;}
 .col-situacao{width:110px;text-align:center;}
+
+/* ── Nome do aluno fixo ao rolar a tabela na horizontal (mobile/APK) ──
+   Só a área das notas/vistos rola; a coluna do nome fica sempre visível.
+   Precisa de background opaco explícito, senão o conteúdo que passa por
+   baixo aparece atrás da coluna "grudada". */
+.notas-table th.col-aluno, .notas-table td.col-aluno,
+.notas-table th.aluno,     .notas-table td.aluno{
+  position:sticky; left:0; z-index:2;
+  background:#fff;
+  box-shadow:2px 0 5px -3px rgba(0,0,0,.25);
+}
+.notas-table thead th.col-aluno, .notas-table thead th.aluno{
+  z-index:3; background:#f1f3f5;
+}
+.notas-table tr:hover td.col-aluno, .notas-table tr:hover td.aluno{
+  background:#f8f9fa;
+}
+body.dark-mode .notas-table td.col-aluno, body.dark-mode .notas-table td.aluno{
+  background:var(--pe-card);
+}
+body.dark-mode .notas-table thead th.col-aluno, body.dark-mode .notas-table thead th.aluno{
+  background:#002b5c;
+}
+body.dark-mode .notas-table tr:nth-child(even) td.col-aluno,
+body.dark-mode .notas-table tr:nth-child(even) td.aluno{
+  background:#222;
+}
 .nota-input{
   width:70px;padding:5px 7px;border:1.5px solid var(--pe-border);
   border-radius:6px;font-size:.85rem;font-weight:700;
@@ -2185,6 +2307,16 @@ body.dark-mode .stat-card-btn:active{
 </style>
 </head>
 <body>
+
+<script>
+// Marca <html data-apk="1"> assim que possível (antes mesmo do DOMContentLoaded),
+// já que window.AndroidApp é injetado pelo WebView de forma síncrona. Isso permite
+// que o CSS (barras de rolagem ocultas etc.) reaja ao modo APK desde o primeiro
+// paint, sem depender só do callback setAndroidInsets() do Kotlin.
+if (window.AndroidApp) {
+  document.documentElement.setAttribute('data-apk', '1');
+}
+</script>
 
 <!-- ═══════════════════════ APK BARS ═══════════════════════ -->
 <div id="apk-bar-top" style="
@@ -3220,18 +3352,6 @@ body.dark-mode .stat-card-btn:active{
 
   <!-- Abas de unidade -->
   <div class="unidades-tabs-bar" id="unidades-tabs-bar"></div>
-
-  <!-- Menu de exportação — FORA da barra de abas de propósito: a barra tem
-       overflow-x:auto, e um overflow:auto/hidden corta qualquer descendente
-       que ultrapasse a caixa, mesmo com position:absolute ou fixed. Por
-       isso o menu vive aqui como irmão da barra, com position:fixed e
-       coordenadas calculadas em JS (toggleMenuExportacao) toda vez que abre. -->
-  <div class="tab-export-menu" id="menu-exportacao">
-    <button onclick="fecharMenuExportacao();abrirExportacaoTipo('boletim')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Boletim Individual</button>
-    <button onclick="fecharMenuExportacao();abrirExportacaoTipo('unidade')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Planilha por Unidade</button>
-    <button onclick="fecharMenuExportacao();abrirExportacaoTipo('final')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg> Planilha Final da Turma</button>
-    <button onclick="fecharMenuExportacao();abrirExportacaoTipo('siepe')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar para o SIEPE</button>
-  </div>
 
   <!-- Sub-abas de Desempenho (Consolidação/Diagnóstico/Simulados CAED) -->
   <div class="desempenho-subtabs-bar" id="desempenho-subtabs-bar" style="display:none;">
@@ -8331,69 +8451,30 @@ function renderUnidadesTabs(unidades){
       <button class="tab-export-btn" id="tab-btn-exportacao-icon" onclick="toggleMenuExportacao(event)" title="Exportar">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.15em;height:1.15em;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
       </button>
+      <div class="tab-export-menu" id="menu-exportacao">
+        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('boletim')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg> Boletim Individual</button>
+        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('unidade')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3h18v18H3z"/><path d="M3 9h18M3 15h18M9 3v18"/></svg> Planilha por Unidade</button>
+        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('final')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg> Planilha Final da Turma</button>
+        <button onclick="fecharMenuExportacao();abrirExportacaoTipo('siepe')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportar para o SIEPE</button>
+      </div>
     </div>`;
 }
 
-let _exportMenuFecharFn = null;
 window.toggleMenuExportacao = function(ev){
   ev.stopPropagation();
   const menu = document.getElementById('menu-exportacao');
   const btn  = document.getElementById('tab-btn-exportacao-icon');
   const abrir = !menu.classList.contains('open');
-
-  // Sempre limpa o listener anterior antes de decidir o que fazer agora —
-  // evita empilhar vários listeners de 'click' no document se o menu for
-  // aberto/fechado várias vezes clicando no próprio botão (em vez de
-  // clicar fora, que já removia o listener sozinho).
-  if(_exportMenuFecharFn){ document.removeEventListener('click', _exportMenuFecharFn); _exportMenuFecharFn = null; }
-
-  if(abrir){
-    // O menu agora vive fora da barra de abas (que tem overflow-x:auto e
-    // cortava ele) — por isso a posição é calculada aqui, na hora de
-    // abrir, a partir da posição real do botão na tela (position:fixed).
-    const r = btn.getBoundingClientRect();
-    menu.style.top   = (r.bottom + 6) + 'px';
-    menu.style.right = (window.innerWidth - r.right) + 'px';
-    menu.style.left  = 'auto';
-  }
   menu.classList.toggle('open', abrir);
   btn.classList.toggle('active', abrir);
   if(abrir){
-    _exportMenuFecharFn = ()=>{ menu.classList.remove('open'); btn.classList.remove('active'); document.removeEventListener('click', _exportMenuFecharFn); _exportMenuFecharFn = null; };
-    document.addEventListener('click', _exportMenuFecharFn);
+    const fechar = ()=>{ menu.classList.remove('open'); btn.classList.remove('active'); document.removeEventListener('click', fechar); };
+    document.addEventListener('click', fechar);
   }
 };
 window.fecharMenuExportacao = function(){
   document.getElementById('menu-exportacao')?.classList.remove('open');
   document.getElementById('tab-btn-exportacao-icon')?.classList.remove('active');
-  if(_exportMenuFecharFn){ document.removeEventListener('click', _exportMenuFecharFn); _exportMenuFecharFn = null; }
-};
-
-// ── Mesmo padrão do menu de exportação da turma, reaproveitado pro botão
-// "Imprimir relatório geral" da tela de Simulados CAED (Geral vs Por níveis) ──
-let _relGeralCaedFecharFn = null;
-window.toggleMenuRelatorioGeralCAED = function(ev){
-  ev.stopPropagation();
-  const menu = document.getElementById('menu-rel-geral-caed');
-  const btn  = document.getElementById('btn-rel-geral-caed');
-  if(!menu || !btn) return;
-  const abrir = !menu.classList.contains('open');
-  if(_relGeralCaedFecharFn){ document.removeEventListener('click', _relGeralCaedFecharFn); _relGeralCaedFecharFn = null; }
-  if(abrir){
-    const r = btn.getBoundingClientRect();
-    menu.style.top   = (r.bottom + 6) + 'px';
-    menu.style.right = (window.innerWidth - r.right) + 'px';
-    menu.style.left  = 'auto';
-  }
-  menu.classList.toggle('open', abrir);
-  if(abrir){
-    _relGeralCaedFecharFn = ()=>{ menu.classList.remove('open'); document.removeEventListener('click', _relGeralCaedFecharFn); _relGeralCaedFecharFn = null; };
-    document.addEventListener('click', _relGeralCaedFecharFn);
-  }
-};
-window.fecharMenuRelatorioGeralCAED = function(){
-  document.getElementById('menu-rel-geral-caed')?.classList.remove('open');
-  if(_relGeralCaedFecharFn){ document.removeEventListener('click', _relGeralCaedFecharFn); _relGeralCaedFecharFn = null; }
 };
 
 // ── Desempenho: agrupa Consolidação / Diagnóstico / Simulados CAED ──
@@ -11547,21 +11628,9 @@ function renderSimuladosCAEDList(turma, lista){
     <div class="caed-toolbar">
       <h3>Simulados CAED — ${escapeHtmlNM(turma.serie||'')} ${escapeHtmlNM(turma.turma||'')}</h3>
       <div class="caed-actions">
-        ${ lista.length ? `
-        <div class="tab-export-wrap" style="display:inline-block">
-          <button class="btn-caed-outline" id="btn-rel-geral-caed" onclick="toggleMenuRelatorioGeralCAED(event)">Imprimir relatório geral ▾</button>
-        </div>` : '' }
+        ${ lista.length ? `<button class="btn-caed-outline" onclick="abrirRelatorioGeralCAED()">Imprimir relatório geral</button>` : '' }
         <button class="btn-aplicar-qtd" onclick="abrirNovoSimuladoCAED()">+ Novo simulado</button>
       </div>
-    </div>
-
-    <!-- Menu com os dois formatos de relatório geral — position:fixed e
-         calculado em JS pelo mesmo motivo do menu de exportação da turma
-         (ver toggleMenuExportacao): não pode ficar dentro de um
-         container com overflow, senão o dropdown fica cortado. -->
-    <div class="tab-export-menu" id="menu-rel-geral-caed">
-      <button onclick="fecharMenuRelatorioGeralCAED();abrirRelatorioGeralCAED()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M3 3v18h18"/><path d="M18 17V9M13 17V5M8 17v-4"/></svg> Geral (nota e nível por aluno)</button>
-      <button onclick="fecharMenuRelatorioGeralCAED();abrirRelatorioGeralCAEDPorNiveis()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M9 18h6"/><path d="M10 22h4"/><path d="M12 2a7 7 0 0 0-4 12.9V17h8v-2.1A7 7 0 0 0 12 2z"/></svg> Por níveis (% de acerto por nível)</button>
     </div>
 
     ${ lista.length===0
@@ -11968,84 +12037,6 @@ window.abrirRelatorioGeralCAED = async function(){
       <tbody>${linhas}</tbody>
     </table>
     ${distribuicaoHtml}
-    ${_exp_rodape()}
-  `;
-  abrirJanelaImpressao(html, 'landscape');
-};
-
-/* ── Relatório geral por NÍVEIS (turma inteira) — impresso ──
-   Complementa o "Geral": em vez de nota+nível por aluno, mostra, PRA CADA
-   SIMULADO, o % de acerto AGREGADO da turma em cada um dos 4 níveis
-   (soma acertos/total de todos os alunos daquele simulado, por nível) —
-   só entram simulados que têm `porNivel` salvo (os importados do Correção
-   Mestra; lançamentos manuais não têm esse detalhamento e ficam de fora
-   dessa tabela, mas continuam contando na distribuição de nível). */
-window.abrirRelatorioGeralCAEDPorNiveis = async function(){
-  const turma = _turmaAtual;
-  const lista = await carregarSimuladosCAED(turma.id);
-  if(!lista.length){ showToast('Nenhum simulado lançado ainda para gerar relatório','error'); return; }
-  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
-
-  const NIVEIS_COM_QUESTAO = ['elementarI','elementarII','basico','desejavel'];
-
-  const linhasSimulados = lista.map(s => {
-    const agregado = {}; NIVEIS_COM_QUESTAO.forEach(n => agregado[n] = { acertos:0, total:0 });
-    let temPorNivel = false;
-    Object.values(s.resultados||{}).forEach(r => {
-      if(!r.porNivel) return;
-      temPorNivel = true;
-      NIVEIS_COM_QUESTAO.forEach(n => {
-        const info = r.porNivel[n];
-        if(info && info.total){ agregado[n].acertos += info.acertos; agregado[n].total += info.total; }
-      });
-    });
-    return { simulado: s, agregado, temPorNivel };
-  }).filter(x => x.temPorNivel);
-
-  const linhasHtml = linhasSimulados.map(({simulado, agregado}) => {
-    const cels = NIVEIS_COM_QUESTAO.map(n => {
-      const b = agregado[n];
-      if(!b.total) return `<td class="num">—</td>`;
-      const pct = Math.round(b.acertos/b.total*100);
-      return `<td class="num">${pct}% <span style="font-size:.65rem;color:#495057">(${b.acertos}/${b.total})</span></td>`;
-    }).join('');
-    return `<tr><td class="aluno">${escapeHtmlNM(simulado.nome)}${simulado.disciplina?` <span style="font-size:.7rem;color:#666">· ${escapeHtmlNM(simulado.disciplina)}</span>`:''}</td>${cels}</tr>`;
-  }).join('');
-
-  // Distribuição de nível ATINGIDO — igual à do relatório "Geral", pra
-  // manter os dois relatórios comparáveis mesmo olhando só um dos dois.
-  const contagem = {}; NIVEIS_SAEB.forEach(n=>contagem[n]=0);
-  let comDado = 0;
-  alunos.forEach((al, ai) => {
-    for(let i=lista.length-1; i>=0; i--){
-      const r = (lista[i].resultados||{})[ai];
-      if(r && r.nivel){ contagem[r.nivel]++; comDado++; break; }
-    }
-  });
-  const distribuicaoHtmlNiveis = `
-    <h2 class="sec">Distribuição de níveis (simulado mais recente de cada aluno)</h2>
-    <table>
-      <thead><tr><th class="aluno">Nível</th><th class="num">Alunos</th><th class="num">%</th></tr></thead>
-      <tbody>${NIVEIS_SAEB.map(n=>`<tr><td class="aluno">${NIVEIS_SAEB_LABEL[n]}</td><td class="num">${contagem[n]}</td><td class="num">${comDado?Math.round(contagem[n]/comDado*100):0}%</td></tr>`).join('')}</tbody>
-    </table>
-  `;
-
-  const c = _exp_cabHTML(turma, 'Relatório geral por níveis — Simulados CAED');
-  const html = `
-    ${c}
-    <div class="resumo">
-      <span class="t">Simulados com detalhamento por nível: ${linhasSimulados.length} de ${lista.length}</span>
-      <span class="a">Alunos: ${alunos.length}</span>
-    </div>
-    <h2 class="sec">% de acerto da turma, por nível, em cada simulado</h2>
-    ${ linhasSimulados.length ? `
-    <table>
-      <thead><tr><th class="aluno">Simulado</th><th class="num">Elementar I</th><th class="num">Elementar II</th><th class="num">Básico</th><th class="num">Desejável</th></tr></thead>
-      <tbody>${linhasHtml}</tbody>
-    </table>
-    <div style="font-size:.72rem;color:#666;margin-top:4px">Soma dos acertos de todos os alunos nas questões de cada nível daquele simulado.</div>
-    ` : `<div style="font-size:.85rem;color:#666">Nenhum simulado lançado nesta turma tem detalhamento por nível ainda (só simulados importados do Correção Mestra trazem esse dado).</div>` }
-    ${distribuicaoHtmlNiveis}
     ${_exp_rodape()}
   `;
   abrirJanelaImpressao(html, 'landscape');
@@ -12971,20 +12962,15 @@ window.print = function(){
   }
 };
 
-// Abre o documento imprimível.
-// APK: usa um iframe oculto com o HTML completo; o PrintManager do Android consegue
-//      paginar o iframe inteiro (sem corte). window.print() → AndroidApp.gerarPDF().
-// Web: abre nova janela (window.open) com o HTML completo para paginação correta.
-function abrirJanelaImpressao(html, orientacao){
+// Monta o documento HTML completo (estilo + conteúdo), pronto tanto para
+// impressão quanto para exibição em prévia (iframe). Função pura, reaproveitada
+// pelo fluxo de impressão (abrirJanelaImpressao) e pelas telas de exportação
+// com prévia embutida (_exp_montarPreview).
+function _exp_buildFullHtmlDoc(html, orientacao){
   const o = orientacao==='landscape' ? 'landscape' : 'portrait';
-  const isApk = !!(window.AndroidApp && window.AndroidApp.gerarPDF);
-
-  // HTML completo que vai para o iframe (APK) ou nova janela (web)
-  const buildFullHtml = () => {
-    const baseStyle = _exp_estiloBase();
-    // Ajusta @page para orientação correta
-    const style = baseStyle.replace('@page { size: A4 portrait;', `@page { size: A4 ${o};`);
-    return `<!DOCTYPE html>
+  const baseStyle = _exp_estiloBase();
+  const style = baseStyle.replace('@page { size: A4 portrait;', `@page { size: A4 ${o};`);
+  return `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -13001,7 +12987,29 @@ ${style}
 ${html}
 <\/body>
 <\/html>`;
-  };
+}
+
+// Preenche um <iframe> com a prévia do documento (mesmo HTML/CSS que será
+// impresso), escalando pra caber na largura disponível — funciona tanto no
+// APK quanto no navegador de PC.
+function _exp_montarPreview(iframeId, html, orientacao){
+  const frame = document.getElementById(iframeId);
+  if(!frame) return;
+  frame.classList.remove('exp-preview-portrait','exp-preview-landscape');
+  frame.classList.add(orientacao==='landscape' ? 'exp-preview-landscape' : 'exp-preview-portrait');
+  frame.srcdoc = _exp_buildFullHtmlDoc(html, orientacao);
+}
+
+// Abre o documento imprimível.
+// APK: usa um iframe oculto com o HTML completo; o PrintManager do Android consegue
+//      paginar o iframe inteiro (sem corte). window.print() → AndroidApp.gerarPDF().
+// Web: abre nova janela (window.open) com o HTML completo para paginação correta.
+function abrirJanelaImpressao(html, orientacao){
+  const o = orientacao==='landscape' ? 'landscape' : 'portrait';
+  const isApk = !!(window.AndroidApp && window.AndroidApp.gerarPDF);
+
+  // HTML completo que vai para o iframe (APK) ou nova janela (web)
+  const buildFullHtml = () => _exp_buildFullHtmlDoc(html, orientacao);
 
   // ── Modo APK ─────────────────────────────────────────────────────────
   // Estratégia: montar o HTML completo no JS e passá-lo diretamente ao
@@ -14743,7 +14751,12 @@ window.exportarAulasParaSiepe = async function(turmaId){
 };
 
 // ── Aba "Exportação" ────────────────────────────────────────────────
-window.abrirExportacao = async function(){
+// Cada opção do menu abre sua PRÓPRIA tela (mais detalhada, com prévia do
+// documento antes de gerar o PDF). `_expState` guarda a turma/unidades já
+// carregadas para não precisar recarregar do Firestore ao trocar de tela.
+let _expState = { turma: null, unidades: null };
+
+window.abrirExportacao = async function(tipoInicial){
   const turma = _turmaAtual;
   if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
 
@@ -14759,124 +14772,268 @@ window.abrirExportacao = async function(){
       carregarTodasUnidadesNotas(turma),
       carregarConsolidacao(turma.id),
     ]);
-    _renderTelaExportacao(turma, unidades);
+    _expState = { turma, unidades };
+    _exp_render(tipoInicial || 'menu');
   } catch(e){
-    console.error(e);
-    el.innerHTML = `<div class="unidade-empty"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Erro ao carregar dados.</div>`;
+    console.error('[Nota Mestra] Falha ao carregar dados de exportação:', e);
+    el.innerHTML = `<div class="unidade-empty"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Erro ao carregar dados (${e.code||e.message||'erro desconhecido'}).</div>`;
   }
 };
 
-// Abre a tela de Exportação já focada num tipo específico (chamado pelo
-// menu suspenso do ícone de exportação na barra de abas).
+// Abre a tela de Exportação já direto na tela de um tipo específico
+// (chamado pelo menu suspenso do ícone de exportação na barra de abas).
+// Cada tipo agora é uma tela própria — não é mais a mesma tela com scroll.
 window.abrirExportacaoTipo = async function(tipo){
-  await abrirExportacao();
-  const idsPorTipo = { boletim:'exp-card-boletim', unidade:'exp-card-unidade', final:'exp-card-final', siepe:'exp-card-siepe' };
-  const card = document.getElementById(idsPorTipo[tipo]);
-  if(card){
-    card.scrollIntoView({behavior:'smooth', block:'center'});
-    card.classList.add('exp-card-destaque');
-    setTimeout(()=>card.classList.remove('exp-card-destaque'), 1600);
-  }
+  await abrirExportacao(tipo);
 };
 
-function _renderTelaExportacao(turma, unidades){
+// Router: decide qual tela renderizar dentro de #unidade-content.
+function _exp_render(tipo){
+  const el = document.getElementById('unidade-content');
+  if(!el || !_expState.turma) return;
+  const { turma, unidades } = _expState;
+  if(tipo==='boletim')      return _exp_renderBoletim(turma, unidades);
+  if(tipo==='unidade')      return _exp_renderUnidade(turma, unidades);
+  if(tipo==='final')        return _exp_renderFinal(turma, unidades);
+  if(tipo==='siepe')        return _exp_renderSiepe(turma, unidades);
+  return _exp_renderMenu(turma, unidades);
+}
+
+function _exp_voltarBtn(){
+  return `<button type="button" class="exp-voltar-btn" onclick="_exp_render('menu')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>
+    Voltar para as opções de exportação
+  </button>`;
+}
+
+// ── Tela inicial: menu com as 4 opções ───────────────────────────────
+function _exp_renderMenu(turma, unidades){
   const el = document.getElementById('unidade-content');
   if(!el) return;
-  const isApk = !!(window.AndroidApp); // Exportação para o SIEPE é indisponível no app Android
-  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  el.innerHTML = `
+  <div class="medias-card" style="margin-bottom:14px;">
+    <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportação e Boletim</h4>
+    <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
+      Escolha o que você quer gerar. Cada opção abre sua própria tela, com
+      uma prévia do documento antes de baixar o PDF.
+    </p>
+  </div>
 
+  <div class="exp-nav-grid">
+    <button type="button" class="exp-nav-card" onclick="_exp_render('boletim')">
+      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Boletim Individual</h4>
+      <p>PDF por aluno (ou de toda a turma) · todas as unidades + situação final.</p>
+    </button>
+    <button type="button" class="exp-nav-card" onclick="_exp_render('unidade')">
+      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="6" y="4" width="12" height="18" rx="2"/></svg> Planilha por Unidade</h4>
+      <p>PDF da turma · atividades, prova, extras, média e situação de uma unidade.</p>
+    </button>
+    <button type="button" class="exp-nav-card" onclick="_exp_render('final')">
+      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Planilha Final da Turma</h4>
+      <p>PDF · todos os alunos, médias de cada unidade, média final e situação.</p>
+    </button>
+    <button type="button" class="exp-nav-card" onclick="_exp_render('siepe')">
+      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE</h4>
+      <p>Gera um JSON da unidade selecionada para a extensão que preenche o SIEPE.</p>
+    </button>
+  </div>`;
+}
+
+// ── 1. Boletim Individual ────────────────────────────────────────────
+function _exp_renderBoletim(turma, unidades){
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
   const optAlunos = alunos.map((a,ai)=>
     `<option value="${ai}">${ai+1}. ${_exp_nomeAluno(a)}</option>`
   ).join('');
+
+  el.innerHTML = `
+  ${_exp_voltarBtn()}
+  <div class="medias-card">
+    <div class="exp-tela-header">
+      <div class="exp-tela-titulo">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1em;height:1.1em;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Boletim Individual</h3>
+        <p>Um PDF por aluno(a), com o desempenho em todas as unidades e a situação final. Escolha o(a) aluno(a) abaixo — a prévia atualiza automaticamente.</p>
+      </div>
+    </div>
+
+    <div class="exp-controles-row">
+      <div class="exp-controle-campo">
+        <label for="exp-aluno-sel">Aluno(a)</label>
+        <select id="exp-aluno-sel" class="nota-input" onchange="_exp_atualizarPreviewBoletim()">
+          ${optAlunos}
+        </select>
+      </div>
+    </div>
+
+    <div class="exp-preview-bloco">
+      <div class="exp-preview-bloco-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Prévia (role dentro do quadro para ver a página inteira)</div>
+      <div class="exp-preview-frame-wrap">
+        <iframe id="exp-preview-boletim" class="exp-preview-portrait" title="Prévia do boletim"></iframe>
+      </div>
+    </div>
+
+    <div class="exp-acoes-row">
+      <button class="btn-aplicar-qtd" onclick="gerarBoletimAluno(document.getElementById('exp-aluno-sel').value)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Baixar PDF deste aluno
+      </button>
+      <button class="btn-aplicar-qtd" style="background:#002b5c;" onclick="gerarBoletimTurmaCompleta()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Baixar PDF de toda a turma
+      </button>
+    </div>
+    <p style="color:var(--pe-muted);font-size:.75rem;margin-top:-8px;">
+      "Baixar PDF de toda a turma" gera um único arquivo com um boletim por
+      página — a prévia acima mostra só o(a) aluno(a) selecionado(a).
+    </p>
+  </div>`;
+
+  window._exp_atualizarPreviewBoletim = function(){
+    const ai = document.getElementById('exp-aluno-sel')?.value;
+    const html = _buildBoletimAlunoHTML(ai);
+    if(html!=null) _exp_montarPreview('exp-preview-boletim', html, 'portrait');
+  };
+  window._exp_atualizarPreviewBoletim();
+}
+
+// ── 2. Planilha por Unidade ──────────────────────────────────────────
+function _exp_renderUnidade(turma, unidades){
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
   const optUnid = unidades.map(u=>
     `<option value="${u.id}">${u.label}</option>`
   ).join('');
 
   el.innerHTML = `
-  <div class="medias-card" style="margin-bottom:14px;">
-    <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Exportação e Boletim</h4>
-    <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 12px;">
-      Cada opção abre uma nova janela com o documento pronto. Use o diálogo
-      <strong>Imprimir → Salvar como PDF</strong> do seu navegador.
-    </p>
-  </div>
-
-  <div class="exportacao-grid">
-
-    <!-- 1. Boletim individual -->
-    <div class="medias-card" id="exp-card-boletim">
-      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Boletim Individual</h4>
-      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
-        PDF por aluno · todas as unidades + situação final.
-      </p>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <select id="exp-aluno-sel" class="nota-input" style="width:100%;">
-          ${optAlunos}
-        </select>
-        <button class="btn-aplicar-qtd" onclick="gerarBoletimAluno(document.getElementById('exp-aluno-sel').value)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg> Gerar boletim do aluno
-        </button>
-        <button class="btn-aplicar-qtd" style="background:#002b5c;"
-          onclick="gerarBoletimTurmaCompleta()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg> Gerar boletins de toda a turma
-        </button>
+  ${_exp_voltarBtn()}
+  <div class="medias-card">
+    <div class="exp-tela-header">
+      <div class="exp-tela-titulo">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1em;height:1.1em;flex-shrink:0;"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="6" y="4" width="12" height="18" rx="2"/></svg> Planilha por Unidade</h3>
+        <p>Um PDF em modo paisagem com a turma inteira: notas de cada atividade, prova, extras, recuperação, média e situação — para a unidade escolhida.</p>
       </div>
     </div>
 
-    <!-- 2. Planilha por unidade -->
-    <div class="medias-card" id="exp-card-unidade">
-      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="6" y="4" width="12" height="18" rx="2"/></svg> Planilha por Unidade</h4>
-      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
-        PDF da turma · atividades, prova, extras, média e situação.
-      </p>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <select id="exp-unid-sel" class="nota-input" style="width:100%;">
+    <div class="exp-controles-row">
+      <div class="exp-controle-campo">
+        <label for="exp-unid-sel">Unidade</label>
+        <select id="exp-unid-sel" class="nota-input" onchange="_exp_atualizarPreviewUnidade()">
           ${optUnid}
         </select>
-        <button class="btn-aplicar-qtd" onclick="gerarPlanilhaUnidade(document.getElementById('exp-unid-sel').value)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M9 2h6a1 1 0 0 1 1 1v2H8V3a1 1 0 0 1 1-1z"/><rect x="6" y="4" width="12" height="18" rx="2"/></svg> Gerar planilha da unidade
-        </button>
       </div>
     </div>
 
-    <!-- 3. Planilha final -->
-    <div class="medias-card" id="exp-card-final">
-      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Planilha Final da Turma</h4>
-      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
-        PDF · todos os alunos, médias de cada unidade, média final e situação.
-      </p>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <button class="btn-aplicar-qtd" onclick="gerarPlanilhaFinal()">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Gerar planilha final
-        </button>
+    <div class="exp-preview-bloco">
+      <div class="exp-preview-bloco-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Prévia (modo paisagem)</div>
+      <div class="exp-preview-frame-wrap">
+        <iframe id="exp-preview-unidade" class="exp-preview-landscape" title="Prévia da planilha por unidade"></iframe>
       </div>
     </div>
 
-    <!-- 4. Exportar para a extensão (preenchimento no SIEPE) -->
-    <div class="medias-card" id="exp-card-siepe">
-      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE</h4>
-      <p style="color:var(--pe-muted);font-size:.8rem;margin:6px 0 10px;">
-        Gera um JSON da unidade selecionada, pronto pra carregar na extensão
-        que preenche as notas no SIEPE.
-      </p>
-      ${isApk ? `
-      <div style="background:#fff3cd;color:#7a5b00;border:1px solid #ffe08a;border-radius:8px;
-                  padding:8px 10px;font-size:.78rem;line-height:1.4;margin-bottom:10px;">
-        Essa funcionalidade não pode ser usada no celular. Para usá-la, dirija-se a um computador.
-      </div>` : ''}
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <select id="exp-siepe-unid-sel" class="nota-input" style="width:100%;" ${isApk?'disabled':''}>
-          ${optUnid}
-        </select>
-        <button class="btn-aplicar-qtd" style="background:#0f6e56;${isApk?'opacity:.5;cursor:not-allowed;':''}"
-          ${isApk?'disabled title="Disponível apenas no computador"':''}
-          onclick="exportarUnidadeParaSiepe(document.getElementById('exp-siepe-unid-sel').value)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Baixar JSON para o SIEPE
-        </button>
-      </div>
+    <div class="exp-acoes-row">
+      <button class="btn-aplicar-qtd" onclick="gerarPlanilhaUnidade(document.getElementById('exp-unid-sel').value)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Baixar PDF da unidade
+      </button>
     </div>
-
   </div>`;
+
+  window._exp_atualizarPreviewUnidade = function(){
+    const uid = document.getElementById('exp-unid-sel')?.value;
+    const html = _buildPlanilhaUnidadeHTML(uid);
+    if(html!=null) _exp_montarPreview('exp-preview-unidade', html, 'landscape');
+  };
+  window._exp_atualizarPreviewUnidade();
+}
+
+// ── 3. Planilha Final da Turma ───────────────────────────────────────
+function _exp_renderFinal(turma, unidades){
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+
+  el.innerHTML = `
+  ${_exp_voltarBtn()}
+  <div class="medias-card">
+    <div class="exp-tela-header">
+      <div class="exp-tela-titulo">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1em;height:1.1em;flex-shrink:0;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg> Planilha Final da Turma</h3>
+        <p>Um PDF com todos os alunos, a média de cada unidade, a média anual, recuperação final, nota final e situação. Não precisa escolher nada — é a turma inteira, o ano todo.</p>
+      </div>
+    </div>
+
+    <div id="exp-preview-final-bloco" class="exp-preview-bloco">
+      <div class="exp-preview-bloco-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg> Prévia</div>
+      <div class="exp-preview-frame-wrap">
+        <iframe id="exp-preview-final" class="exp-preview-portrait" title="Prévia da planilha final"></iframe>
+      </div>
+    </div>
+
+    <div class="exp-acoes-row">
+      <button class="btn-aplicar-qtd" onclick="gerarPlanilhaFinal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg> Baixar PDF da planilha final
+      </button>
+    </div>
+  </div>`;
+
+  const r = _buildPlanilhaFinalHTML();
+  if(r!=null) _exp_montarPreview('exp-preview-final', r.html, r.orient);
+}
+
+// ── 4. Exportar para o SIEPE (extensão) ──────────────────────────────
+function _exp_renderSiepe(turma, unidades){
+  const el = document.getElementById('unidade-content');
+  if(!el) return;
+  const isApk = !!(window.AndroidApp); // Exportação para o SIEPE é indisponível no app Android
+  const optUnid = unidades.map(u=>
+    `<option value="${u.id}">${u.label}</option>`
+  ).join('');
+
+  el.innerHTML = `
+  ${_exp_voltarBtn()}
+  <div class="medias-card">
+    <div class="exp-tela-header">
+      <div class="exp-tela-titulo">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1em;height:1.1em;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Exportar para o SIEPE</h3>
+        <p>Gera um JSON enxuto (atividades, prova e recuperação de cada aluno) pronto para carregar na extensão do navegador que preenche as notas direto no SIEPE.</p>
+      </div>
+    </div>
+
+    ${isApk ? `
+    <div style="background:#fff3cd;color:#7a5b00;border:1px solid #ffe08a;border-radius:8px;
+                padding:8px 10px;font-size:.78rem;line-height:1.4;margin:6px 0 14px;">
+      Essa funcionalidade não pode ser usada no celular. Para usá-la, dirija-se a um computador.
+    </div>` : ''}
+
+    <div class="exp-controles-row">
+      <div class="exp-controle-campo">
+        <label for="exp-siepe-unid-sel">Unidade</label>
+        <select id="exp-siepe-unid-sel" class="nota-input" ${isApk?'disabled':''} onchange="_exp_atualizarPreviewSiepe()">
+          ${optUnid}
+        </select>
+      </div>
+    </div>
+
+    <div class="exp-preview-bloco">
+      <div class="exp-preview-bloco-label"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;flex-shrink:0;"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg> Prévia do JSON que será gerado</div>
+      <pre id="exp-preview-siepe-json" class="exp-preview-json">Carregando…</pre>
+    </div>
+
+    <div class="exp-acoes-row">
+      <button class="btn-aplicar-qtd" style="background:#0f6e56;${isApk?'opacity:.5;cursor:not-allowed;':''}"
+        ${isApk?'disabled title="Disponível apenas no computador"':''}
+        onclick="exportarUnidadeParaSiepe(document.getElementById('exp-siepe-unid-sel').value)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 7a2 2 0 0 1 2-2h2.05a2.5 2.5 0 0 1 4.9 0H15a2 2 0 0 1 2 2v2.05a2.5 2.5 0 0 1 0 4.9V16a2 2 0 0 1-2 2h-2.05a2.5 2.5 0 0 1-4.9 0H4a2 2 0 0 1-2-2v-2.05a2.5 2.5 0 0 1 0-4.9V7z"/></svg> Baixar JSON para o SIEPE
+      </button>
+    </div>
+  </div>`;
+
+  window._exp_atualizarPreviewSiepe = function(){
+    const uid = document.getElementById('exp-siepe-unid-sel')?.value;
+    const payload = _buildSiepePayload(uid);
+    const pre = document.getElementById('exp-preview-siepe-json');
+    if(pre) pre.textContent = payload ? JSON.stringify(payload, null, 2) : 'Selecione uma unidade.';
+  };
+  if(!isApk) window._exp_atualizarPreviewSiepe();
+  else { const pre = document.getElementById('exp-preview-siepe-json'); if(pre) pre.textContent = 'Disponível apenas no computador.'; }
 }
 
 // ── Exportar unidade para a extensão "Nota Mestra → SIEPE" ──────────
@@ -14884,16 +15041,14 @@ function _renderTelaExportacao(turma, unidades){
 // vai usar pra preencher nota_1..nota_5 (atividades), nota_7 (prova) e
 // marcar "não compareceu" quando o valor estiver em branco. nota_8 (RP),
 // faltas e a média (calculados pelo próprio SIEPE) ficam de fora.
-window.exportarUnidadeParaSiepe = function(uidStr){
-  if(window.AndroidApp){
-    showToast('Essa funcionalidade não pode ser usada no celular. Para usá-la, dirija-se a um computador.', 'error');
-    return;
-  }
+// Monta o payload (sem baixar nada) — usado tanto pela prévia da tela quanto
+// pelo botão de baixar o JSON.
+function _buildSiepePayload(uidStr){
   const turma = _turmaAtual;
-  if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
+  if(!turma) return null;
   const unidades = _unidades[turma.id] || [];
   const u = unidades.find(x=>x.id===uidStr);
-  if(!u){ showToast('Selecione uma unidade','error'); return; }
+  if(!u) return null;
 
   const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
   const cfg = _atvConfig[u.id] || { atividades: [] };
@@ -14939,7 +15094,7 @@ window.exportarUnidadeParaSiepe = function(uidStr){
     return out;
   });
 
-  const payload = {
+  return {
     origem: 'nota-mestra',
     versaoExport: 'siepe-v1',
     geradoEm: new Date().toISOString(),
@@ -14950,6 +15105,17 @@ window.exportarUnidadeParaSiepe = function(uidStr){
     unidade: { id: u.id, label: u.label },
     alunos: alunosOut
   };
+}
+
+window.exportarUnidadeParaSiepe = function(uidStr){
+  if(window.AndroidApp){
+    showToast('Essa funcionalidade não pode ser usada no celular. Para usá-la, dirija-se a um computador.', 'error');
+    return;
+  }
+  const turma = _turmaAtual;
+  if(!turma){ showToast('Abra uma turma primeiro','error'); return; }
+  const payload = _buildSiepePayload(uidStr);
+  if(!payload){ showToast('Selecione uma unidade','error'); return; }
 
   try {
     const json = JSON.stringify(payload, null, 2);
@@ -14957,12 +15123,12 @@ window.exportarUnidadeParaSiepe = function(uidStr){
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     const nomeSafe = (turma.nome||'turma').replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_');
-    const unidSafe = (u.label||'unidade').replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_');
+    const unidSafe = (payload.unidade.label||'unidade').replace(/[^a-zA-Z0-9À-ÿ\s]/g,'').trim().replace(/\s+/g,'_');
     a.download = `SIEPE_${nomeSafe}_${unidSafe}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`;
     a.href = url;
     a.click();
     URL.revokeObjectURL(url);
-    showToast(`Exportado para o SIEPE: ${alunosOut.length} aluno(s) <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`, 'success');
+    showToast(`Exportado para o SIEPE: ${payload.alunos.length} aluno(s) <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>`, 'success');
   } catch(e){
     showToast('Erro ao exportar: '+e.message, 'error');
   }
@@ -15082,32 +15248,43 @@ function _exp_boletimHTMLAluno(turma, unidades, regras, alunoIdx){
   `;
 }
 
-window.gerarBoletimAluno = function(alunoIdxStr){
-  const turma = _turmaAtual; if(!turma) return;
-  const ai = parseInt(alunoIdxStr); if(isNaN(ai)) return;
+// Monta o HTML (sem abrir impressão) — reaproveitado pela prévia embutida
+// nas telas de exportação e pelo botão de gerar PDF.
+function _buildBoletimAlunoHTML(alunoIdxStr){
+  const turma = _turmaAtual; if(!turma) return null;
+  const ai = parseInt(alunoIdxStr); if(isNaN(ai)) return null;
   const unidades = _unidades[turma.id] || [];
   const regras = getRegrasRede(turma.escolaTipo||'municipal');
-  const html = `<div>${_exp_boletimHTMLAluno(turma, unidades, regras, ai)}</div>`;
+  return `<div>${_exp_boletimHTMLAluno(turma, unidades, regras, ai)}</div>`;
+}
+function _buildBoletimTurmaHTML(){
+  const turma = _turmaAtual; if(!turma) return null;
+  const unidades = _unidades[turma.id] || [];
+  const regras = getRegrasRede(turma.escolaTipo||'municipal');
+  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
+  return alunos.map((_,ai)=>{
+    const isLast = ai===alunos.length-1;
+    return `<div class="${isLast?'':'quebra'}">${_exp_boletimHTMLAluno(turma, unidades, regras, ai)}</div>`;
+  }).join('');
+}
+
+window.gerarBoletimAluno = function(alunoIdxStr){
+  const html = _buildBoletimAlunoHTML(alunoIdxStr);
+  if(html==null) return;
   abrirJanelaImpressao(html, 'portrait');
 };
 
 window.gerarBoletimTurmaCompleta = function(){
-  const turma = _turmaAtual; if(!turma) return;
-  const unidades = _unidades[turma.id] || [];
-  const regras = getRegrasRede(turma.escolaTipo||'municipal');
-  const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
-  const partes = alunos.map((_,ai)=>{
-    const isLast = ai===alunos.length-1;
-    return `<div class="${isLast?'':'quebra'}">${_exp_boletimHTMLAluno(turma, unidades, regras, ai)}</div>`;
-  }).join('');
-  abrirJanelaImpressao(partes, 'portrait');
+  const html = _buildBoletimTurmaHTML();
+  if(html==null) return;
+  abrirJanelaImpressao(html, 'portrait');
 };
 
 // ── 2) Planilha por unidade ────────────────────────────────────────
-window.gerarPlanilhaUnidade = function(uidStr){
-  const turma = _turmaAtual; if(!turma) return;
+function _buildPlanilhaUnidadeHTML(uidStr){
+  const turma = _turmaAtual; if(!turma) return null;
   const unidades = _unidades[turma.id] || [];
-  const u = unidades.find(x=>x.id===uidStr); if(!u) return;
+  const u = unidades.find(x=>x.id===uidStr); if(!u) return null;
   const regras = getRegrasRede(turma.escolaTipo||'municipal');
   const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
   const cfg = _atvConfig[u.id] || { atividades: [] };
@@ -15184,12 +15361,17 @@ window.gerarPlanilhaUnidade = function(uidStr){
     </table>
     ${_exp_rodape()}
   `;
+  return html;
+}
+window.gerarPlanilhaUnidade = function(uidStr){
+  const html = _buildPlanilhaUnidadeHTML(uidStr);
+  if(html==null) return;
   abrirJanelaImpressao(html, 'landscape');
 };
 
 // ── 3) Planilha final da turma ─────────────────────────────────────
-window.gerarPlanilhaFinal = function(){
-  const turma = _turmaAtual; if(!turma) return;
+function _buildPlanilhaFinalHTML(){
+  const turma = _turmaAtual; if(!turma) return null;
   const unidades = _unidades[turma.id] || [];
   const regras = getRegrasRede(turma.escolaTipo||'municipal');
   const alunos = (turma.alunos||[]).filter(a=>a.ativo!==false);
@@ -15262,7 +15444,12 @@ window.gerarPlanilhaFinal = function(){
     </table>
     ${_exp_rodape()}
   `;
-  abrirJanelaImpressao(html, orient);
+  return { html, orient };
+}
+window.gerarPlanilhaFinal = function(){
+  const r = _buildPlanilhaFinalHTML();
+  if(r==null) return;
+  abrirJanelaImpressao(r.html, r.orient);
 };
 
 
