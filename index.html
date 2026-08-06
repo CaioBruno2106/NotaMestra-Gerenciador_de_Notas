@@ -13744,13 +13744,14 @@ window.abrirRegistroAulas = async function(){
   // Reinicia o estado de trabalho do formulário de aula a cada abertura da aba
   window._aulaForm = {
     municipal,
+    modo: 'data',   // 'data' (aplicar por data específica) ou 'ordem' (por ordem/sequência da aula)
     disciplina:'', serie:'', periodo:'',   // periodo = trimestre (estadual) ou unidade/bimestre (municipal)
     habilidadesSelecionadas:[],   // [{codigo, objeto}] (estadual) ou [{codigo, objeto, unidadeTematica}] (municipal)
     outraHabilidade:'', habilidadeNaoTrabalhada:false,
     conteudo:'', complementacao:'',
     recursos:[], recursoOutro:'',
     situacoes:[], situacaoOutro:'',
-    aplicacoes:[ { turmaId: turma.id, data: _hojeISO(), horarios: [] } ],
+    aplicacoes:[ { turmaId: turma.id, data: _hojeISO(), horarios: [], ordem:'', diaSemana:'' } ],
   };
 
   const collGrade = !!window._painelColapsado?.['grade-'+turma.id+'-0'];
@@ -13819,23 +13820,18 @@ window.abrirRegistroAulas = async function(){
         Marque quais turmas entram no mesmo arquivo — pega <strong>todas as aulas registradas</strong> de cada uma
         marcada (sem filtrar por data). Útil pra levar de uma vez várias turmas que a extensão vai processar em sequência.
       </p>
-      <div id="exportar-por-turma-lista" style="max-height:180px;overflow-y:auto;background:#fff;border:1px solid var(--pe-border);border-radius:6px;padding:6px 8px;margin-bottom:8px;">
-        ${_turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t) && (t.cursoSiepe || t.cursoSiec)).map(t=>`
-          <label style="display:flex;align-items:center;gap:6px;font-size:.76rem;padding:2px 0;cursor:pointer;">
-            <input type="checkbox" class="exportar-turma-chk" value="${t.id}" ${t.id===turma.id?'checked':''}>
-            ${t.serie||''} ${t.turma||''} · ${t.disciplina||'(sem disciplina)'} · ${_ehMunicipal(t)?'SIEC':'SIEPE'}
-          </label>`).join('') || `<span style="font-size:.74rem;color:var(--pe-muted);">Nenhuma turma com curso configurado ainda.</span>`}
-      </div>
+      ${_renderEscopoExport('exportar-por-turma')}
+      <div id="exportar-por-turma-lista" style="max-height:180px;overflow-y:auto;background:#fff;border:1px solid var(--pe-border);border-radius:6px;padding:6px 8px;margin-bottom:8px;"></div>
       <button class="btn-aplicar-qtd" onclick="exportarAulasPorTurma()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Gerar arquivo
       </button>
     </div>
     <div id="exportar-por-data-painel" style="display:none;margin-bottom:12px;padding:10px 12px;background:#f0f6ff;border:1px solid #b3d4fc;border-radius:8px;">
       <p style="font-size:.76rem;color:var(--pe-muted);margin:0 0 8px;">
-        Gera um arquivo com as aulas de uma data escolhida, reunindo <strong>todas as suas turmas</strong> que tiverem
-        registro naquele dia — um grupo por turma dentro do mesmo arquivo. Serve tanto pra extensão processar várias
-        turmas de uma vez quanto, se algo não funcionar, pra você subir manualmente o mesmo arquivo em cada turma.
+        Gera um arquivo com as aulas de uma data escolhida, reunindo <strong>as turmas da escola/rede escolhida abaixo</strong>
+        que tiverem registro naquele dia — um grupo por turma dentro do mesmo arquivo.
       </p>
+      ${_renderEscopoExport('exportar-por-data')}
       <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
         <input type="date" id="exportar-por-data-input" class="nota-input" style="max-width:200px;" value="${_hojeISO()}">
         <button class="btn-aplicar-qtd" onclick="exportarAulasPorData()">
@@ -13847,6 +13843,7 @@ window.abrirRegistroAulas = async function(){
   </div>`;
 
   carregarAulasRegistradas(turma.id);
+  onEscopoExportValorChange('exportar-por-turma');
 };
 
 window.toggleExportarPorData = function(){
@@ -13860,6 +13857,107 @@ window.toggleExportarPorTurma = function(){
   if(!painel) return;
   painel.style.display = painel.style.display==='none' ? 'block' : 'none';
 };
+
+// ── Escopo de exportação (Escola x Rede) ─────────────────────────────
+// Uma exportação nunca pode misturar escolas de rede municipal com
+// estadual no mesmo arquivo — isso confunde a extensão, que espera um
+// "sistema" (SIEC ou SIEPE) consistente por arquivo. O professor escolhe
+// se quer restringir por uma escola específica ou pela rede inteira.
+function _escolasComCurso(){
+  const map = new Map();
+  _turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t) && (t.cursoSiepe||t.cursoSiec) && t.escolaId).forEach(t=>{
+    if(!map.has(t.escolaId)) map.set(t.escolaId, t.escolaNome||'Escola sem nome');
+  });
+  return [...map.entries()].map(([id,nome])=>({id,nome}));
+}
+
+function _renderEscopoExport(prefixo){
+  const escolas = _escolasComCurso();
+  return `
+  <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;margin-bottom:6px;">
+    <div>
+      <label style="font-size:.72rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:3px;">Agrupar por</label>
+      <select id="${prefixo}-escopo-tipo" class="nota-input" onchange="onEscopoExportTipoChange('${prefixo}')">
+        <option value="escola">Escola específica</option>
+        <option value="rede">Rede (municipal ou estadual)</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:.72rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:3px;">&nbsp;</label>
+      <select id="${prefixo}-escopo-valor" class="nota-input" onchange="onEscopoExportValorChange('${prefixo}')">
+        ${escolas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('') || '<option value="">Nenhuma escola com curso configurado</option>'}
+      </select>
+    </div>
+  </div>
+  <p style="font-size:.7rem;color:var(--pe-muted);margin:0 0 10px;">
+    Escolas de rede municipal e estadual nunca entram no mesmo arquivo — isso confunde a extensão.
+  </p>`;
+}
+
+window.onEscopoExportTipoChange = function(prefixo){
+  const tipoEl = document.getElementById(prefixo+'-escopo-tipo');
+  const valorEl = document.getElementById(prefixo+'-escopo-valor');
+  if(!tipoEl || !valorEl) return;
+  if(tipoEl.value==='rede'){
+    valorEl.innerHTML = `<option value="municipal">Rede Municipal (SIEC)</option><option value="estadual">Rede Estadual (SIEPE)</option>`;
+  } else {
+    const escolas = _escolasComCurso();
+    valorEl.innerHTML = escolas.map(e=>`<option value="${e.id}">${e.nome}</option>`).join('') || '<option value="">Nenhuma escola com curso configurado</option>';
+  }
+  onEscopoExportValorChange(prefixo);
+};
+
+// Atualiza a lista de checkboxes do painel "por turma" toda vez que o
+// escopo (escola/rede) muda — só aparecem turmas dentro do escopo escolhido.
+window.onEscopoExportValorChange = function(prefixo){
+  if(prefixo!=='exportar-por-turma') return;
+  const listaEl = document.getElementById('exportar-por-turma-lista');
+  if(!listaEl) return;
+  const turmas = _turmasNoEscopo(prefixo);
+  listaEl.innerHTML = turmas.map(t=>`
+    <label style="display:flex;align-items:center;gap:6px;font-size:.76rem;padding:2px 0;cursor:pointer;">
+      <input type="checkbox" class="exportar-turma-chk" value="${t.id}" checked>
+      ${t.serie||''} ${t.turma||''} · ${t.disciplina||'(sem disciplina)'}
+    </label>`).join('') || `<span style="font-size:.74rem;color:var(--pe-muted);">Nenhuma turma nesse escopo.</span>`;
+};
+
+function _turmasNoEscopo(prefixo){
+  const tipoEl = document.getElementById(prefixo+'-escopo-tipo');
+  const valorEl = document.getElementById(prefixo+'-escopo-valor');
+  const tipo = tipoEl?.value || 'escola';
+  const valor = valorEl?.value || '';
+  const base = _turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t) && (t.cursoSiepe||t.cursoSiec));
+  if(!valor) return [];
+  if(tipo==='rede'){
+    return base.filter(t => (valor==='municipal') === _ehMunicipal(t));
+  }
+  return base.filter(t=>t.escolaId===valor);
+}
+
+// Formata uma aula (documento do Firestore) pro JSON de exportação, nos
+// dois modos possíveis: "data" (data real + horários daquele dia) ou
+// "ordem" (sem data — nº da sequência + dia da semana/horário do grade,
+// pra extensão casar com o próximo dia de aula real que encontrar no
+// SIEPE/SIEC, em sequência).
+function _mapAulaExport(a, municipal){
+  const modoRegistro = a.modoRegistro === 'ordem' ? 'ordem' : 'data';
+  return {
+    modoRegistro,
+    ...(modoRegistro==='ordem'
+      ? { ordem: a.ordem||null, diaSemana: a.diaSemana||null, diaSemanaLabel: _diaSemanaLabel(a.diaSemana) }
+      : { data: a.data||null }),
+    horarios: a.horarios||[],   // textos do intervalo de horas (ex.: "07:00 às 07:50") — sem ID interno
+    disciplina: a.disciplina, serie: a.serie,
+    periodo: a.periodo ?? a.trimestre,   // trimestre (SIEPE) ou unidade/bimestre (SIEC)
+    habilidades: (a.habilidades||[]).map(h=>municipal ? {codigo:h.codigo, objeto:h.objeto, unidadeTematica:h.unidadeTematica} : {codigo:h.codigo, objeto:h.objeto}),
+    conteudo: a.conteudo||'', recursos: a.recursos||[], situacoes: a.situacoes||[],
+    ...(municipal ? {
+      outraHabilidade: a.outraHabilidade||'', habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
+    } : {
+      complementacao: a.complementacao||'',
+    }),
+  };
+}
 
 window.exportarAulasPorTurma = async function(){
   const marcadas = [...document.querySelectorAll('.exportar-turma-chk:checked')].map(el=>el.value);
@@ -13890,17 +13988,7 @@ window.exportarAulasPorTurma = async function(){
           curso: curso?.valor || cursoValor,
           ...(municipal ? { turno: TURNO_SIEC_LETRA[turma.turno]||'' } : {}),
         },
-        aulas: aulas.map(a=>({
-          data: a.data, horarios: a.horarios||[], disciplina: a.disciplina, serie: a.serie,
-          periodo: a.periodo ?? a.trimestre,
-          habilidades: (a.habilidades||[]).map(h=>municipal ? {codigo:h.codigo, objeto:h.objeto, unidadeTematica:h.unidadeTematica} : {codigo:h.codigo, objeto:h.objeto}),
-          conteudo: a.conteudo||'', recursos: a.recursos||[], situacoes: a.situacoes||[],
-          ...(municipal ? {
-            outraHabilidade: a.outraHabilidade||'', habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
-          } : {
-            complementacao: a.complementacao||'',
-          }),
-        })),
+        aulas: _ordenarAulasParaExport(aulas).map(a=>_mapAulaExport(a, municipal)),
       });
     }
 
@@ -13935,13 +14023,13 @@ window.exportarAulasPorData = async function(){
   const data = dataEl?.value;
   if(!data){ showToast('Escolha uma data.', 'error'); return; }
 
-  showLoading('Buscando aulas dessa data em todas as turmas...');
-  try{
-    // Só considera turmas ativas, não genéricas, e que já têm o curso do
-    // sistema certo configurado (senão não dá pra montar o grupo direito).
-    const turmasElegiveis = _turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t) && (t.cursoSiepe || t.cursoSiec));
-    const grupos = [];
+  const turmasElegiveis = _turmasNoEscopo('exportar-por-data');
+  if(!turmasElegiveis.length){ showToast('Escolha uma escola ou rede válida — nenhuma turma configurada nesse escopo.', 'error'); return; }
 
+  showLoading('Buscando aulas dessa data...');
+  try{
+
+    const grupos = [];
     for(const turma of turmasElegiveis){
       const municipal = _ehMunicipal(turma);
       const snap = await getDocs(collection(db, ...turmaPath(turma.id), 'aulas'));
@@ -13961,17 +14049,7 @@ window.exportarAulasPorData = async function(){
           curso: curso?.valor || cursoValor,
           ...(municipal ? { turno: TURNO_SIEC_LETRA[turma.turno]||'' } : {}),
         },
-        aulas: aulasDoDia.map(a=>({
-          data: a.data, horarios: a.horarios||[], disciplina: a.disciplina, serie: a.serie,
-          periodo: a.periodo ?? a.trimestre,
-          habilidades: (a.habilidades||[]).map(h=>municipal ? {codigo:h.codigo, objeto:h.objeto, unidadeTematica:h.unidadeTematica} : {codigo:h.codigo, objeto:h.objeto}),
-          conteudo: a.conteudo||'', recursos: a.recursos||[], situacoes: a.situacoes||[],
-          ...(municipal ? {
-            outraHabilidade: a.outraHabilidade||'', habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
-          } : {
-            complementacao: a.complementacao||'',
-          }),
-        })),
+        aulas: aulasDoDia.map(a=>_mapAulaExport(a, municipal)),
       });
     }
 
@@ -14310,9 +14388,26 @@ function _renderFormularioAula(){
   </div>
 
   <div style="margin-bottom:10px;">
-    <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:6px;">Aplicar para (turma, data e horários)</label>
+    <label style="font-size:.75rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:6px;">
+      ${f.modo==='ordem' ? 'Aplicar para (turma, ordem da aula e horário)' : 'Aplicar para (turma, data e horários)'}
+    </label>
+    <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;background:#f8f9fa;border-radius:6px;">
+      <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;cursor:pointer;">
+        <input type="radio" name="aula-modo-registro" value="data" ${f.modo!=='ordem'?'checked':''} onchange="onModoAulaChange('data')">
+        Por data específica
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;cursor:pointer;">
+        <input type="radio" name="aula-modo-registro" value="ordem" ${f.modo==='ordem'?'checked':''} onchange="onModoAulaChange('ordem')">
+        Por ordem da aula (sequência)
+      </label>
+    </div>
+    <p style="font-size:.72rem;color:var(--pe-muted);margin:-4px 0 8px;">
+      ${f.modo==='ordem'
+        ? 'Sem data marcada — você numera a sequência (1ª, 2ª, 3ª aula...) e escolhe o dia da semana/horário do seu grade. Na exportação, a extensão recebe a ordem certinha pra lançar em sequência no dia de aula que encontrar.'
+        : 'Registra numa data do calendário específica, igual sempre foi.'}
+    </p>
     <div id="aula-aplicacoes-lista">${_renderAplicacoesLista()}</div>
-    <button type="button" class="atv-card-transferir-btn" style="margin-top:8px;" onclick="adicionarAplicacaoAula()">+ Adicionar turma/data</button>
+    <button type="button" class="atv-card-transferir-btn" style="margin-top:8px;" onclick="adicionarAplicacaoAula()">+ Adicionar turma/${f.modo==='ordem'?'ordem':'data'}</button>
   </div>
 
   <button class="btn-aplicar-qtd" onclick="registrarAula()">
@@ -14407,6 +14502,8 @@ window.toggleSituacaoAula = function(s){
 
 function _renderAplicacoesLista(){
   const f = window._aulaForm;
+  if(f.modo==='ordem') return _renderAplicacoesListaOrdem();
+
   return f.aplicacoes.map((ap,ai)=>{
     const turma = _turmas.find(t=>t.id===ap.turmaId);
     const horariosDisp = turma ? horariosDoDia(turma, ap.data) : [];
@@ -14430,8 +14527,63 @@ function _renderAplicacoesLista(){
   }).join('');
 }
 
+// Modo "ordem da aula" — em vez de uma data do calendário, o professor
+// numera a sequência (1ª, 2ª, 3ª aula...) e escolhe o dia da semana/horário
+// do grade da turma. Sem data real: a extensão decide, na hora de lançar,
+// qual dia real do SIEPE/SIEC casa com aquele número + horário.
+function _renderAplicacoesListaOrdem(){
+  const f = window._aulaForm;
+  const diasComHorario = DIAS_SEMANA_GRADE;
+  return f.aplicacoes.map((ap,ai)=>{
+    const turma = _turmas.find(t=>t.id===ap.turmaId);
+    const horariosDisp = (turma && ap.diaSemana) ? (turma.gradeHorarios?.[ap.diaSemana] || []) : [];
+    return `
+    <div class="grade-horarios-row" style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px;padding:8px;background:#f8f9fa;border-radius:6px;">
+      <select class="nota-input" style="flex:2;min-width:180px;" onchange="onAplicacaoTurmaChange(${ai},this.value)">
+        <option value="">— Turma —</option>
+        ${_turmas.filter(t=>t.ativo!==false).map(t=>`<option value="${t.id}" ${ap.turmaId===t.id?'selected':''}>${t.nome||t.serie+' '+t.turma}</option>`).join('')}
+      </select>
+      <input type="number" min="1" step="1" class="nota-input" style="flex:0 0 90px;" placeholder="Nº da aula"
+        value="${ap.ordem||''}" onchange="onAplicacaoOrdemChange(${ai},this.value)" title="Ordem/sequência desta aula (1ª, 2ª, 3ª...)">
+      <select class="nota-input" style="flex:1;min-width:130px;" onchange="onAplicacaoDiaSemanaChange(${ai},this.value)">
+        <option value="">— Dia da semana —</option>
+        ${diasComHorario.map(d=>`<option value="${d.chave}" ${ap.diaSemana===d.chave?'selected':''}>${d.label}</option>`).join('')}
+      </select>
+      <div style="flex:2;min-width:200px;display:flex;flex-wrap:wrap;gap:6px;">
+        ${horariosDisp.length ? horariosDisp.map(h=>{
+          const marcado = ap.horarios.includes(h.label);
+          return `<label style="display:flex;align-items:center;gap:4px;font-size:.74rem;background:#fff;border:1px solid var(--pe-border);border-radius:4px;padding:3px 7px;cursor:pointer;">
+            <input type="checkbox" ${marcado?'checked':''} onchange="toggleHorarioAplicacao(${ai},'${h.label.replace(/'/g,"\\'")}')"> ${h.label}
+          </label>`;
+        }).join('') : `<span style="font-size:.72rem;color:var(--pe-muted);">${!turma?'Escolha a turma':(!ap.diaSemana?'Escolha o dia da semana':'Sem horários cadastrados nesse dia — configure a grade de horários')}</span>`}
+      </div>
+      <button type="button" class="atv-card-limpar-btn" onclick="removerAplicacaoAula(${ai})" ${f.aplicacoes.length<=1?'disabled style="opacity:.35;"':''}>Remover</button>
+    </div>`;
+  }).join('');
+}
+
+window.onModoAulaChange = function(modo){
+  window._aulaForm.modo = modo;
+  // Zera as aplicações ao trocar de modo, pra não misturar campos de um
+  // modo com o outro por engano.
+  window._aulaForm.aplicacoes = [{
+    turmaId: window._aulaForm.aplicacoes[0]?.turmaId || _turmaAtual.id,
+    data: _hojeISO(), horarios: [], ordem:'', diaSemana:'',
+  }];
+  document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
+};
+
+window.onAplicacaoOrdemChange = function(ai, v){
+  window._aulaForm.aplicacoes[ai].ordem = v ? parseInt(v) : '';
+};
+window.onAplicacaoDiaSemanaChange = function(ai, v){
+  window._aulaForm.aplicacoes[ai].diaSemana = v;
+  window._aulaForm.aplicacoes[ai].horarios = [];
+  document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
+};
+
 window.adicionarAplicacaoAula = function(){
-  window._aulaForm.aplicacoes.push({ turmaId:'', data:_hojeISO(), horarios:[] });
+  window._aulaForm.aplicacoes.push({ turmaId:'', data:_hojeISO(), horarios:[], ordem:'', diaSemana:'' });
   document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
 };
 window.removerAplicacaoAula = function(ai){
@@ -14482,8 +14634,12 @@ window.registrarAula = async function(){
   if(f.recursos.includes(_chaveOutrosEspecificar(municipal)) && !(f.recursoOutro||'').trim()) return erro('Especifique o recurso didático "Outros".');
   if(!municipal && !f.situacoes.length) return erro('Marque ao menos uma situação didática.');
   if(f.situacoes.includes(_chaveOutrosEspecificar(municipal)) && !(f.situacaoOutro||'').trim()) return erro('Especifique a situação didática "Outros".');
-  const aplicacoesValidas = f.aplicacoes.filter(a=>a.turmaId && a.data);
-  if(!aplicacoesValidas.length) return erro('Preencha ao menos uma turma e data em "Aplicar para".');
+  const aplicacoesValidas = f.modo==='ordem'
+    ? f.aplicacoes.filter(a=>a.turmaId && a.ordem && a.diaSemana && a.horarios.length)
+    : f.aplicacoes.filter(a=>a.turmaId && a.data);
+  if(!aplicacoesValidas.length) return erro(f.modo==='ordem'
+    ? 'Preencha turma, nº da aula, dia da semana e ao menos um horário em "Aplicar para".'
+    : 'Preencha ao menos uma turma e data em "Aplicar para".');
 
   const editando = f.editando; // {grupo:[{turmaId,aulaId,criadoEm}]} — se vier de "Editar"
   showLoading(editando ? 'Salvando alterações...' : 'Registrando aula...');
@@ -14493,6 +14649,7 @@ window.registrarAula = async function(){
     const situacoesFinal  = f.situacoes.map(s=>s===chaveOutros ? f.situacaoOutro.trim() : s);
     const payloadBase = {
       municipal,
+      modoRegistro: f.modo,   // 'data' ou 'ordem' — diz pra extensão como interpretar data/ordem abaixo
       disciplina: f.disciplina, serie: Number(f.serie), periodo: Number(f.periodo),
       habilidades: f.habilidadesSelecionadas,
       conteudo: f.conteudo.trim(),
@@ -14509,33 +14666,44 @@ window.registrarAula = async function(){
     const gruposAntigos = editando?.grupo || [];   // membros que existiam antes da edição
     const resultado = [];                          // {turmaId, aulaId} de cada aplicação salva agora
 
-    // Salva (atualiza ou cria) uma aplicação por turma/data — se a turma já
-    // fazia parte do grupo original, atualiza o mesmo documento; senão, cria um novo.
+    // Salva (atualiza ou cria) uma aplicação por turma/data (ou turma/ordem) —
+    // se a turma já fazia parte do grupo original, atualiza o mesmo
+    // documento; senão, cria um novo.
     for(const ap of aplicacoesValidas){
       let existente = gruposAntigos.find(g=>g.turmaId===ap.turmaId);
 
       // Rede de segurança: se essa turma não veio no grupo (por qualquer
       // motivo — ex.: falha ao carregar a turma "irmã" na hora de editar),
-      // procura na PRÓPRIA turma se já existe uma aula na mesma data antes
-      // de criar um registro novo, pra nunca duplicar sem querer.
+      // procura na PRÓPRIA turma se já existe uma aula igual (mesma data, no
+      // modo data; mesmo nº de ordem, no modo ordem) antes de criar um
+      // registro novo, pra nunca duplicar sem querer.
       if(!existente){
         try{
           const snapExistentes = await getDocs(collection(db, ...turmaPath(ap.turmaId), 'aulas'));
           let achado = null;
-          snapExistentes.forEach(d=>{ if(!achado && d.data().data===ap.data) achado = { aulaId:d.id, criadoEm:d.data().criadoEm }; });
+          snapExistentes.forEach(d=>{
+            if(achado) return;
+            const dd = d.data();
+            const bate = f.modo==='ordem' ? (dd.modoRegistro==='ordem' && dd.ordem===ap.ordem) : (dd.data===ap.data);
+            if(bate) achado = { aulaId:d.id, criadoEm:dd.criadoEm };
+          });
           if(achado) existente = { turmaId: ap.turmaId, ...achado };
         } catch(e){ /* segue pro fluxo normal (cria) se essa checagem falhar */ }
       }
 
+      const camposAplicacao = f.modo==='ordem'
+        ? { data: null, horarios: ap.horarios, ordem: ap.ordem, diaSemana: ap.diaSemana }
+        : { data: ap.data, horarios: ap.horarios, ordem: null, diaSemana: null };
+
       if(existente){
         await setDoc(doc(db, ...turmaPath(ap.turmaId), 'aulas', existente.aulaId), {
-          ...payloadBase, data: ap.data, horarios: ap.horarios,
+          ...payloadBase, ...camposAplicacao,
           criadoEm: existente.criadoEm || new Date().toISOString(),
         });
         resultado.push({ turmaId: ap.turmaId, aulaId: existente.aulaId, criadoEm: existente.criadoEm });
       } else {
         const ref = await addDoc(collection(db, ...turmaPath(ap.turmaId), 'aulas'), {
-          ...payloadBase, data: ap.data, horarios: ap.horarios, criadoEm: new Date().toISOString(),
+          ...payloadBase, ...camposAplicacao, criadoEm: new Date().toISOString(),
         });
         resultado.push({ turmaId: ap.turmaId, aulaId: ref.id });
       }
@@ -14562,13 +14730,14 @@ window.registrarAula = async function(){
     if(msgEl){ msgEl.textContent = ''; msgEl.className = 'ob-msg'; }
 
     // Reseta o formulário mantendo a turma atual como primeira aplicação
+    // (e mantém o modo — data ou ordem — que o professor estava usando)
     window._aulaForm = {
-      municipal,
+      municipal, modo: f.modo,
       disciplina:'', serie:'', periodo:'',
       habilidadesSelecionadas:[], outraHabilidade:'', habilidadeNaoTrabalhada:false,
       conteudo:'', complementacao:'',
       recursos:[], recursoOutro:'', situacoes:[], situacaoOutro:'',
-      aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[] } ],
+      aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[], ordem:'', diaSemana:'' } ],
     };
     document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
     carregarAulasRegistradas(_turmaAtual.id);
@@ -14580,12 +14749,12 @@ window.registrarAula = async function(){
 
 window.cancelarEdicaoAula = function(){
   window._aulaForm = {
-    municipal: _ehMunicipal(_turmaAtual),
+    municipal: _ehMunicipal(_turmaAtual), modo: 'data',
     disciplina:'', serie:'', periodo:'',
     habilidadesSelecionadas:[], outraHabilidade:'', habilidadeNaoTrabalhada:false,
     conteudo:'', complementacao:'',
     recursos:[], recursoOutro:'', situacoes:[], situacaoOutro:'',
-    aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[] } ],
+    aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[], ordem:'', diaSemana:'' } ],
   };
   document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
 };
@@ -14606,18 +14775,25 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
     }
 
     // Busca os dados de cada membro do grupo pra montar a lista "Aplicar para"
+    const modo = a.modoRegistro === 'ordem' ? 'ordem' : 'data';
     const aplicacoes = [];
     const falharam = [];
     for(const g of grupo){
       if(g.turmaId===turmaId && g.aulaId===aulaId){
-        aplicacoes.push({ turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [] });
+        aplicacoes.push({
+          turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [],
+          ordem: a.ordem||'', diaSemana: a.diaSemana||'',
+        });
         continue;
       }
       try{
         const s2 = await getDoc(doc(db, ...turmaPath(g.turmaId), 'aulas', g.aulaId));
         if(s2.exists()){
           const a2 = s2.data();
-          aplicacoes.push({ turmaId: g.turmaId, data: a2.data||_hojeISO(), horarios: a2.horarios ? [...a2.horarios] : [] });
+          aplicacoes.push({
+            turmaId: g.turmaId, data: a2.data||_hojeISO(), horarios: a2.horarios ? [...a2.horarios] : [],
+            ordem: a2.ordem||'', diaSemana: a2.diaSemana||'',
+          });
         } else {
           falharam.push(g.turmaId);
         }
@@ -14631,14 +14807,14 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
     const grupoCarregado = grupo.filter(g=>!falharam.includes(g.turmaId));
 
     window._aulaForm = {
-      municipal: !!a.municipal,
+      municipal: !!a.municipal, modo,
       disciplina: a.disciplina||'', serie: String(a.serie||''), periodo: String(a.periodo ?? a.trimestre ?? ''),
       habilidadesSelecionadas: a.habilidades ? JSON.parse(JSON.stringify(a.habilidades)) : [],
       outraHabilidade: a.outraHabilidade||'', habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
       conteudo: a.conteudo||'', complementacao: a.complementacao||'',
       recursos: a.recursos ? [...a.recursos] : [], recursoOutro:'',
       situacoes: a.situacoes ? [...a.situacoes] : [], situacaoOutro:'',
-      aplicacoes: aplicacoes.length ? aplicacoes : [{ turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [] }],
+      aplicacoes: aplicacoes.length ? aplicacoes : [{ turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [], ordem: a.ordem||'', diaSemana: a.diaSemana||'' }],
       editando: { grupo: grupoCarregado },
     };
 
@@ -14658,6 +14834,33 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
   }
 };
 
+// Ordena aulas pra exibição/exportação: aulas com data real primeiro (mais
+// recentes no topo da lista da tela); aulas em modo "ordem" (sem data) vêm
+// depois, ordenadas pelo próprio número da sequência.
+function _ordenarAulasParaLista(itens){
+  return [...itens].sort((a,b)=>{
+    const av = a.data||'', bv = b.data||'';
+    if(av && bv) return bv.localeCompare(av);
+    if(av && !bv) return -1;
+    if(!av && bv) return 1;
+    return (a.ordem||0)-(b.ordem||0);
+  });
+}
+// Mesma lógica, mas em ordem CRESCENTE (cronológica) — é o que a extensão
+// espera pra processar/lançar as aulas na sequência certa.
+function _ordenarAulasParaExport(itens){
+  return [...itens].sort((a,b)=>{
+    const av = a.data||'', bv = b.data||'';
+    if(av && bv) return av.localeCompare(bv);
+    if(av && !bv) return -1;
+    if(!av && bv) return 1;
+    return (a.ordem||0)-(b.ordem||0);
+  });
+}
+function _diaSemanaLabel(chave){
+  return DIAS_SEMANA_GRADE.find(d=>d.chave===chave)?.label || chave || '';
+}
+
 window.carregarAulasRegistradas = async function(turmaId){
   const listaEl = document.getElementById('aulas-lista-body');
   if(!listaEl) return;
@@ -14669,16 +14872,19 @@ window.carregarAulasRegistradas = async function(turmaId){
     }
     const itens = [];
     snap.forEach(d=>itens.push({id:d.id, ...d.data()}));
-    itens.sort((a,b)=>(b.data||'').localeCompare(a.data||''));
-    listaEl.innerHTML = itens.map(a=>{
+    const itensOrdenados = _ordenarAulasParaLista(itens);
+    listaEl.innerHTML = itensOrdenados.map(a=>{
       const qtdGrupo = Array.isArray(a.grupo) ? a.grupo.length : 1;
       const periodo = a.periodo ?? a.trimestre;
       const periodoLabel = a.municipal ? `${periodo}ª Unid.` : `${periodo}º Trim.`;
+      const quandoLabel = a.modoRegistro==='ordem'
+        ? `${a.ordem}ª aula <span style="font-weight:400;color:var(--pe-muted);">(${_diaSemanaLabel(a.diaSemana)}, ${(a.horarios||[]).join(', ')||'sem horário'})</span>`
+        : (a.data||'—');
       return `
       <div style="border:1.5px solid var(--pe-border);border-radius:6px;padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
         <div style="font-size:.78rem;">
-          <strong>${a.data||'—'}</strong> · ${a.disciplina||''} · ${a.serie}º Ano · ${periodoLabel}
-          ${qtdGrupo>1 ? `<span style="font-size:.68rem;background:#e8f0fe;color:var(--pe-blue);padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">aplicada em ${qtdGrupo} turmas/datas</span>` : ''}
+          <strong>${quandoLabel}</strong> · ${a.disciplina||''} · ${a.serie}º Ano · ${periodoLabel}
+          ${qtdGrupo>1 ? `<span style="font-size:.68rem;background:#e8f0fe;color:var(--pe-blue);padding:1px 7px;border-radius:10px;font-weight:700;margin-left:4px;">aplicada em ${qtdGrupo} turmas</span>` : ''}
           <div style="color:var(--pe-muted);margin-top:2px;">${(a.habilidades||[]).map(h=>h.codigo).join(', ')||(a.habilidadeNaoTrabalhada?'Habilidade não trabalhada':'')}</div>
           <div style="color:var(--pe-muted);margin-top:2px;">${(a.conteudo||'').slice(0,120)}${(a.conteudo||'').length>120?'...':''}</div>
         </div>
@@ -14737,7 +14943,7 @@ window.exportarAulasParaSiepe = async function(turmaId){
 
     const aulas = [];
     snap.forEach(d=>aulas.push({ id:d.id, ...d.data() }));
-    aulas.sort((a,b)=>(a.data||'').localeCompare(b.data||''));
+    const aulasOrdenadas = _ordenarAulasParaExport(aulas);
 
     const payload = {
       versao: municipal ? 'nm-siec-aulas-v1' : 'nm-siepe-aulas-v1',
@@ -14750,23 +14956,7 @@ window.exportarAulasParaSiepe = async function(turmaId){
         curso: curso.valor,
         ...(municipal ? { turno: TURNO_SIEC_LETRA[turma.turno]||'' } : {}),
       },
-      aulas: aulas.map(a=>({
-        data: a.data,
-        horarios: a.horarios||[],           // textos do intervalo de horas (ex.: "07:00 às 07:50") — sem ID interno
-        disciplina: a.disciplina,
-        serie: a.serie,
-        periodo: a.periodo ?? a.trimestre,   // trimestre (SIEPE) ou unidade/bimestre (SIEC)
-        habilidades: (a.habilidades||[]).map(h=>municipal ? {codigo:h.codigo, objeto:h.objeto, unidadeTematica:h.unidadeTematica} : {codigo:h.codigo, objeto:h.objeto}),
-        conteudo: a.conteudo||'',
-        recursos: a.recursos||[],
-        situacoes: a.situacoes||[],
-        ...(municipal ? {
-          outraHabilidade: a.outraHabilidade||'',
-          habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
-        } : {
-          complementacao: a.complementacao||'',
-        }),
-      })),
+      aulas: aulasOrdenadas.map(a=>_mapAulaExport(a, municipal)),
     };
 
     hideLoading();
