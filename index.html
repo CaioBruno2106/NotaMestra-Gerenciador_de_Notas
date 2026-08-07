@@ -53,6 +53,15 @@ body.dark-mode {
   --apk-bar-bottom-color: #121212;
 }
 
+/* ── TAMANHO DE FONTE (acessibilidade) ──────────────────────────────
+   Como a maior parte do app usa rem, escalar o font-size do <html>
+   escala proporcionalmente quase todo o texto do app de uma vez. */
+html[data-font-scale="pequena"]     { font-size: 87.5%; }
+html[data-font-scale="normal"]      { font-size: 100%; }
+html[data-font-scale="grande"]      { font-size: 112.5%; }
+html[data-font-scale="maior"]       { font-size: 125%; }
+html[data-font-scale="muito-maior"] { font-size: 140%; }
+
 /* ── BASE ── */
 body.dark-mode { background: var(--pe-bg); color: var(--pe-text); }
 
@@ -403,6 +412,43 @@ body.dark-mode .notas-table td[style*="color:#6c757d"] { color: var(--pe-muted) 
 /* Exportação: btn-aplicar-qtd já tem cor do pe-blue, só ajustar se necessário */
 body.dark-mode .btn-aplicar-qtd { background: var(--pe-blue); color: #fff; }
 body.dark-mode .btn-aplicar-qtd[style*="background:#002b5c"] { background: var(--pe-navy) !important; }
+
+/* ── Registro de Aulas + telas de Exportação (dentro de #unidade-content) — modo escuro ── */
+body.dark-mode #unidade-content [style*="background:#fff;"],
+body.dark-mode #unidade-content [style*="background: #fff;"] { background: var(--pe-card) !important; }
+body.dark-mode #unidade-content [style*="background:#f8f9fa"] { background: #2a2a2a !important; }
+body.dark-mode #unidade-content [style*="background:#f0f6ff"] { background: #12233d !important; border-color: #2a3f5f !important; }
+body.dark-mode #unidade-content [style*="background:#eef5ff"] { background: #12233d !important; }
+body.dark-mode #unidade-content [style*="background:#e8f0fe"] { background: #10305c !important; }
+body.dark-mode #unidade-content [style*="background:#fff8ec"] { background: #2a2210 !important; border-color: #5c4a1a !important; }
+body.dark-mode #unidade-content [style*="background:#fff3cd"] { background: #3a2f00 !important; border-color: #5c4a1a !important; }
+body.dark-mode #unidade-content [style*="border:1px solid #b3d4fc"] { border-color: #2a3f5f !important; }
+body.dark-mode #unidade-content [style*="border:1px solid #f5d999"] { border-color: #5c4a1a !important; }
+body.dark-mode #unidade-content [style*="border:1px solid #ffe08a"] { border-color: #5c4a1a !important; }
+body.dark-mode #unidade-content [style*="color:#666"] { color: var(--pe-muted) !important; }
+body.dark-mode #unidade-content [style*="color:#6c757d"] { color: var(--pe-muted) !important; }
+body.dark-mode #unidade-content [style*="color:#7a5b00"] { color: #e8c468 !important; }
+body.dark-mode #unidade-content [style*="color:#0056b3"] { color: #7db6ec !important; }
+body.dark-mode #unidade-content select,
+body.dark-mode #unidade-content input.nota-input,
+body.dark-mode #unidade-content input[type="date"],
+body.dark-mode #unidade-content input[type="number"],
+body.dark-mode #unidade-content input[type="text"] { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode .exp-nav-card,
+body.dark-mode .exp-preview-bloco,
+body.dark-mode .exp-preview-frame-wrap { background: var(--pe-card); border-color: var(--pe-border); }
+body.dark-mode .exp-preview-bloco { background: #1a1a1a; }
+body.dark-mode .exp-voltar-btn { color: var(--pe-cyan); }
+body.dark-mode .grade-horarios-row { background: #2a2a2a !important; }
+body.dark-mode .vistos-row input,
+body.dark-mode .grade-horarios-row input,
+body.dark-mode .grade-horarios-row select { background: #1e1e1e; color: var(--pe-text); border-color: #444; }
+
+/* ── Modal Calendário Letivo — modo escuro ── */
+body.dark-mode #calendario-letivo-modal > div { background: var(--pe-card) !important; }
+body.dark-mode #calendario-letivo-body input,
+body.dark-mode #calendario-letivo-body select { background: #2a2a2a; color: var(--pe-text); border-color: #444; }
+body.dark-mode #calendario-letivo-lista > div { border-color: var(--pe-border) !important; }
 
 /* Input file no backup */
 body.dark-mode input[type="file"] { color: var(--pe-muted); }
@@ -2304,6 +2350,20 @@ body.dark-mode .stat-card-btn:active{
   padding:10px 18px;background:#f7f9fc;
   border-bottom:1px solid #eee;font-size:.78rem;color:var(--pe-muted);font-weight:600;
 }
+
+/* ── Seletor de tamanho de fonte (reaproveitado no cadastro e nas Configurações) ── */
+.font-scale-picker{ display:flex; gap:8px; flex-wrap:wrap; }
+.font-scale-btn{
+  flex:1; min-width:64px; padding:10px 6px; border-radius:10px;
+  border:1.5px solid var(--pe-border); background:var(--pe-card); cursor:pointer;
+  display:flex; flex-direction:column; align-items:center; gap:3px; transition:var(--transition);
+}
+.font-scale-btn span.fs-letra{ font-weight:800; color:var(--pe-navy); line-height:1; }
+.font-scale-btn span.fs-label{ font-size:.68rem; color:var(--pe-muted); }
+.font-scale-btn:hover{ border-color:var(--pe-blue); }
+.font-scale-btn.active{ border-color:var(--pe-blue); background:#eef5ff; }
+.font-scale-btn.active span.fs-letra{ color:var(--pe-blue); }
+body.dark-mode .font-scale-btn.active{ background:#12233d; }
 </style>
 </head>
 <body>
@@ -2522,6 +2582,15 @@ window.addEventListener('unhandledrejection', function(ev){
     </div>
 
     <div class="auth-body">
+      <div style="margin-bottom:14px;">
+        <label style="font-size:.72rem;font-weight:700;color:var(--pe-navy);display:block;margin-bottom:6px;">
+          Tamanho do texto
+        </label>
+        <div id="register-font-scale-picker"></div>
+        <p style="font-size:.68rem;color:var(--pe-muted);margin-top:6px;">
+          Deixa o app inteiro mais fácil de ler. Você pode mudar isso a qualquer momento em Configurações.
+        </p>
+      </div>
       <div class="auth-field">
         <label for="reg-email">E-mail</label>
         <input type="email" id="reg-email" placeholder="seu@email.com" autocomplete="username">
@@ -2960,6 +3029,10 @@ window.addEventListener('unhandledrejection', function(ev){
     </div>
     <div class="navbar-actions">
       <span id="dash-gestao-btn-wrap" style="display:none;"></span>
+      <button class="user-badge" id="dash-config-btn" onclick="abrirConfiguracoes()" title="Configurações"
+        style="padding:8px 10px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
       <button class="user-badge" id="dash-sino-btn" onclick="abrirPainelNotificacoesNM()" title="Importações pendentes"
         style="position:relative;padding:8px 10px;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
@@ -3315,6 +3388,56 @@ window.addEventListener('unhandledrejection', function(ev){
         style="background:transparent;color:var(--pe-red,#c0392b);border:1px solid var(--pe-red,#c0392b);padding:9px 22px;border-radius:8px;
                font-size:.8rem;font-weight:700;cursor:pointer;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> Excluir conta definitivamente
+      </button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════
+     CONFIGURAÇÕES
+     ══════════════════════════════════════════════ -->
+<div id="settings-screen">
+
+  <nav class="navbar">
+    <div class="navbar-brand">
+      <button onclick="closeSettings()" style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 13px;border-radius:6px;font-size:.82rem;font-weight:700;cursor:pointer;">
+        ← Voltar
+      </button>
+    </div>
+    <div style="position:absolute;left:50%;transform:translateX(-50%);">
+      <div class="navbar-title">Configuraç<span style="color:var(--pe-yellow)">ões</span></div>
+    </div>
+    <button id="dark-mode-btn-settings" onclick="toggleDarkMode()" title="Alternar modo escuro" aria-label="Modo escuro"
+      style="background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 13px;border-radius:6px;
+             font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Modo escuro</button>
+    <div class="brand-line">
+      <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
+    </div>
+  </nav>
+
+  <div class="profile-body">
+
+    <div class="profile-section">
+      <div class="profile-section-header">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg> Tamanho do texto</h3>
+      </div>
+      <p style="font-size:.8rem;color:var(--pe-muted);margin:0 0 12px;">
+        Deixa as letras do app inteiro maiores ou menores — útil se você tem dificuldade pra enxergar em tamanho pequeno.
+        Vale pra tudo: notas, aulas, exportação, tudo.
+      </p>
+      <div id="settings-font-scale-picker"></div>
+    </div>
+
+    <div class="profile-section">
+      <div class="profile-section-header">
+        <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Aparência</h3>
+      </div>
+      <p style="font-size:.8rem;color:var(--pe-muted);margin:0 0 12px;">
+        Alterna entre tela clara e escura. Fica salvo só neste dispositivo.
+      </p>
+      <button class="atv-card-transferir-btn" onclick="toggleDarkMode()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Alternar modo escuro
       </button>
     </div>
 
@@ -3774,6 +3897,36 @@ window.addEventListener('unhandledrejection', function(ev){
   </div>
 </div>
 
+<!-- ── Modal: Calendário Letivo (feriados/dias não letivos por escola) ── -->
+<div id="calendario-letivo-modal" style="
+  display:none;position:fixed;inset:0;z-index:3200;
+  background:rgba(0,0,0,.55);backdrop-filter:blur(4px);
+  align-items:center;justify-content:center;padding:20px;" onclick="if(event.target===this) fecharCalendarioLetivo()">
+  <div style="
+    background:#fff;border-radius:var(--radius-lg);width:100%;max-width:480px;max-height:85vh;
+    display:flex;flex-direction:column;box-shadow:var(--shadow-lg);overflow:hidden;animation:fadeUp .3s ease both;">
+    <div style="background:var(--pe-navy);padding:18px 22px;position:relative;flex-shrink:0;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:40px;height:40px;border-radius:50%;background:var(--pe-yellow);
+          display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <svg viewBox="0 0 24 24" fill="none" stroke="var(--pe-navy)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1.1em;height:1.1em;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        </div>
+        <div>
+          <h3 style="color:#fff;font-size:1rem;font-weight:800;" id="calendario-letivo-titulo">Calendário Letivo</h3>
+          <p style="color:var(--pe-cyan);font-size:.75rem;margin-top:2px;" id="calendario-letivo-subtitulo">Feriados e dias sem aula</p>
+        </div>
+        <button onclick="fecharCalendarioLetivo()" style="margin-left:auto;background:none;border:none;color:#fff;font-size:1.4rem;cursor:pointer;line-height:1;">×</button>
+      </div>
+      <div class="brand-line" style="bottom:0;left:0;right:0;height:3px;display:flex;position:absolute;">
+        <div class="bl-yellow"></div><div class="bl-red"></div><div class="bl-cyan"></div>
+      </div>
+    </div>
+    <div style="padding:20px 22px;overflow-y:auto;flex:1;" id="calendario-letivo-body">
+      <p style="color:var(--pe-muted);font-size:.85rem;">Carregando...</p>
+    </div>
+  </div>
+</div>
+
 <!-- ── Modal: Cadastrar telefone (usuários sem telefone) ── -->
 <div id="phone-modal-overlay" style="
   display:none;position:fixed;inset:0;z-index:3000;
@@ -3870,11 +4023,13 @@ window.setAndroidInsets = function(topDp, bottomDp) {
 
 // ── DARK MODE ─────────────────────────────────────────────────────────
 function syncDarkModeBtn() {
-  var btn = document.getElementById('dark-mode-btn');
-  if (btn) {
-    var isDark = document.body.classList.contains('dark-mode');
-    btn.innerHTML = isDark ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Modo claro' : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Modo escuro';
-  }
+  var isDark = document.body.classList.contains('dark-mode');
+  var claroHtml = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg> Modo claro';
+  var escuroHtml = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Modo escuro';
+  ['dark-mode-btn', 'dark-mode-btn-settings'].forEach(function(id){
+    var btn = document.getElementById(id);
+    if (btn) btn.innerHTML = isDark ? claroHtml : escuroHtml;
+  });
 }
 function toggleDarkMode() {
   var body = document.body;
@@ -3900,6 +4055,50 @@ function toggleDarkMode() {
     }
   } catch(e) {}
 })();
+
+// ── Tamanho de fonte (acessibilidade) ───────────────────────────────
+var FONT_SCALES = [
+  {chave:'pequena',     letra:'A',  label:'Pequena'},
+  {chave:'normal',      letra:'A',  label:'Normal'},
+  {chave:'grande',      letra:'A',  label:'Grande'},
+  {chave:'maior',       letra:'A',  label:'Maior'},
+  {chave:'muito-maior', letra:'A',  label:'Muito maior'},
+];
+function setFontScale(escala) {
+  if (!FONT_SCALES.some(function(f){ return f.chave===escala; })) escala = 'normal';
+  document.documentElement.setAttribute('data-font-scale', escala);
+  try { localStorage.setItem('nm_font_scale', escala); } catch(e) {}
+  // Atualiza qualquer seletor visível na tela (Configurações e/ou Cadastro)
+  document.querySelectorAll('.font-scale-btn').forEach(function(btn){
+    btn.classList.toggle('active', btn.dataset.escala === escala);
+  });
+}
+function fontScaleAtual() {
+  try { return localStorage.getItem('nm_font_scale') || 'normal'; } catch(e) { return 'normal'; }
+}
+function renderFontScalePicker() {
+  var atual = fontScaleAtual();
+  return '<div class="font-scale-picker">' + FONT_SCALES.map(function(f){
+    var tamanhoLetra = {pequena:'.85rem', normal:'1rem', grande:'1.15rem', maior:'1.3rem', 'muito-maior':'1.5rem'}[f.chave];
+    return '<button type="button" class="font-scale-btn' + (f.chave===atual?' active':'') + '" data-escala="' + f.chave + '" ' +
+      'onclick="setFontScale(\'' + f.chave + '\')">' +
+      '<span class="fs-letra" style="font-size:' + tamanhoLetra + '">' + f.letra + '</span>' +
+      '<span class="fs-label">' + f.label + '</span></button>';
+  }).join('') + '</div>';
+}
+// Restaura a escala salva assim que possível (antes do DOMContentLoaded,
+// pra não "piscar" no tamanho normal e só depois mudar)
+(function() {
+  try {
+    var salvo = localStorage.getItem('nm_font_scale');
+    if (salvo) document.documentElement.setAttribute('data-font-scale', salvo);
+  } catch(e) {}
+})();
+// Preenche o seletor de fonte na tela de cadastro assim que ela existir no DOM
+document.addEventListener('DOMContentLoaded', function(){
+  var el = document.getElementById('register-font-scale-picker');
+  if (el) el.innerHTML = renderFontScalePicker();
+});
 </script>
 
 <script type="module">
@@ -4048,7 +4247,7 @@ function clearMsg(id){
 }
 
 function showScreen(name){
-  ['login-screen','register-screen','forgot-screen','onboarding-screen','dashboard-screen','profile-screen','turma-screen'].forEach(s=>{
+  ['login-screen','register-screen','forgot-screen','onboarding-screen','dashboard-screen','profile-screen','settings-screen','turma-screen'].forEach(s=>{
     const el = document.getElementById(s);
     if(!el) return;
     if(s === name){
@@ -4154,7 +4353,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -6368,7 +6567,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════��══════════════════════════════════���══════
+// ════  ══════════════════════════════════   ══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -7331,7 +7530,7 @@ window.renderModalAlunos = function(){
 const MSG_PCD = 'O estudante é avaliado via relatório';
 function isPCD(a){ return !!(a && typeof a==='object' && a.pcd===true); }
 
-// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -7647,6 +7846,20 @@ window.showProfile = function(){
 };
 
 window.closeProfile = function(){
+  showScreen('dashboard-screen');
+};
+
+// ══════════════════════════════════════════════
+// CONFIGURAÇÕES (tamanho de fonte, aparência)
+// ══════════════════════════════════════════════
+window.abrirConfiguracoes = function(){
+  showScreen('settings-screen');
+  syncDarkModeBtn();
+  const el = document.getElementById('settings-font-scale-picker');
+  if(el) el.innerHTML = renderFontScalePicker();
+};
+
+window.closeSettings = function(){
   showScreen('dashboard-screen');
 };
 
@@ -8135,7 +8348,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -8239,7 +8452,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -9494,7 +9707,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────���────────────────────────
+// ── Toggle de seção colapsável ─────────────   ────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -12251,7 +12464,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════��═════════════════════════════════════════════════════════════════
+// ════  ═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -12707,7 +12920,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────��────────────────────────
+// ── Helpers de vistos ─────────────  ────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado (em qualquer dos 3 estados)
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
@@ -13683,6 +13896,152 @@ const DIAS_SEMANA_GRADE = [
   {chave:'sab', label:'Sábado'},
 ];
 
+// ── Calendário Letivo (feriados/dias sem aula, por escola) ──────────────
+// Guardado direto no documento da escola (`escolas/{id}.diasNaoLetivos`,
+// array de datas ISO "AAAA-MM-DD"). É a base pra calcular datas reais no
+// registro de aula "por ordem" (pula esses dias ao contar as próximas aulas).
+let _diasNaoLetivosCache = {}; // { [escolaId]: string[] }
+
+async function carregarDiasNaoLetivos(escolaId){
+  if(_diasNaoLetivosCache[escolaId]) return _diasNaoLetivosCache[escolaId];
+  try{
+    const snap = await getDoc(doc(db,'escolas',escolaId));
+    const lista = (snap.exists() && Array.isArray(snap.data().diasNaoLetivos)) ? snap.data().diasNaoLetivos : [];
+    _diasNaoLetivosCache[escolaId] = lista;
+    return lista;
+  } catch(e){
+    console.error('[Calendário Letivo] Erro ao carregar:', e);
+    return [];
+  }
+}
+
+// Feriados nacionais de data fixa — "ponto de partida" rápido; feriados
+// móveis (Carnaval, Sexta-feira Santa, Corpus Christi) e pontos facultativos
+// locais/municipais o professor/gestor adiciona manualmente.
+function _feriadosFixosNacionais(ano){
+  return [
+    {data:`${ano}-01-01`, nome:'Confraternização Universal'},
+    {data:`${ano}-04-21`, nome:'Tiradentes'},
+    {data:`${ano}-05-01`, nome:'Dia do Trabalho'},
+    {data:`${ano}-09-07`, nome:'Independência do Brasil'},
+    {data:`${ano}-10-12`, nome:'Nossa Senhora Aparecida'},
+    {data:`${ano}-11-02`, nome:'Finados'},
+    {data:`${ano}-11-15`, nome:'Proclamação da República'},
+    {data:`${ano}-11-20`, nome:'Consciência Negra'},
+    {data:`${ano}-12-25`, nome:'Natal'},
+  ];
+}
+
+window.abrirCalendarioLetivo = async function(escolaId, escolaNome){
+  const id = escolaId || _turmaAtual?.escolaId;
+  if(!id){ showToast('Não encontrei a escola dessa turma.', 'error'); return; }
+  const nome = escolaNome || _turmaAtual?.escolaNome || 'Escola';
+  document.getElementById('calendario-letivo-titulo').textContent = 'Calendário Letivo';
+  document.getElementById('calendario-letivo-subtitulo').textContent = nome;
+  const modal = document.getElementById('calendario-letivo-modal');
+  modal.style.display = 'flex';
+  modal.dataset.escolaId = id;
+  const body = document.getElementById('calendario-letivo-body');
+  body.innerHTML = `<p style="color:var(--pe-muted);font-size:.85rem;">Carregando...</p>`;
+  delete _diasNaoLetivosCache[id]; // sempre busca fresco ao abrir o modal
+  const lista = await carregarDiasNaoLetivos(id);
+  const podeEditar = _escolasGeridas.some(e=>e.id===id && (e.role==='gestor'||e.role==='coordenador'));
+  modal.dataset.podeEditar = podeEditar ? '1' : '0';
+  _renderCalendarioLetivoBody(lista, podeEditar);
+};
+
+window.fecharCalendarioLetivo = function(){
+  document.getElementById('calendario-letivo-modal').style.display = 'none';
+};
+
+function _renderCalendarioLetivoBody(lista, podeEditar){
+  const body = document.getElementById('calendario-letivo-body');
+  const ordenada = [...lista].sort();
+  body.innerHTML = `
+    <p style="color:var(--pe-muted);font-size:.8rem;margin-bottom:12px;">
+      ${podeEditar
+        ? 'Feriados e dias sem aula desta escola. Usado pra calcular as datas certas quando você registra aulas "por ordem" — pula esses dias automaticamente.'
+        : 'Só quem é gestor(a) ou coordenador(a) desta escola pode editar. Se algum feriado estiver faltando, peça pra eles adicionarem aqui.'}
+    </p>
+    ${podeEditar ? `
+    <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;">
+      <input type="date" id="calendario-letivo-novo-data" class="nota-input" style="flex:1;min-width:140px;">
+      <input type="text" id="calendario-letivo-novo-nome" class="nota-input" placeholder="Motivo (opcional)" style="flex:2;min-width:140px;">
+      <button class="btn-aplicar-qtd" onclick="_calendarioLetivoAdicionar()">+ Adicionar</button>
+    </div>
+    <button type="button" class="atv-card-transferir-btn" style="margin-bottom:14px;" onclick="_calendarioLetivoAdicionarFeriadosFixos()">
+      + Preencher feriados nacionais fixos do ano ${new Date().getFullYear()}
+    </button>` : ''}
+    <div id="calendario-letivo-lista">
+      ${ordenada.length ? ordenada.map(item=>{
+        const [dataISO, nomeGuardado] = typeof item==='string' ? [item,''] : [item.data, item.nome||''];
+        const [ano,mes,dia] = dataISO.split('-');
+        return `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 4px;border-bottom:1px solid var(--pe-border);font-size:.82rem;">
+          <span style="font-weight:700;color:var(--pe-navy);min-width:70px;">${dia}/${mes}/${ano}</span>
+          <span style="color:var(--pe-muted);flex:1;">${nomeGuardado||'—'}</span>
+          ${podeEditar ? `<button type="button" class="atv-card-limpar-btn" onclick="_calendarioLetivoRemover('${dataISO}')">Remover</button>` : ''}
+        </div>`;
+      }).join('') : `<p style="color:var(--pe-muted);font-size:.8rem;">Nenhum dia não letivo cadastrado ainda.</p>`}
+    </div>`;
+}
+
+// Guarda como {data, nome} internamente, mas aceita strings simples (formato
+// antigo) na leitura — normaliza tudo antes de salvar.
+window._calendarioLetivoAdicionar = function(){
+  const modal = document.getElementById('calendario-letivo-modal');
+  const escolaId = modal.dataset.escolaId;
+  const dataEl = document.getElementById('calendario-letivo-novo-data');
+  const nomeEl = document.getElementById('calendario-letivo-novo-nome');
+  const dataISO = dataEl.value;
+  if(!dataISO){ showToast('Escolha uma data.', 'error'); return; }
+  const lista = _diasNaoLetivosCache[escolaId] || [];
+  const jaExiste = lista.some(it => (typeof it==='string'?it:it.data) === dataISO);
+  if(jaExiste){ showToast('Essa data já está na lista.', 'error'); return; }
+  lista.push({ data: dataISO, nome: (nomeEl.value||'').trim() });
+  _diasNaoLetivosCache[escolaId] = lista;
+  dataEl.value=''; nomeEl.value='';
+  _renderCalendarioLetivoBody(lista, true);
+  _calendarioLetivoSalvar(escolaId);
+};
+
+window._calendarioLetivoAdicionarFeriadosFixos = function(){
+  const modal = document.getElementById('calendario-letivo-modal');
+  const escolaId = modal.dataset.escolaId;
+  const lista = _diasNaoLetivosCache[escolaId] || [];
+  const existentesSet = new Set(lista.map(it=>typeof it==='string'?it:it.data));
+  _feriadosFixosNacionais(new Date().getFullYear()).forEach(f=>{
+    if(!existentesSet.has(f.data)){ lista.push(f); existentesSet.add(f.data); }
+  });
+  _diasNaoLetivosCache[escolaId] = lista;
+  _renderCalendarioLetivoBody(lista, true);
+  _calendarioLetivoSalvar(escolaId);
+};
+
+window._calendarioLetivoRemover = function(dataISO){
+  const modal = document.getElementById('calendario-letivo-modal');
+  const escolaId = modal.dataset.escolaId;
+  let lista = _diasNaoLetivosCache[escolaId] || [];
+  lista = lista.filter(it => (typeof it==='string'?it:it.data) !== dataISO);
+  _diasNaoLetivosCache[escolaId] = lista;
+  _renderCalendarioLetivoBody(lista, true);
+  _calendarioLetivoSalvar(escolaId);
+};
+
+async function _calendarioLetivoSalvar(escolaId){
+  try{
+    await setDoc(doc(db,'escolas',escolaId), { diasNaoLetivos: _diasNaoLetivosCache[escolaId]||[] }, {merge:true});
+  } catch(e){
+    showToast('Erro ao salvar calendário: '+e.message, 'error');
+  }
+}
+
+// Retorna só o conjunto de datas ISO (string), normalizando o formato
+// {data,nome}/string antigo — é o que a lógica de cálculo de datas usa.
+function _diasNaoLetivosComoSet(lista){
+  return new Set((lista||[]).map(it => typeof it==='string' ? it : it.data));
+}
+
 // ── Modelos de turno com os horários fixos de cada aula ──────────────
 // Integral 45h e EJA ficam para uma próxima etapa (ainda sem modelo pronto).
 const TURNO_TEMPLATES = {
@@ -13751,7 +14110,7 @@ window.abrirRegistroAulas = async function(){
     conteudo:'', complementacao:'',
     recursos:[], recursoOutro:'',
     situacoes:[], situacaoOutro:'',
-    aplicacoes:[ { turmaId: turma.id, data: _hojeISO(), horarios: [], ordem:'', diaSemana:'' } ],
+    aplicacoes:[ { turmaId: turma.id, data: _hojeISO(), horarios: [], ordem:'', quantidade:1 } ],
   };
 
   const collGrade = !!window._painelColapsado?.['grade-'+turma.id+'-0'];
@@ -13759,7 +14118,12 @@ window.abrirRegistroAulas = async function(){
 
   el.innerHTML = `
   <div class="medias-card" style="margin-bottom:14px;">
-    <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Registro de Aulas</h4>
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap;">
+      <h4><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg> Registro de Aulas</h4>
+      <button type="button" class="atv-card-transferir-btn" onclick="abrirCalendarioLetivo('${turma.escolaId}','${(turma.escolaNome||'').replace(/'/g,"\\'")}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg> Calendário Letivo
+      </button>
+    </div>
     <p style="color:var(--pe-muted);font-size:.85rem;margin:6px 0 0;">
       Cadastre a habilidade/objeto de conhecimento trabalhados numa aula, escreva o conteúdo e aplique
       automaticamente pra outras turmas e datas. Depois exporte tudo pra preencher no ${sistemaNome}.
@@ -13813,6 +14177,9 @@ window.abrirRegistroAulas = async function(){
         <button class="atv-card-transferir-btn" onclick="toggleExportarPorTurma()" title="Escolha quais turmas entram no mesmo arquivo de exportação">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg> Exportar por turma (escolher quais)
         </button>
+        <button class="atv-card-transferir-btn" onclick="toggleExportarPorOrdem()" title="Calcula datas reais a partir de um número de aula-âncora, pulando feriados do Calendário Letivo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="M9 16l2 2 4-4"/></svg> Exportar por ordem da aula
+        </button>
       </div>
     </div>
     <div id="exportar-por-turma-painel" style="display:none;margin-bottom:12px;padding:10px 12px;background:#f0f6ff;border:1px solid #b3d4fc;border-radius:8px;">
@@ -13839,11 +14206,32 @@ window.abrirRegistroAulas = async function(){
         </button>
       </div>
     </div>
+    <div id="exportar-por-ordem-painel" style="display:none;margin-bottom:12px;padding:10px 12px;background:#fff8ec;border:1px solid #f5d999;border-radius:8px;">
+      <p style="font-size:.76rem;color:var(--pe-muted);margin:0 0 10px;">
+        Pega registros "por ordem" (sem data ainda) e calcula as datas reais a partir de um número de aula-âncora +
+        data de início, usando a grade de horários e pulando feriados do <button type="button" onclick="abrirCalendarioLetivo('${turma.escolaId}','${(turma.escolaNome||'').replace(/'/g,"\\'")}')" style="background:none;border:none;color:var(--pe-blue);font-weight:700;text-decoration:underline;cursor:pointer;padding:0;font-size:.76rem;">Calendário Letivo</button>.
+      </p>
+      <div style="display:flex;gap:16px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;background:#fff;border-radius:6px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;cursor:pointer;">
+          <input type="radio" name="export-ordem-modo" value="unico" checked onchange="onModoExportOrdemChange('unico')"> Um só registro
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.78rem;cursor:pointer;">
+          <input type="radio" name="export-ordem-modo" value="turmas" onchange="onModoExportOrdemChange('turmas')"> Registro por turmas
+        </label>
+      </div>
+      <div id="exportar-ordem-corpo">${_renderExportarOrdemUnico()}</div>
+    </div>
     <div id="aulas-lista-body"><p style="color:var(--pe-muted);font-size:.8rem;">Carregando...</p></div>
   </div>`;
 
   carregarAulasRegistradas(turma.id);
   onEscopoExportValorChange('exportar-por-turma');
+};
+
+window.toggleExportarPorOrdem = function(){
+  const painel = document.getElementById('exportar-por-ordem-painel');
+  if(!painel) return;
+  painel.style.display = painel.style.display==='none' ? 'block' : 'none';
 };
 
 window.toggleExportarPorData = function(){
@@ -13934,23 +14322,21 @@ function _turmasNoEscopo(prefixo){
   return base.filter(t=>t.escolaId===valor);
 }
 
-// Formata uma aula (documento do Firestore) pro JSON de exportação, nos
-// dois modos possíveis: "data" (data real + horários daquele dia) ou
-// "ordem" (sem data — nº da sequência + dia da semana/horário do grade,
-// pra extensão casar com o próximo dia de aula real que encontrar no
-// SIEPE/SIEC, em sequência).
+// Formata uma aula (documento do Firestore, já com data real — resolvida ou
+// registrada diretamente em modo "data") pro JSON de exportação. Registros
+// em modo "ordem" só chegam aqui DEPOIS de resolvidos (ver
+// _resolverDatasOrdem), quando já têm `data`/`horarios` preenchidos —
+// por isso o formato final é sempre o mesmo, sem precisar a extensão saber
+// de nada especial sobre ordem/sequência.
 function _mapAulaExport(a, municipal){
-  const modoRegistro = a.modoRegistro === 'ordem' ? 'ordem' : 'data';
   return {
-    modoRegistro,
-    ...(modoRegistro==='ordem'
-      ? { ordem: a.ordem||null, diaSemana: a.diaSemana||null, diaSemanaLabel: _diaSemanaLabel(a.diaSemana) }
-      : { data: a.data||null }),
+    data: a.data||null,
     horarios: a.horarios||[],   // textos do intervalo de horas (ex.: "07:00 às 07:50") — sem ID interno
     disciplina: a.disciplina, serie: a.serie,
     periodo: a.periodo ?? a.trimestre,   // trimestre (SIEPE) ou unidade/bimestre (SIEC)
     habilidades: (a.habilidades||[]).map(h=>municipal ? {codigo:h.codigo, objeto:h.objeto, unidadeTematica:h.unidadeTematica} : {codigo:h.codigo, objeto:h.objeto}),
     conteudo: a.conteudo||'', recursos: a.recursos||[], situacoes: a.situacoes||[],
+    ...(a.ordemOrigem!=null ? { origemAula: a.ordemOrigem } : {}),  // rastreio opcional (nº da aula original), não usado pela extensão
     ...(municipal ? {
       outraHabilidade: a.outraHabilidade||'', habilidadeNaoTrabalhada: !!a.habilidadeNaoTrabalhada,
     } : {
@@ -13966,14 +14352,21 @@ window.exportarAulasPorTurma = async function(){
   showLoading('Buscando aulas das turmas escolhidas...');
   try{
     const grupos = [];
+    let totalPendentes = 0;
 
     for(const turmaId of marcadas){
       const turma = _turmaPorId(turmaId);
       if(!turma) continue;
       const municipal = _ehMunicipal(turma);
       const snap = await getDocs(collection(db, ...turmaPath(turma.id), 'aulas'));
-      const aulas = [];
-      snap.forEach(d=>aulas.push(d.data()));
+      const aulasTodas = [];
+      snap.forEach(d=>aulasTodas.push(d.data()));
+      // Registros em modo "ordem" só entram aqui se já tiverem sido
+      // resolvidos em datas reais (ver "Exportar por ordem da aula") —
+      // os que ainda não foram resolvidos (sem `data`) ficam de fora.
+      const aulas = aulasTodas.filter(a=>a.data);
+      const pendentes = aulasTodas.length - aulas.length;
+      totalPendentes += pendentes;
       if(!aulas.length) continue;
 
       const cursoValor = municipal ? turma.cursoSiec : turma.cursoSiepe;
@@ -14011,7 +14404,7 @@ window.exportarAulasPorTurma = async function(){
     aTag.href = url;
     aTag.click();
     URL.revokeObjectURL(url);
-    showToast(`${grupos.length} turma(s) exportada(s) num arquivo só!`, 'success');
+    showToast(`${grupos.length} turma(s) exportada(s) num arquivo só!${totalPendentes ? ` (${totalPendentes} registro(s) "por ordem" ficaram de fora — use "Exportar por ordem da aula" pra eles.)` : ''}`, 'success');
   } catch(e){
     hideLoading();
     showToast('Erro ao exportar: '+e.message, 'error');
@@ -14106,6 +14499,297 @@ function _hojeISO(){
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
 }
+function _dataISO(d){
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+
+// ── Motor de cálculo de datas pro modo "ordem da aula" ──────────────────
+// Dado: a data + o número da 1ª aula ("âncora"), calcula em que data real
+// cai cada número de aula seguinte, andando dia a dia a partir da âncora,
+// usando a grade de horários da turma (quais dias da semana têm aula) e
+// pulando integralmente qualquer dia marcado no Calendário Letivo como não
+// letivo. Cada dia de aula "consome" tantos números de aula quantos
+// horários aquele dia tiver na grade (2 horários seguidos no mesmo dia =
+// 2 aulas, mesma data).
+function _gerarMapaDatasOrdem(turma, ordemAncora, dataAncoraISO, quantidadeNecessaria, diasNaoLetivosSet){
+  const DIA_JS = {seg:1, ter:2, qua:3, qui:4, sex:5, sab:6};
+  const slotsPorDia = {}; // { [diaDaSemana 0-6]: [horarioLabel, ...] }
+  DIAS_SEMANA_GRADE.forEach(d=>{
+    const horarios = turma.gradeHorarios?.[d.chave] || [];
+    if(horarios.length) slotsPorDia[DIA_JS[d.chave]] = horarios.map(h=>h.label);
+  });
+  if(!Object.keys(slotsPorDia).length){
+    return { erro:'Essa turma não tem grade de horários configurada — configure em "Horários" no painel inicial antes de exportar por ordem.' };
+  }
+
+  const [ay,am,ad] = dataAncoraISO.split('-').map(Number);
+  let dataAtual = new Date(ay, am-1, ad);
+  if(isNaN(dataAtual.getTime())) return { erro:'Data inválida.' };
+  if(!slotsPorDia[dataAtual.getDay()]){
+    return { erro:'A data escolhida não cai em nenhum dos dias de aula dessa turma. Escolha uma data que bata com a grade de horários dela.' };
+  }
+  if(diasNaoLetivosSet.has(dataAncoraISO)){
+    return { erro:'A data escolhida está marcada como dia sem aula no Calendário Letivo. Escolha outra data.' };
+  }
+
+  const mapa = {}; // { [numeroDaAula]: {data, horarioLabel} }
+  let ordemAtual = ordemAncora;
+  let guarda = 0;
+  const ordemFinal = ordemAncora + quantidadeNecessaria;
+
+  while(ordemAtual < ordemFinal){
+    if(++guarda > 3650) return { erro:'Não consegui calcular as datas (mais de 10 anos de aulas seguidas?). Confira a grade de horários e o Calendário Letivo dessa escola.' };
+    const dataISO = _dataISO(dataAtual);
+    const horariosDoDia = slotsPorDia[dataAtual.getDay()];
+    if(horariosDoDia && !diasNaoLetivosSet.has(dataISO)){
+      for(const h of horariosDoDia){
+        if(ordemAtual >= ordemFinal) break;
+        mapa[ordemAtual] = { data: dataISO, horarioLabel: h };
+        ordemAtual++;
+      }
+    }
+    dataAtual.setDate(dataAtual.getDate()+1);
+  }
+  return { mapa };
+}
+
+// Expande cada registro "por ordem" (que pode cobrir várias aulas seguidas)
+// em uma ou mais entradas prontas pra exportação, já com data e horário
+// reais — agrupando na mesma data os números de aula que caírem nela.
+function _resolverRegistrosOrdemParaExport(turma, registrosOrdenados, ordemAncora, dataAncoraISO, diasNaoLetivosSet){
+  if(!registrosOrdenados.length) return { erro:'Nenhum registro "por ordem" encontrado a partir dessa aula, nessa turma.' };
+  const maxOrdemFim = Math.max(...registrosOrdenados.map(r=>r.ordem + r.quantidade - 1));
+  const quantidadeNecessaria = maxOrdemFim - ordemAncora + 1;
+  if(quantidadeNecessaria < 1) return { erro:'A aula escolhida como âncora vem depois de todos os registros selecionados — escolha outra âncora.' };
+
+  const { mapa, erro } = _gerarMapaDatasOrdem(turma, ordemAncora, dataAncoraISO, quantidadeNecessaria, diasNaoLetivosSet);
+  if(erro) return { erro };
+
+  const resolvidas = [];
+  for(const reg of registrosOrdenados){
+    const porData = {}; // agrupa horários do mesmo registro que caem na mesma data
+    for(let n = reg.ordem; n <= reg.ordem + reg.quantidade - 1; n++){
+      const slot = mapa[n];
+      if(!slot) continue; // fora do intervalo calculado — não deveria acontecer
+      if(!porData[slot.data]) porData[slot.data] = [];
+      porData[slot.data].push(slot.horarioLabel);
+    }
+    Object.keys(porData).sort().forEach(dataISO=>{
+      resolvidas.push({ ...reg, data: dataISO, horarios: porData[dataISO], ordemOrigem: reg.ordem });
+    });
+  }
+  return { resolvidas };
+}
+
+function _baixarJSON(payload, nomeArquivo){
+  const json = JSON.stringify(payload, null, 2);
+  const blob = new Blob([json], {type:'application/json'});
+  const url  = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.download = nomeArquivo; a.href = url; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// Monta o payload de exportação (mesma "forma" usada pelas outras rotas de
+// exportação) a partir de uma lista de aulas já resolvidas (com data real).
+function _montarPayloadTurma(turma, aulasResolvidas){
+  const municipal = _ehMunicipal(turma);
+  const cursoValor = municipal ? turma.cursoSiec : turma.cursoSiepe;
+  const curso = (municipal ? CURSOS_SIEC : CURSOS_SIEPE).find(c=>c.valor===cursoValor);
+  return {
+    sistema: municipal ? 'SIEC' : 'SIEPE',
+    turma: {
+      nome: `${turma.serie||''} ${turma.turma||''}`.trim(),
+      serieTexto: turma.serie||'', turmaTexto: turma.turma||'',
+      anoLetivo: turma.anoLetivo || new Date().getFullYear(),
+      curso: curso?.valor || cursoValor,
+      ...(municipal ? { turno: TURNO_SIEC_LETRA[turma.turno]||'' } : {}),
+    },
+    aulas: _ordenarAulasParaExport(aulasResolvidas).map(a=>_mapAulaExport(a, municipal)),
+  };
+}
+
+async function _buscarRegistrosOrdemPendentes(turmaId){
+  const snap = await getDocs(collection(db, ...turmaPath(turmaId), 'aulas'));
+  const registros = [];
+  snap.forEach(d=>{ const a=d.data(); if(a.modoRegistro==='ordem' && !a.data) registros.push({id:d.id, ...a}); });
+  registros.sort((a,b)=>a.ordem-b.ordem);
+  return registros;
+}
+
+// ── Painel "Exportar por ordem da aula" ──────────────────────────────
+window.onModoExportOrdemChange = function(modo){
+  const corpo = document.getElementById('exportar-ordem-corpo');
+  if(!corpo) return;
+  corpo.innerHTML = modo==='turmas' ? _renderExportarOrdemPorTurmas() : _renderExportarOrdemUnico();
+};
+
+// -- Sub-modo "Um só registro" --
+function _renderExportarOrdemUnico(){
+  return `
+  <div>
+    <label style="font-size:.72rem;color:var(--pe-muted);display:block;margin-bottom:3px;">Turma</label>
+    <select id="exp-ordem-unico-turma" class="nota-input" style="margin-bottom:8px;" onchange="_expOrdemUnicoCarregarRegistros()">
+      <option value="">— Escolher turma —</option>
+      ${_turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t)).map(t=>`<option value="${t.id}">${t.serie||''} ${t.turma||''} · ${t.disciplina||''}</option>`).join('')}
+    </select>
+    <div id="exp-ordem-unico-registro-wrap">
+      <span style="font-size:.76rem;color:var(--pe-muted);">Escolha a turma pra ver os registros "por ordem" pendentes dela.</span>
+    </div>
+  </div>`;
+}
+
+window._expOrdemUnicoCarregarRegistros = async function(){
+  const turmaId = document.getElementById('exp-ordem-unico-turma').value;
+  const wrap = document.getElementById('exp-ordem-unico-registro-wrap');
+  if(!turmaId){ wrap.innerHTML = `<span style="font-size:.76rem;color:var(--pe-muted);">Escolha a turma pra ver os registros "por ordem" pendentes dela.</span>`; return; }
+  wrap.innerHTML = `<p style="font-size:.78rem;color:var(--pe-muted);">Carregando registros...</p>`;
+  try{
+    const registros = await _buscarRegistrosOrdemPendentes(turmaId);
+    window._expOrdemUnicoCache = registros;
+    if(!registros.length){
+      wrap.innerHTML = `<p style="font-size:.78rem;color:var(--pe-muted);">Essa turma não tem registros "por ordem" pendentes de exportação.</p>`;
+      return;
+    }
+    wrap.innerHTML = `
+      <label style="font-size:.72rem;color:var(--pe-muted);display:block;margin-bottom:3px;">Registro (aula-âncora)</label>
+      <select id="exp-ordem-unico-registro" class="nota-input" style="margin-bottom:8px;">
+        ${registros.map(r=>{
+          const fim = r.ordem+r.quantidade-1;
+          const label = fim>r.ordem ? `Aulas ${r.ordem}–${fim}` : `Aula ${r.ordem}`;
+          return `<option value="${r.id}">${label} — ${(r.conteudo||'(sem conteúdo)').slice(0,50)}</option>`;
+        }).join('')}
+      </select>
+      <label style="font-size:.72rem;color:var(--pe-muted);display:block;margin-bottom:3px;">Data da 1ª aula deste registro</label>
+      <input type="date" id="exp-ordem-unico-data" class="nota-input" style="margin-bottom:10px;max-width:200px;" value="${_hojeISO()}">
+      <button class="btn-aplicar-qtd" onclick="_gerarExportOrdemUnico('${turmaId}')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Gerar arquivo
+      </button>`;
+  } catch(e){ wrap.innerHTML = `<p style="color:var(--pe-red);font-size:.78rem;">Erro: ${e.message}</p>`; }
+};
+
+window._gerarExportOrdemUnico = async function(turmaId){
+  const turma = _turmaPorId(turmaId);
+  if(!turma){ showToast('Turma não encontrada.', 'error'); return; }
+  const registroId = document.getElementById('exp-ordem-unico-registro')?.value;
+  const dataAncora = document.getElementById('exp-ordem-unico-data')?.value;
+  if(!registroId || !dataAncora){ showToast('Escolha o registro e a data.', 'error'); return; }
+  const reg = (window._expOrdemUnicoCache||[]).find(r=>r.id===registroId);
+  if(!reg){ showToast('Esse registro não foi encontrado — recarregue a turma.', 'error'); return; }
+
+  showLoading('Calculando datas...');
+  try{
+    const diasNaoLetivos = await carregarDiasNaoLetivos(turma.escolaId);
+    const diasNaoLetivosSet = _diasNaoLetivosComoSet(diasNaoLetivos);
+    const { resolvidas, erro } = _resolverRegistrosOrdemParaExport(turma, [reg], reg.ordem, dataAncora, diasNaoLetivosSet);
+    hideLoading();
+    if(erro){ showToast(erro, 'error'); return; }
+
+    const grupo = _montarPayloadTurma(turma, resolvidas);
+    _baixarJSON(
+      { versao: grupo.sistema==='SIEC'?'nm-siec-aulas-v1':'nm-siepe-aulas-v1', exportadoEm: new Date().toISOString(), turma: grupo.turma, aulas: grupo.aulas },
+      `NM_Aulas_${grupo.sistema}_Ordem_${(turma.serie||'')+(turma.turma||'')}_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`
+    );
+    showToast(`Registro exportado com datas calculadas (${resolvidas.length} lançamento(s))!`, 'success');
+  } catch(e){
+    hideLoading();
+    showToast('Erro: '+e.message, 'error');
+  }
+};
+
+// -- Sub-modo "Registro por turmas" --
+function _renderExportarOrdemPorTurmas(){
+  return `
+    <div id="exp-ordem-turmas-lista">
+      ${_turmas.filter(t=>t.ativo!==false && !ehTurmaGenerica(t)).map(t=>`
+        <div style="border:1px solid var(--pe-border);border-radius:6px;padding:8px;margin-bottom:8px;background:#fff;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:.8rem;font-weight:700;cursor:pointer;">
+            <input type="checkbox" class="exp-ordem-turma-chk" value="${t.id}" onchange="_expOrdemTurmaToggle('${t.id}', this.checked)">
+            ${t.serie||''} ${t.turma||''} · ${t.disciplina||''}
+          </label>
+          <div id="exp-ordem-turma-detalhe-${t.id}" style="display:none;margin-top:8px;padding-left:22px;"></div>
+        </div>`).join('') || `<p style="font-size:.78rem;color:var(--pe-muted);">Nenhuma turma disponível.</p>`}
+    </div>
+    <button class="btn-aplicar-qtd" style="margin-top:4px;" onclick="_gerarExportOrdemPorTurmas()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg> Gerar arquivo com as turmas marcadas
+    </button>`;
+}
+
+window._expOrdemTurmaToggle = async function(turmaId, checked){
+  const det = document.getElementById('exp-ordem-turma-detalhe-'+turmaId);
+  if(!det) return;
+  if(!checked){ det.style.display='none'; return; }
+  det.style.display='block';
+  det.innerHTML = `<p style="font-size:.76rem;color:var(--pe-muted);">Carregando registros...</p>`;
+  try{
+    const registros = await _buscarRegistrosOrdemPendentes(turmaId);
+    if(!registros.length){
+      det.innerHTML = `<p style="font-size:.76rem;color:var(--pe-muted);">Sem registros "por ordem" pendentes nessa turma.</p>`;
+      const chk = document.querySelector(`.exp-ordem-turma-chk[value="${turmaId}"]`);
+      if(chk) chk.checked = false;
+      return;
+    }
+    window._expOrdemTurmasCache = window._expOrdemTurmasCache || {};
+    window._expOrdemTurmasCache[turmaId] = registros;
+    det.innerHTML = `
+      <label style="font-size:.7rem;color:var(--pe-muted);display:block;margin-bottom:3px;">A partir de qual registro (âncora — os seguintes desta turma entram em cascata)</label>
+      <select id="exp-ordem-turma-ancora-${turmaId}" class="nota-input" style="margin-bottom:6px;">
+        ${registros.map(r=>{
+          const fim=r.ordem+r.quantidade-1;
+          const label = fim>r.ordem?`Aulas ${r.ordem}–${fim}`:`Aula ${r.ordem}`;
+          return `<option value="${r.ordem}">${label} — ${(r.conteudo||'(sem conteúdo)').slice(0,40)}</option>`;
+        }).join('')}
+      </select>
+      <label style="font-size:.7rem;color:var(--pe-muted);display:block;margin-bottom:3px;">Data da 1ª aula desse registro-âncora</label>
+      <input type="date" id="exp-ordem-turma-data-${turmaId}" class="nota-input" style="max-width:200px;" value="${_hojeISO()}">`;
+  } catch(e){
+    det.innerHTML = `<p style="color:var(--pe-red);font-size:.76rem;">Erro: ${e.message}</p>`;
+  }
+};
+
+window._gerarExportOrdemPorTurmas = async function(){
+  const marcadas = [...document.querySelectorAll('.exp-ordem-turma-chk:checked')].map(el=>el.value);
+  if(!marcadas.length){ showToast('Marque ao menos uma turma.', 'error'); return; }
+
+  showLoading('Calculando datas...');
+  try{
+    const grupos = [];
+    const avisos = [];
+    for(const turmaId of marcadas){
+      const turma = _turmaPorId(turmaId);
+      if(!turma) continue;
+      const ancoraSel = document.getElementById(`exp-ordem-turma-ancora-${turmaId}`);
+      const dataSel = document.getElementById(`exp-ordem-turma-data-${turmaId}`);
+      const nomeTurma = `${turma.serie||''} ${turma.turma||''}`.trim();
+      if(!ancoraSel || !dataSel || !dataSel.value){ avisos.push(`${nomeTurma}: sem registros ou data não escolhida`); continue; }
+
+      const ordemAncora = parseInt(ancoraSel.value);
+      const dataAncora = dataSel.value;
+      const registrosTodos = window._expOrdemTurmasCache?.[turmaId] || [];
+      const registrosCascata = registrosTodos.filter(r=>r.ordem >= ordemAncora).sort((a,b)=>a.ordem-b.ordem);
+
+      const diasNaoLetivos = await carregarDiasNaoLetivos(turma.escolaId);
+      const diasNaoLetivosSet = _diasNaoLetivosComoSet(diasNaoLetivos);
+      const { resolvidas, erro } = _resolverRegistrosOrdemParaExport(turma, registrosCascata, ordemAncora, dataAncora, diasNaoLetivosSet);
+      if(erro){ avisos.push(`${nomeTurma}: ${erro}`); continue; }
+
+      grupos.push(_montarPayloadTurma(turma, resolvidas));
+    }
+    hideLoading();
+    if(!grupos.length){
+      showToast(avisos.length ? avisos.join(' · ') : 'Nenhuma turma pôde ser exportada.', 'error');
+      return;
+    }
+    _baixarJSON(
+      { versao:'nm-aulas-por-turma-v1', exportadoEm:new Date().toISOString(), turmas:grupos },
+      `NM_Aulas_PorOrdem_${new Date().toLocaleDateString('pt-BR').replace(/\//g,'-')}.json`
+    );
+    showToast(`${grupos.length} turma(s) exportada(s) com datas calculadas!${avisos.length?` (${avisos.length} ficaram de fora: ${avisos.join(' · ')})`:''}`, 'success');
+  } catch(e){
+    hideLoading();
+    showToast('Erro: '+e.message, 'error');
+  }
+};
 
 // Renderiza a grade de horários de UMA turma — usado tanto na aba "Aulas"
 // da própria turma quanto na tela centralizada "Horários" do painel inicial.
@@ -14403,7 +15087,7 @@ function _renderFormularioAula(){
     </div>
     <p style="font-size:.72rem;color:var(--pe-muted);margin:-4px 0 8px;">
       ${f.modo==='ordem'
-        ? 'Sem data marcada — você numera a sequência (1ª, 2ª, 3ª aula...) e escolhe o dia da semana/horário do seu grade. Na exportação, a extensão recebe a ordem certinha pra lançar em sequência no dia de aula que encontrar.'
+        ? 'Sem data marcada — você diz o número da 1ª aula deste registro e quantas aulas seguidas ele cobre (ex.: aula 20, por 3 aulas = aulas 20 a 22). Na exportação, você escolhe a partir de qual data começar e o Nota Mestra calcula as datas seguintes sozinho, usando a grade de horários e o Calendário Letivo (pula feriados automaticamente).'
         : 'Registra numa data do calendário específica, igual sempre foi.'}
     </p>
     <div id="aula-aplicacoes-lista">${_renderAplicacoesLista()}</div>
@@ -14528,34 +15212,35 @@ function _renderAplicacoesLista(){
 }
 
 // Modo "ordem da aula" — em vez de uma data do calendário, o professor
-// numera a sequência (1ª, 2ª, 3ª aula...) e escolhe o dia da semana/horário
-// do grade da turma. Sem data real: a extensão decide, na hora de lançar,
-// qual dia real do SIEPE/SIEC casa com aquele número + horário.
+// marca o número da aula inicial (1ª, 2ª, 20ª...) e quantas aulas seguidas
+// esse registro cobre (ex.: mesmo conteúdo dado em 3 aulas seguidas = aula
+// 20 até a 22). Sem data real ainda — as datas são calculadas na hora de
+// exportar, a partir de uma data-âncora + a grade de horários + o
+// calendário letivo (pulando feriados/dias sem aula).
 function _renderAplicacoesListaOrdem(){
   const f = window._aulaForm;
-  const diasComHorario = DIAS_SEMANA_GRADE;
   return f.aplicacoes.map((ap,ai)=>{
     const turma = _turmas.find(t=>t.id===ap.turmaId);
-    const horariosDisp = (turma && ap.diaSemana) ? (turma.gradeHorarios?.[ap.diaSemana] || []) : [];
+    const fim = (ap.ordem && ap.quantidade) ? (Number(ap.ordem)+Number(ap.quantidade)-1) : null;
     return `
     <div class="grade-horarios-row" style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;margin-bottom:8px;padding:8px;background:#f8f9fa;border-radius:6px;">
       <select class="nota-input" style="flex:2;min-width:180px;" onchange="onAplicacaoTurmaChange(${ai},this.value)">
         <option value="">— Turma —</option>
         ${_turmas.filter(t=>t.ativo!==false).map(t=>`<option value="${t.id}" ${ap.turmaId===t.id?'selected':''}>${t.nome||t.serie+' '+t.turma}</option>`).join('')}
       </select>
-      <input type="number" min="1" step="1" class="nota-input" style="flex:0 0 90px;" placeholder="Nº da aula"
-        value="${ap.ordem||''}" onchange="onAplicacaoOrdemChange(${ai},this.value)" title="Ordem/sequência desta aula (1ª, 2ª, 3ª...)">
-      <select class="nota-input" style="flex:1;min-width:130px;" onchange="onAplicacaoDiaSemanaChange(${ai},this.value)">
-        <option value="">— Dia da semana —</option>
-        ${diasComHorario.map(d=>`<option value="${d.chave}" ${ap.diaSemana===d.chave?'selected':''}>${d.label}</option>`).join('')}
-      </select>
-      <div style="flex:2;min-width:200px;display:flex;flex-wrap:wrap;gap:6px;">
-        ${horariosDisp.length ? horariosDisp.map(h=>{
-          const marcado = ap.horarios.includes(h.label);
-          return `<label style="display:flex;align-items:center;gap:4px;font-size:.74rem;background:#fff;border:1px solid var(--pe-border);border-radius:4px;padding:3px 7px;cursor:pointer;">
-            <input type="checkbox" ${marcado?'checked':''} onchange="toggleHorarioAplicacao(${ai},'${h.label.replace(/'/g,"\\'")}')"> ${h.label}
-          </label>`;
-        }).join('') : `<span style="font-size:.72rem;color:var(--pe-muted);">${!turma?'Escolha a turma':(!ap.diaSemana?'Escolha o dia da semana':'Sem horários cadastrados nesse dia — configure a grade de horários')}</span>`}
+      <div style="flex:1;min-width:110px;">
+        <label style="font-size:.68rem;color:var(--pe-muted);display:block;">Nº da 1ª aula deste registro</label>
+        <input type="number" min="1" step="1" class="nota-input" placeholder="Ex.: 20"
+          value="${ap.ordem||''}" onchange="onAplicacaoOrdemChange(${ai},this.value)">
+      </div>
+      <div style="flex:1;min-width:110px;">
+        <label style="font-size:.68rem;color:var(--pe-muted);display:block;">Quantidade de aulas</label>
+        <input type="number" min="1" step="1" class="nota-input" placeholder="Ex.: 3"
+          value="${ap.quantidade||''}" onchange="onAplicacaoQuantidadeChange(${ai},this.value)">
+      </div>
+      <div style="flex:1;min-width:140px;padding-top:16px;font-size:.76rem;color:var(--pe-muted);">
+        ${fim ? (fim===Number(ap.ordem) ? `Cobre a <strong>aula ${ap.ordem}</strong>` : `Cobre as <strong>aulas ${ap.ordem} a ${fim}</strong>`) : ''}
+        ${!turma && ap.turmaId==='' ? '' : (turma ? '' : '')}
       </div>
       <button type="button" class="atv-card-limpar-btn" onclick="removerAplicacaoAula(${ai})" ${f.aplicacoes.length<=1?'disabled style="opacity:.35;"':''}>Remover</button>
     </div>`;
@@ -14568,22 +15253,22 @@ window.onModoAulaChange = function(modo){
   // modo com o outro por engano.
   window._aulaForm.aplicacoes = [{
     turmaId: window._aulaForm.aplicacoes[0]?.turmaId || _turmaAtual.id,
-    data: _hojeISO(), horarios: [], ordem:'', diaSemana:'',
+    data: _hojeISO(), horarios: [], ordem:'', quantidade:1,
   }];
   document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
 };
 
 window.onAplicacaoOrdemChange = function(ai, v){
   window._aulaForm.aplicacoes[ai].ordem = v ? parseInt(v) : '';
+  document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
 };
-window.onAplicacaoDiaSemanaChange = function(ai, v){
-  window._aulaForm.aplicacoes[ai].diaSemana = v;
-  window._aulaForm.aplicacoes[ai].horarios = [];
+window.onAplicacaoQuantidadeChange = function(ai, v){
+  window._aulaForm.aplicacoes[ai].quantidade = v ? parseInt(v) : '';
   document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
 };
 
 window.adicionarAplicacaoAula = function(){
-  window._aulaForm.aplicacoes.push({ turmaId:'', data:_hojeISO(), horarios:[], ordem:'', diaSemana:'' });
+  window._aulaForm.aplicacoes.push({ turmaId:'', data:_hojeISO(), horarios:[], ordem:'', quantidade:1 });
   document.getElementById('aula-aplicacoes-lista').innerHTML = _renderAplicacoesLista();
 };
 window.removerAplicacaoAula = function(ai){
@@ -14635,11 +15320,35 @@ window.registrarAula = async function(){
   if(!municipal && !f.situacoes.length) return erro('Marque ao menos uma situação didática.');
   if(f.situacoes.includes(_chaveOutrosEspecificar(municipal)) && !(f.situacaoOutro||'').trim()) return erro('Especifique a situação didática "Outros".');
   const aplicacoesValidas = f.modo==='ordem'
-    ? f.aplicacoes.filter(a=>a.turmaId && a.ordem && a.diaSemana && a.horarios.length)
+    ? f.aplicacoes.filter(a=>a.turmaId && a.ordem && a.quantidade)
     : f.aplicacoes.filter(a=>a.turmaId && a.data);
   if(!aplicacoesValidas.length) return erro(f.modo==='ordem'
-    ? 'Preencha turma, nº da aula, dia da semana e ao menos um horário em "Aplicar para".'
+    ? 'Preencha turma, nº da 1ª aula e a quantidade de aulas em "Aplicar para".'
     : 'Preencha ao menos uma turma e data em "Aplicar para".');
+
+  // Em modo "ordem", os intervalos de aula (ordem..ordem+quantidade-1) não
+  // podem se sobrepor com outro registro JÁ salvo da mesma turma — senão a
+  // exportação ficaria ambígua sobre qual conteúdo pertence a qual aula.
+  if(f.modo==='ordem'){
+    for(const ap of aplicacoesValidas){
+      const inicio = Number(ap.ordem), fim = inicio + Number(ap.quantidade) - 1;
+      const outrosDoGrupo = (editandoCheck => editandoCheck?.grupo?.map(g=>g.aulaId) || [])(f.editando);
+      try{
+        const snapExistentes = await getDocs(collection(db, ...turmaPath(ap.turmaId), 'aulas'));
+        let conflito = null;
+        snapExistentes.forEach(d=>{
+          if(conflito || outrosDoGrupo.includes(d.id)) return;
+          const dd = d.data();
+          if(dd.modoRegistro!=='ordem' || dd.ordem==null || dd.quantidade==null) return;
+          const dIni = dd.ordem, dFim = dd.ordem + dd.quantidade - 1;
+          if(inicio <= dFim && fim >= dIni) conflito = `${dIni===dFim?dIni:dIni+'–'+dFim}`;
+        });
+        if(conflito){
+          return erro(`Já existe um registro cobrindo a(s) aula(s) ${conflito} nessa turma. Edite aquele registro em vez de criar outro sobreposto.`);
+        }
+      } catch(e){ /* se a checagem falhar, segue — não bloqueia o professor por um erro de rede */ }
+    }
+  }
 
   const editando = f.editando; // {grupo:[{turmaId,aulaId,criadoEm}]} — se vier de "Editar"
   showLoading(editando ? 'Salvando alterações...' : 'Registrando aula...');
@@ -14649,7 +15358,7 @@ window.registrarAula = async function(){
     const situacoesFinal  = f.situacoes.map(s=>s===chaveOutros ? f.situacaoOutro.trim() : s);
     const payloadBase = {
       municipal,
-      modoRegistro: f.modo,   // 'data' ou 'ordem' — diz pra extensão como interpretar data/ordem abaixo
+      modoRegistro: f.modo,   // 'data' (data real) ou 'ordem' (número da aula — vira data só na exportação)
       disciplina: f.disciplina, serie: Number(f.serie), periodo: Number(f.periodo),
       habilidades: f.habilidadesSelecionadas,
       conteudo: f.conteudo.trim(),
@@ -14675,8 +15384,8 @@ window.registrarAula = async function(){
       // Rede de segurança: se essa turma não veio no grupo (por qualquer
       // motivo — ex.: falha ao carregar a turma "irmã" na hora de editar),
       // procura na PRÓPRIA turma se já existe uma aula igual (mesma data, no
-      // modo data; mesmo nº de ordem, no modo ordem) antes de criar um
-      // registro novo, pra nunca duplicar sem querer.
+      // modo data; mesmo nº de ordem inicial, no modo ordem) antes de criar
+      // um registro novo, pra nunca duplicar sem querer.
       if(!existente){
         try{
           const snapExistentes = await getDocs(collection(db, ...turmaPath(ap.turmaId), 'aulas'));
@@ -14692,8 +15401,8 @@ window.registrarAula = async function(){
       }
 
       const camposAplicacao = f.modo==='ordem'
-        ? { data: null, horarios: ap.horarios, ordem: ap.ordem, diaSemana: ap.diaSemana }
-        : { data: ap.data, horarios: ap.horarios, ordem: null, diaSemana: null };
+        ? { data: null, horarios: [], ordem: Number(ap.ordem), quantidade: Number(ap.quantidade) }
+        : { data: ap.data, horarios: ap.horarios, ordem: null, quantidade: null };
 
       if(existente){
         await setDoc(doc(db, ...turmaPath(ap.turmaId), 'aulas', existente.aulaId), {
@@ -14737,7 +15446,7 @@ window.registrarAula = async function(){
       habilidadesSelecionadas:[], outraHabilidade:'', habilidadeNaoTrabalhada:false,
       conteudo:'', complementacao:'',
       recursos:[], recursoOutro:'', situacoes:[], situacaoOutro:'',
-      aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[], ordem:'', diaSemana:'' } ],
+      aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[], ordem:'', quantidade:1 } ],
     };
     document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
     carregarAulasRegistradas(_turmaAtual.id);
@@ -14754,7 +15463,7 @@ window.cancelarEdicaoAula = function(){
     habilidadesSelecionadas:[], outraHabilidade:'', habilidadeNaoTrabalhada:false,
     conteudo:'', complementacao:'',
     recursos:[], recursoOutro:'', situacoes:[], situacaoOutro:'',
-    aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[], ordem:'', diaSemana:'' } ],
+    aplicacoes:[ { turmaId:_turmaAtual.id, data:_hojeISO(), horarios:[], ordem:'', quantidade:1 } ],
   };
   document.getElementById('aula-form-body').innerHTML = _renderFormularioAula();
 };
@@ -14782,7 +15491,7 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
       if(g.turmaId===turmaId && g.aulaId===aulaId){
         aplicacoes.push({
           turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [],
-          ordem: a.ordem||'', diaSemana: a.diaSemana||'',
+          ordem: a.ordem||'', quantidade: a.quantidade||1,
         });
         continue;
       }
@@ -14792,7 +15501,7 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
           const a2 = s2.data();
           aplicacoes.push({
             turmaId: g.turmaId, data: a2.data||_hojeISO(), horarios: a2.horarios ? [...a2.horarios] : [],
-            ordem: a2.ordem||'', diaSemana: a2.diaSemana||'',
+            ordem: a2.ordem||'', quantidade: a2.quantidade||1,
           });
         } else {
           falharam.push(g.turmaId);
@@ -14814,7 +15523,7 @@ window.editarAulaRegistrada = async function(turmaId, aulaId){
       conteudo: a.conteudo||'', complementacao: a.complementacao||'',
       recursos: a.recursos ? [...a.recursos] : [], recursoOutro:'',
       situacoes: a.situacoes ? [...a.situacoes] : [], situacaoOutro:'',
-      aplicacoes: aplicacoes.length ? aplicacoes : [{ turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [], ordem: a.ordem||'', diaSemana: a.diaSemana||'' }],
+      aplicacoes: aplicacoes.length ? aplicacoes : [{ turmaId, data: a.data||_hojeISO(), horarios: a.horarios ? [...a.horarios] : [], ordem: a.ordem||'', quantidade: a.quantidade||1 }],
       editando: { grupo: grupoCarregado },
     };
 
@@ -14877,8 +15586,11 @@ window.carregarAulasRegistradas = async function(turmaId){
       const qtdGrupo = Array.isArray(a.grupo) ? a.grupo.length : 1;
       const periodo = a.periodo ?? a.trimestre;
       const periodoLabel = a.municipal ? `${periodo}ª Unid.` : `${periodo}º Trim.`;
-      const quandoLabel = a.modoRegistro==='ordem'
-        ? `${a.ordem}ª aula <span style="font-weight:400;color:var(--pe-muted);">(${_diaSemanaLabel(a.diaSemana)}, ${(a.horarios||[]).join(', ')||'sem horário'})</span>`
+      const quandoLabel = (a.modoRegistro==='ordem' && !a.data)
+        ? (() => {
+            const inicio = a.ordem, fim = a.ordem + (a.quantidade||1) - 1;
+            return `${fim>inicio?`Aulas ${inicio}–${fim}`:`Aula ${inicio}`} <span style="font-weight:400;color:var(--pe-muted);">(sem data — aguardando exportação)</span>`;
+          })()
         : (a.data||'—');
       return `
       <div style="border:1.5px solid var(--pe-border);border-radius:6px;padding:8px 10px;margin-bottom:8px;display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">
@@ -14941,8 +15653,15 @@ window.exportarAulasParaSiepe = async function(turmaId){
       return;
     }
 
-    const aulas = [];
-    snap.forEach(d=>aulas.push({ id:d.id, ...d.data() }));
+    const aulasTodas = [];
+    snap.forEach(d=>aulasTodas.push({ id:d.id, ...d.data() }));
+    const aulas = aulasTodas.filter(a=>a.data);
+    const pendentes = aulasTodas.length - aulas.length;
+    if(!aulas.length){
+      hideLoading();
+      showToast(pendentes ? `Essa turma só tem registros "por ordem" ainda não resolvidos. Use "Exportar por ordem da aula".` : 'Nenhuma aula registrada nessa turma ainda.', 'error');
+      return;
+    }
     const aulasOrdenadas = _ordenarAulasParaExport(aulas);
 
     const payload = {
@@ -14969,7 +15688,7 @@ window.exportarAulasParaSiepe = async function(turmaId){
     aTag.href = url;
     aTag.click();
     URL.revokeObjectURL(url);
-    showToast(`${aulas.length} aula(s) exportada(s) para o ${municipal?'SIEC':'SIEPE'}!`, 'success');
+    showToast(`${aulas.length} aula(s) exportada(s) para o ${municipal?'SIEC':'SIEPE'}!${pendentes ? ` (${pendentes} registro(s) "por ordem" ficaram de fora)` : ''}`, 'success');
   } catch(e){
     hideLoading();
     showToast('Erro ao exportar: '+e.message, 'error');
