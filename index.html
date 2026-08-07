@@ -1211,6 +1211,11 @@ body{ box-sizing:border-box; }
   background:var(--pe-bg);overflow-y:auto;
 }
 #profile-screen.active{display:flex;}
+#settings-screen{
+  display:none;flex-direction:column;height:100dvh;max-height:100dvh;
+  background:var(--pe-bg);overflow-y:auto;
+}
+#settings-screen.active{display:flex;}
 .profile-body{
   flex:1;padding:24px 16px 40px;
   max-width:700px;margin:0 auto;width:100%;
@@ -3422,23 +3427,27 @@ window.addEventListener('unhandledrejection', function(ev){
       <div class="profile-section-header">
         <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><polyline points="4 7 4 4 20 4 20 7"/><line x1="9" y1="20" x2="15" y2="20"/><line x1="12" y1="4" x2="12" y2="20"/></svg> Tamanho do texto</h3>
       </div>
-      <p style="font-size:.8rem;color:var(--pe-muted);margin:0 0 12px;">
-        Deixa as letras do app inteiro maiores ou menores — útil se você tem dificuldade pra enxergar em tamanho pequeno.
-        Vale pra tudo: notas, aulas, exportação, tudo.
-      </p>
-      <div id="settings-font-scale-picker"></div>
+      <div class="profile-section-body">
+        <p style="font-size:.8rem;color:var(--pe-muted);margin:0 0 12px;">
+          Deixa as letras do app inteiro maiores ou menores — útil se você tem dificuldade pra enxergar em tamanho pequeno.
+          Vale pra tudo: notas, aulas, exportação, tudo.
+        </p>
+        <div id="settings-font-scale-picker"></div>
+      </div>
     </div>
 
     <div class="profile-section">
       <div class="profile-section-header">
         <h3><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Aparência</h3>
       </div>
-      <p style="font-size:.8rem;color:var(--pe-muted);margin:0 0 12px;">
-        Alterna entre tela clara e escura. Fica salvo só neste dispositivo.
-      </p>
-      <button class="atv-card-transferir-btn" onclick="toggleDarkMode()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Alternar modo escuro
-      </button>
+      <div class="profile-section-body">
+        <p style="font-size:.8rem;color:var(--pe-muted);margin:0 0 12px;">
+          Alterna entre tela clara e escura. Fica salvo só neste dispositivo.
+        </p>
+        <button class="atv-card-transferir-btn" onclick="toggleDarkMode()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="width:1em;height:1em;display:inline-block;vertical-align:-2px;flex-shrink:0;"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg> Alternar modo escuro
+        </button>
+      </div>
     </div>
 
   </div>
@@ -4353,7 +4362,7 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-// ── CARREGAR DADOS DO USUÁRIO ─────  ───────────────────────────────────
+// ── CARREGAR DADOS DO USUÁRIO ─────��───────────────────────────────────
 async function loadUserData(){
   const pSnap = await getDoc(doc(db,'users',_uid,'perfil','dados'));
   _perfil = pSnap.exists() ? pSnap.data() : null;
@@ -6567,7 +6576,7 @@ window.finishSetup = async function(){
 // ══════════════════════════════════════════════
 // ══════════════════════════════════════════════
 // DASHBOARD
-// ════  ══════════════════════════════════   ══════
+// ════��══════════════════════════════════���══════
 let _anoFiltro = null; // null = todos
 let _escolaFiltro = null; // null = todas as escolas; senão, id da escola selecionada
 
@@ -7530,7 +7539,7 @@ window.renderModalAlunos = function(){
 const MSG_PCD = 'O estudante é avaliado via relatório';
 function isPCD(a){ return !!(a && typeof a==='object' && a.pcd===true); }
 
-// ── MODAL DE EDIÇÃO ────       ────────────────────────────────────
+// ── MODAL DE EDIÇÃO ────�������────────────────────────────────────
 let _editTurmaId = null;
 let _editAlunos  = [];
 
@@ -8348,7 +8357,7 @@ window.reativarEscola = async function(id){
 window.excluirEscolaDefinitivo = async function(id){
   const escola = _escolas.find(e=>e.id===id);
   if(!escola || escola.ativo!==false){
-    showToast('Só é possível excluir escolas j   desativadas.','error'); return;
+    showToast('Só é possível excluir escolas j�� desativadas.','error'); return;
   }
   if(!confirm(`Excluir definitivamente "${escola.nome}"? Todas as turmas vinculadas perderão essa referência.`)) return;
   showLoading('Excluindo escola...');
@@ -8452,7 +8461,7 @@ function getRegrasRede(escolaTipo){
     limiteRecFinal:     0.0,
     limiteAprovacaoFinal: 6.0,
     calcNotaFinal: (media, rec) => {
-      // Recuperação substitui a m  dia se for maior. Sem arredondamento.
+      // Recuperação substitui a m��dia se for maior. Sem arredondamento.
       return rec > media ? rec : media;
     },
     // Recuperação por unidade: substitui a nota da UNIDADE INTEIRA
@@ -9707,7 +9716,7 @@ function renderUnidadeContent(unidade){
   </div>`;
 }
 
-// ── Toggle de seção colapsável ─────────────   ────────────────────────
+// ── Toggle de seção colapsável ─────────────���────────────────────────
 window.toggleSecao = function(id){
   const secao = document.getElementById(`secao-${id}`);
   if(!secao) return;
@@ -12464,7 +12473,7 @@ window.onChangeRecFinal = function(turmaId, ai, val){
 
 // ══════════════════════════════════════════════════════════════════════
 // ETAPA 6 — DIAGNÓSTICO COM GRÁFICOS SVG
-// ════  ═════════════════════════════════════════════════════════════════
+// ════��═════════════════════════════════════════════════════════════════
 
 // Classifica situação da unidade para um aluno:
 //   'aprovado'      → nota ≥ 6
@@ -12920,7 +12929,7 @@ window.aplicarQtdAtividades = async function(uid){
 };
 
 // ── Vistos ───────────────────────────────────────────────
-// ── Helpers de vistos ─────────────  ────────────────────────
+// ── Helpers de vistos ─────────────��────────────────────────
 function temMarcasNoVisto(uid, idx, vi){
   // Verifica se algum aluno tem o visto 'vi' marcado (em qualquer dos 3 estados)
   const atvNotas = _notasCache[uid]?.atv[idx] || {};
@@ -14060,8 +14069,8 @@ const TURNO_TEMPLATES = {
   ]},
   turno2: { label:'Integral 35h — 2º turno', aulas:[
     {n:1,inicio:'14:10',fim:'15:00'}, {n:2,inicio:'15:00',fim:'15:50'}, {n:3,inicio:'16:10',fim:'17:00'},
-    {n:4,inicio:'17:00',fim:'17:50'}, {n:5,inicio:'17:50',fim:'18:40'}, {n:6,inicio:'19:20',fim:'20:10'},
-    {n:7,inicio:'20:10',fim:'21:00'},
+    {n:4,inicio:'17:00',fim:'17:50'}, {n:5,inicio:'17:50',fim:'18:40'}, {n:6,inicio:'19:30',fim:'20:20'},
+    {n:7,inicio:'20:20',fim:'21:10'},
   ]},
 };
 
